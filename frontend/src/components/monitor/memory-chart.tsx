@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -61,7 +61,9 @@ export function MemoryChart({
               total: data.total,
             },
           ]
-          return newData.length > 10 ? newData.slice(newData.length - 10) : newData
+          return newData.length > 10
+            ? newData.slice(newData.length - 10)
+            : newData
         })
       }
     } catch (err) {
@@ -74,13 +76,15 @@ export function MemoryChart({
       <div className={className}>
         <Card className="w-full">
           <CardContent>
-            <div className="flex flex-col items-center justify-center h-40 py-3">
+            <div className="flex h-40 flex-col items-center justify-center py-3">
               <HardDrive
                 strokeWidth={1.2}
-                className="h-8 w-8 mb-2 animate-bounce text-muted-foreground"
+                className="text-muted-foreground mb-2 h-8 w-8 animate-bounce"
               />
-              <p className="text-sm font-medium text-center mb-1">Loading memory data</p>
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="mb-1 text-center text-sm font-medium">
+                Loading memory data
+              </p>
+              <p className="text-muted-foreground text-center text-xs">
                 Fetching memory utilization metrics...
               </p>
             </div>
@@ -95,10 +99,17 @@ export function MemoryChart({
       <div className={className}>
         <Card className="w-full">
           <CardContent>
-            <div className="flex flex-col items-center justify-center h-40">
-              <ServerOff strokeWidth={1.2} className="h-8 w-8 mb-2 text-muted-foreground" />
-              <p className="text-sm font-medium text-center mb-1">Failed to load memory data</p>
-              <p className="text-xs text-muted-foreground text-center mb-3">{error.message}</p>
+            <div className="flex h-40 flex-col items-center justify-center">
+              <ServerOff
+                strokeWidth={1.2}
+                className="text-muted-foreground mb-2 h-8 w-8"
+              />
+              <p className="mb-1 text-center text-sm font-medium">
+                Failed to load memory data
+              </p>
+              <p className="text-muted-foreground mb-3 text-center text-xs">
+                {error.message}
+              </p>
               {refetch && (
                 <Button
                   variant="outline"
@@ -142,8 +153,16 @@ export function MemoryChart({
               }}
             >
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="time" tickLine={false} axisLine={false} tickMargin={8} />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <XAxis
+                dataKey="time"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
               <Area
                 dataKey="memoryUsage"
                 type="monotone"

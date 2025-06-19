@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { useQuery } from '@tanstack/react-query'
 
@@ -50,14 +50,18 @@ export const useGpuUtilization = () => {
       const timeoutId = setTimeout(() => controller.abort(), 3000)
 
       try {
-        const response = await fetch('/custom/gpu-utilization', { signal: controller.signal })
+        const response = await fetch('/custom/gpu-utilization', {
+          signal: controller.signal,
+        })
         if (!response.ok) {
           throw new Error('Network response was not ok')
         }
         return response.json()
       } catch (error) {
         if (controller.signal.aborted) {
-          throw new Error('Request timed out. Please refer to the troubleshooting guide.')
+          throw new Error(
+            'Request timed out. Please refer to the troubleshooting guide.',
+          )
         }
         throw error
       } finally {

@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,10 +22,12 @@ interface DlStreamerProps {
 }
 
 export function DlStreamer({ workload }: DlStreamerProps) {
-  const [fpsData, setFpsData] = useState<Array<{ time: number | null; fps: number | null }>>(
-    Array(10).fill({ time: null, fps: null }),
+  const [fpsData, setFpsData] = useState<
+    Array<{ time: number | null; fps: number | null }>
+  >(Array(10).fill({ time: null, fps: null }))
+  const { data, isLoading, isSuccess } = useGetStreamMetricInterval(
+    workload.port ?? 8080,
   )
-  const { data, isLoading, isSuccess } = useGetStreamMetricInterval(workload.port ?? 8080)
   const maxCount = 10
 
   // Update the FPS data every second
@@ -36,7 +38,9 @@ export function DlStreamer({ workload }: DlStreamerProps) {
 
         setFpsData((prevData) => {
           const newData = [...prevData, { time: Date.now(), fps }]
-          return newData.length > 10 ? newData.slice(newData.length - 10) : newData
+          return newData.length > 10
+            ? newData.slice(newData.length - 10)
+            : newData
         })
       }
     } catch (err) {
@@ -68,7 +72,10 @@ export function DlStreamer({ workload }: DlStreamerProps) {
                 <CardTitle>FPS (Current: {data?.data.total_fps} fps)</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[150px] w-full">
+                <ChartContainer
+                  config={chartConfig}
+                  className="h-[150px] w-full"
+                >
                   <LineChart
                     accessibilityLayer
                     data={fpsData}
@@ -85,7 +92,10 @@ export function DlStreamer({ workload }: DlStreamerProps) {
                       tickMargin={8}
                       tickFormatter={tickFormatter}
                     />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel />}
+                    />
                     <Line
                       dataKey="fps"
                       type="linear"
@@ -105,11 +115,11 @@ export function DlStreamer({ workload }: DlStreamerProps) {
             <CardHeader>
               <CardTitle>Workload: {workload.usecase}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 h-full flex items-center">
-              <div className="relative aspect-video w-full h-full bg-black rounded-lg overflow-hidden">
+            <CardContent className="flex h-full items-center space-y-4">
+              <div className="relative aspect-video h-full w-full overflow-hidden rounded-lg bg-black">
                 <Image
                   alt="dlstreamer-stream"
-                  className="w-full h-full"
+                  className="h-full w-full"
                   src={`/api/stream?port=${workload.port}`}
                   width={1920}
                   height={1080}

@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { Workload } from '@/payload-types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -77,7 +77,7 @@ export const useDeleteWorkload = () => {
   return useMutation({
     mutationFn: async (id: number) => {
       // Validate: Only allow positive integers as valid IDs
-     if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) {
+      if (typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) {
         throw new Error('Invalid workload ID: must be a positive integer')
       }
 
@@ -97,19 +97,19 @@ export const useDeleteWorkload = () => {
         },
       })
 
-        if (!response.ok) {
-          // Try to parse error message, fallback to status text
-          let errorMsg = 'Failed to delete workload'
-          try {
-            const error = await response.json()
-            errorMsg = error.message || errorMsg
-          } catch {
-            errorMsg = response.statusText || errorMsg
-          }
-          throw new Error(errorMsg)
+      if (!response.ok) {
+        // Try to parse error message, fallback to status text
+        let errorMsg = 'Failed to delete workload'
+        try {
+          const error = await response.json()
+          errorMsg = error.message || errorMsg
+        } catch {
+          errorMsg = response.statusText || errorMsg
         }
+        throw new Error(errorMsg)
+      }
 
-        return await response.json()
+      return await response.json()
     },
     onSuccess: () => {
       // Invalidate workloads query to refresh data

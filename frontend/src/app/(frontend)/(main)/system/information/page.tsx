@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -14,30 +14,34 @@ export default function SystemInformationPage() {
   const { data, isLoading, error } = useSystemInfo()
 
   if (isLoading) return <div className="text-center">Loading...</div>
-  if (error) return <div className="text-center text-red-500">Error: {error.message}</div>
+  if (error)
+    return (
+      <div className="text-center text-red-500">Error: {error.message}</div>
+    )
 
   if (!data) {
     return <div className="text-center text-red-500">No data available</div>
   }
 
   function displayManufacturerBrand(manufacturer: string, brand: string) {
-    if (manufacturer === NOT_AVAILABLE && brand === NOT_AVAILABLE) return NOT_AVAILABLE
+    if (manufacturer === NOT_AVAILABLE && brand === NOT_AVAILABLE)
+      return NOT_AVAILABLE
     if (manufacturer === NOT_AVAILABLE) return brand
     if (brand === NOT_AVAILABLE) return manufacturer
     return `${manufacturer} ${brand}`
   }
 
   return (
-    <div className="container flex flex-col h-full w-full mx-auto px-6">
+    <div className="container mx-auto flex h-full w-full flex-col px-6">
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-auto hide-scrollbar">
-        <div className="w-full py-6 px-2">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex flex-col justify-left">
+      <div className="hide-scrollbar flex-1 overflow-auto">
+        <div className="w-full px-2 py-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="justify-left flex flex-col">
               <h1 className="text-lg font-bold">System Information</h1>
             </div>
           </div>
-          <div className="w-full grid gap-6">
+          <div className="grid w-full gap-6">
             {/* System Overview Card */}
             <Card>
               <CardHeader>
@@ -140,20 +144,30 @@ export default function SystemInformationPage() {
               <CardContent>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">
+                    <h3 className="mb-2 text-lg font-semibold">
                       {displayManufacturerBrand(data.manufacturer, data.brand)}
                     </h3>
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-1">
-                        <div className="text-sm text-muted-foreground">Physical Cores:</div>
-                        <div className="text-sm font-medium">{data.physicalCores}</div>
+                        <div className="text-muted-foreground text-sm">
+                          Physical Cores:
+                        </div>
+                        <div className="text-sm font-medium">
+                          {data.physicalCores}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
-                        <div className="text-sm text-muted-foreground">Threads:</div>
-                        <div className="text-sm font-medium">{data.threads}</div>
+                        <div className="text-muted-foreground text-sm">
+                          Threads:
+                        </div>
+                        <div className="text-sm font-medium">
+                          {data.threads}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
-                        <div className="text-sm text-muted-foreground">Min Speed:</div>
+                        <div className="text-muted-foreground text-sm">
+                          Min Speed:
+                        </div>
                         <div className="text-sm font-medium">
                           {data.cpuSpeedMin !== NOT_AVAILABLE
                             ? `${data.cpuSpeedMin} GHz`
@@ -161,7 +175,9 @@ export default function SystemInformationPage() {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
-                        <div className="text-sm text-muted-foreground">Max Speed:</div>
+                        <div className="text-muted-foreground text-sm">
+                          Max Speed:
+                        </div>
                         <div className="text-sm font-medium">
                           {data.cpuSpeedMax !== NOT_AVAILABLE
                             ? `${data.cpuSpeedMax} GHz`
@@ -173,7 +189,7 @@ export default function SystemInformationPage() {
 
                   <div className="space-y-4">
                     <div>
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="mb-2 flex items-center justify-between">
                         <div className="text-sm font-medium">Temperature</div>
                         <div className="text-sm font-medium">
                           {data.temperature !== NOT_AVAILABLE
@@ -201,25 +217,42 @@ export default function SystemInformationPage() {
               <CardContent>
                 {data.gpuInfo && data.gpuInfo.length > 0 ? (
                   <div className="space-y-4">
-                    {data.gpuInfo.map((gpu: { name: string; device: string }, index: number) => (
-                      <div key={index} className="space-y-2">
-                        <div className="grid grid-cols-2 gap-1">
-                          <div className="text-sm text-muted-foreground">Model:</div>
-                          <div className="text-sm font-medium">{gpu.name}</div>
+                    {data.gpuInfo.map(
+                      (
+                        gpu: { name: string; device: string },
+                        index: number,
+                      ) => (
+                        <div key={index} className="space-y-2">
+                          <div className="grid grid-cols-2 gap-1">
+                            <div className="text-muted-foreground text-sm">
+                              Model:
+                            </div>
+                            <div className="text-sm font-medium">
+                              {gpu.name}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <div className="text-muted-foreground text-sm">
+                              Device:
+                            </div>
+                            <div className="text-sm font-medium">
+                              {gpu.device !== NOT_AVAILABLE
+                                ? gpu.device
+                                : gpu.device}
+                            </div>
+                          </div>
+                          {index < data.gpuInfo.length - 1 && (
+                            <hr className="my-2" />
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-1">
-                          <div className="text-sm text-muted-foreground">Device:</div>
-                          <div className="text-sm font-medium">{gpu.device !== NOT_AVAILABLE ? gpu.device : gpu.device}</div>
-                        </div>
-                        {index < data.gpuInfo.length - 1 && <hr className="my-2" />}
-                      </div>
-                    ))}
+                      ),
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <div className="gap-1 flex items-center">
-                        <div className="text-sm text-bold">
+                      <div className="flex items-center gap-1">
+                        <div className="text-bold text-sm">
                           There are no available GPU devices...
                         </div>
                       </div>
@@ -243,7 +276,9 @@ export default function SystemInformationPage() {
                     <div>
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-1">
-                          <div className="text-sm text-muted-foreground">Model:</div>
+                          <div className="text-muted-foreground text-sm">
+                            Model:
+                          </div>
                           <div className="text-sm font-medium">{data.npu}</div>
                         </div>
                       </div>

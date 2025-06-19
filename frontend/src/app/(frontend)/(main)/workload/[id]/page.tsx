@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -17,7 +17,11 @@ import { DlStreamer } from '@/components/usecase/dlstreamer'
 
 // Workload type definition
 
-export default function WorkloadPage({ params }: { params: Promise<{ id: string }> }) {
+export default function WorkloadPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const router = useRouter()
   const unwrappedParams = React.use(params)
   const workloadId = Number.parseInt(unwrappedParams.id)
@@ -38,11 +42,15 @@ export default function WorkloadPage({ params }: { params: Promise<{ id: string 
       default:
         return (
           <div className="container py-10 text-center">
-            <h1 className="text-2xl font-bold mb-4">Unsupported Workload Type</h1>
+            <h1 className="mb-4 text-2xl font-bold">
+              Unsupported Workload Type
+            </h1>
             <p className="text-muted-foreground mb-6">
               Current workload type is not supported by the current version.
             </p>
-            <Button onClick={() => router.push('/')}>Return to Dashboard</Button>
+            <Button onClick={() => router.push('/')}>
+              Return to Dashboard
+            </Button>
           </div>
         )
     }
@@ -52,10 +60,15 @@ export default function WorkloadPage({ params }: { params: Promise<{ id: string 
   if (isLoading) {
     return (
       <>
-        <div className="container py-10 flex flex-col items-center justify-center">
-          <Package strokeWidth={0.4} className="h-28 w-28 text-primary mb-4 animate-bounce" />
-          <h2 className="text-xl font-medium mb-2">Loading Workload</h2>
-          <p className="text-sm text-muted-foreground">Retrieving workload information...</p>
+        <div className="container flex flex-col items-center justify-center py-10">
+          <Package
+            strokeWidth={0.4}
+            className="text-primary mb-4 h-28 w-28 animate-bounce"
+          />
+          <h2 className="mb-2 text-xl font-medium">Loading Workload</h2>
+          <p className="text-muted-foreground text-sm">
+            Retrieving workload information...
+          </p>
         </div>
       </>
     )
@@ -65,10 +78,10 @@ export default function WorkloadPage({ params }: { params: Promise<{ id: string 
   if (!workload) {
     return (
       <>
-        <div className="container py-10 flex flex-col items-center justify-center">
-          <PackageX strokeWidth={0.4} className="h-28 w-28 text-primary mb-4" />
-          <h2 className="text-xl font-medium mb-2">Workload Not Found</h2>
-          <p className="text-sm text-muted-foreground mb-6">
+        <div className="container flex flex-col items-center justify-center py-10">
+          <PackageX strokeWidth={0.4} className="text-primary mb-4 h-28 w-28" />
+          <h2 className="mb-2 text-xl font-medium">Workload Not Found</h2>
+          <p className="text-muted-foreground mb-6 text-sm">
             The workload with ID {workloadId} does not exist.
           </p>
           <Button onClick={() => router.push('/')}>Return to Dashboard</Button>
@@ -80,10 +93,13 @@ export default function WorkloadPage({ params }: { params: Promise<{ id: string 
   if (workload.status === 'prepare') {
     return (
       <>
-        <div className="container py-10 flex flex-col items-center justify-center">
-          <PackageOpen strokeWidth={0.4} className="h-28 w-28 text-primary mb-4 animate-bounce" />
-          <h2 className="text-xl font-medium mb-2">Preparing Workload</h2>
-          <p className="text-sm text-muted-foreground">Preparing workload...</p>
+        <div className="container flex flex-col items-center justify-center py-10">
+          <PackageOpen
+            strokeWidth={0.4}
+            className="text-primary mb-4 h-28 w-28 animate-bounce"
+          />
+          <h2 className="mb-2 text-xl font-medium">Preparing Workload</h2>
+          <p className="text-muted-foreground text-sm">Preparing workload...</p>
         </div>
       </>
     )
@@ -92,12 +108,12 @@ export default function WorkloadPage({ params }: { params: Promise<{ id: string 
   if (workload.status === 'failed') {
     return (
       <>
-        <div className="container py-10 flex flex-col items-center justify-center">
-          <PackageX strokeWidth={0.4} className="h-28 w-28 text-primary mb-4" />
-          <h2 className="text-xl font-medium mb-2">Workload Failed</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            The workload with ID {workloadId} has failed.
-            You can either edit or delete the workload from the dashboard.
+        <div className="container flex flex-col items-center justify-center py-10">
+          <PackageX strokeWidth={0.4} className="text-primary mb-4 h-28 w-28" />
+          <h2 className="mb-2 text-xl font-medium">Workload Failed</h2>
+          <p className="text-muted-foreground mb-6 text-sm">
+            The workload with ID {workloadId} has failed. You can either edit or
+            delete the workload from the dashboard.
           </p>
           <Button onClick={() => router.push('/')}>Return to Dashboard</Button>
         </div>
@@ -106,12 +122,14 @@ export default function WorkloadPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="container flex flex-col h-full w-full mx-auto px-6">
+    <div className="container mx-auto flex h-full w-full flex-col px-6">
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-auto hide-scrollbar">
-        <div className="flex justify-between items-center my-4">
-          <div className="flex flex-col justify-left">
-            <h1 className="text-lg font-bold capitalize">{workload.usecase.replace(/-/g, ' ')}</h1>
+      <div className="hide-scrollbar flex-1 overflow-auto">
+        <div className="my-4 flex items-center justify-between">
+          <div className="justify-left flex flex-col">
+            <h1 className="text-lg font-bold capitalize">
+              {workload.usecase.replace(/-/g, ' ')}
+            </h1>
           </div>
         </div>
 

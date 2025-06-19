@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -43,7 +43,9 @@ export function CpuChart({
   error = null,
   refetch,
 }: CpuChartProps) {
-  const [chartData, setChartData] = useState<{ time: string; cpuUsage: number }[]>([])
+  const [chartData, setChartData] = useState<
+    { time: string; cpuUsage: number }[]
+  >([])
 
   useEffect(() => {
     try {
@@ -53,7 +55,9 @@ export function CpuChart({
             ...prevData,
             { time: new Date().toLocaleTimeString(), cpuUsage: data.cpuUsage },
           ]
-          return newData.length > 10 ? newData.slice(newData.length - 10) : newData
+          return newData.length > 10
+            ? newData.slice(newData.length - 10)
+            : newData
         })
       }
     } catch (err) {
@@ -66,13 +70,15 @@ export function CpuChart({
       <div className={className}>
         <Card className="w-full">
           <CardContent>
-            <div className="flex flex-col items-center justify-center h-40 py-3">
+            <div className="flex h-40 flex-col items-center justify-center py-3">
               <CpuIcon
                 strokeWidth={1.2}
-                className="h-8 w-8 mb-2 animate-bounce text-muted-foreground"
+                className="text-muted-foreground mb-2 h-8 w-8 animate-bounce"
               />
-              <p className="text-sm font-medium text-center mb-1">Loading CPU data</p>
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="mb-1 text-center text-sm font-medium">
+                Loading CPU data
+              </p>
+              <p className="text-muted-foreground text-center text-xs">
                 Fetching processor utilization metrics...
               </p>
             </div>
@@ -87,10 +93,17 @@ export function CpuChart({
       <div className={className}>
         <Card className="w-full">
           <CardContent>
-            <div className="flex flex-col items-center justify-center h-40">
-              <ServerOff strokeWidth={1.2} className="h-8 w-8 mb-2 text-muted-foreground" />
-              <p className="text-sm font-medium text-center mb-1">Failed to load CPU data</p>
-              <p className="text-xs text-muted-foreground text-center mb-3">{error.message}</p>
+            <div className="flex h-40 flex-col items-center justify-center">
+              <ServerOff
+                strokeWidth={1.2}
+                className="text-muted-foreground mb-2 h-8 w-8"
+              />
+              <p className="mb-1 text-center text-sm font-medium">
+                Failed to load CPU data
+              </p>
+              <p className="text-muted-foreground mb-3 text-center text-xs">
+                {error.message}
+              </p>
               {refetch && (
                 <Button
                   variant="outline"
@@ -118,7 +131,9 @@ export function CpuChart({
               <Cpu className="h-4 w-4" />
               CPU
             </div>
-            <div className="float-right">{data ? `${Math.round(data.cpuUsage)}%` : 'N/A'}</div>
+            <div className="float-right">
+              {data ? `${Math.round(data.cpuUsage)}%` : 'N/A'}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -132,8 +147,16 @@ export function CpuChart({
               }}
             >
               <CartesianGrid vertical={false} />
-              <XAxis dataKey="time" tickLine={false} axisLine={false} tickMargin={8} />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <XAxis
+                dataKey="time"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
               <Area
                 dataKey="cpuUsage"
                 type="monotone"

@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { NextResponse } from 'next/server'
 import os from 'os'
@@ -16,7 +16,6 @@ interface CpuUsage {
   idle: number
   total: number
 }
-
 
 function calculateCpuUsage(): CpuUsage {
   const cpus = os.cpus()
@@ -39,7 +38,11 @@ export async function GET() {
   const startMeasure = calculateCpuUsage()
 
   // Wait for a short period to measure CPU usage
-  await new Promise((resolve) => setTimeout(()=>{resolve(null)}, 1000))
+  await new Promise((resolve) =>
+    setTimeout(() => {
+      resolve(null)
+    }, 1000),
+  )
 
   const endMeasure = calculateCpuUsage()
 

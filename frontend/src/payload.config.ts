@@ -1,7 +1,6 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
-import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -35,12 +34,8 @@ export default buildConfig({
     client: {
       url: process.env.DATABASE_URL ?? 'db.sqlite',
     },
-    prodMigrations: migrations
+    prodMigrations: migrations,
   }),
   // database-adapter-config-end
   sharp,
-  plugins: [
-    payloadCloudPlugin(),
-    // storage-adapter-placeholder
-  ],
 })

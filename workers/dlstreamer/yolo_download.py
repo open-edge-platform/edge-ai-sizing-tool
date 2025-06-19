@@ -1,5 +1,5 @@
 # Copyright (C) 2025 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0 
+# SPDX-License-Identifier: Apache-2.0
 
 import os
 import sys
@@ -61,7 +61,7 @@ YOLO_MODELS = {
 MODELS_DIR = os.getenv("MODELS_DIR", "./models")
 
 
-def is_path_safe(base_dir:Path, path:Path)-> bool:
+def is_path_safe(base_dir: Path, path: Path) -> bool:
     """Make sure resolved path is within in the intended base directory."""
     try:
         base_dir = base_dir.resolve(strict=False)
@@ -69,15 +69,22 @@ def is_path_safe(base_dir:Path, path:Path)-> bool:
         return str(path).startswith(str(base_dir))
     except Exception:
         return False
-    
+
+
 def model_files_exist_and_safe(model_path_fp32: Path, model_path_fp16: Path) -> bool:
     """
     Returns True if both model files exist and are not symlinks or do not contain symlinks in their paths.
     """
     if model_path_fp32.exists() and model_path_fp16.exists():
         logging.info(f"Model already exists: {model_path_fp32} and {model_path_fp16}")
-        if os.path.realpath(model_path_fp32) != os.path.abspath(model_path_fp32) or os.path.realpath(model_path_fp16) != os.path.abspath(model_path_fp16): # Check if the model path is a symlink
-            logging.info(f"Error: Model file {model_path_fp32} or {model_path_fp16} is a symlink or contains a symlink in its path. Refusing to open for security reasons.")
+        if os.path.realpath(model_path_fp32) != os.path.abspath(
+            model_path_fp32
+        ) or os.path.realpath(model_path_fp16) != os.path.abspath(
+            model_path_fp16
+        ):  # Check if the model path is a symlink
+            logging.info(
+                f"Error: Model file {model_path_fp32} or {model_path_fp16} is a symlink or contains a symlink in its path. Refusing to open for security reasons."
+            )
             return False
         return True
 
@@ -135,7 +142,6 @@ def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
     if not is_path_safe(Path.cwd(), converted_path):
         logging.error(f"Unsafe converted path detected: {converted_path}")
         sys.exit(1)
-        
     # Load the converted model
     core = ov.Core()
     ov_model = core.read_model(model=os.path.join(converted_path, f"{model_name}.xml"))
@@ -158,7 +164,6 @@ def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
         logging.info(f"Removed {pt_file}")
 
     logging.info(f"Model saved: {model_path_fp32} and {model_path_fp16}")
-    
     return True
 
 

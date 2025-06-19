@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -57,17 +57,17 @@ export function TextGen({ workload }: TextGenProps) {
   } | null>(
     result
       ? {
-        generation_time_s: result.generation_time_s || 0,
-        load_time_s: result.load_time_s || 0,
-        time_to_token_s: result.time_to_token_s || 0,
-        throughput_s: result.throughput_s || 0,
-      }
+          generation_time_s: result.generation_time_s || 0,
+          load_time_s: result.load_time_s || 0,
+          time_to_token_s: result.time_to_token_s || 0,
+          throughput_s: result.throughput_s || 0,
+        }
       : {
-        generation_time_s: 0,
-        load_time_s: 0,
-        time_to_token_s: 0,
-        throughput_s: 0,
-      },
+          generation_time_s: 0,
+          load_time_s: 0,
+          time_to_token_s: 0,
+          throughput_s: 0,
+        },
   )
   const [previousMetrics, setPreviousMetrics] = useState<{
     generation_time_s: number
@@ -145,7 +145,9 @@ export function TextGen({ workload }: TextGenProps) {
           metrics={[
             {
               name: 'Load Time',
-              value: metrics.load_time_s ? metrics.load_time_s.toFixed(2) : '0.00',
+              value: metrics.load_time_s
+                ? metrics.load_time_s.toFixed(2)
+                : '0.00',
               unit: 's',
               trend: previousMetrics?.load_time_s
                 ? metrics.load_time_s < previousMetrics.load_time_s
@@ -154,10 +156,10 @@ export function TextGen({ workload }: TextGenProps) {
                 : undefined,
               trendValue: previousMetrics?.load_time_s
                 ? `${(
-                  ((previousMetrics.load_time_s - metrics.load_time_s) /
-                    previousMetrics.load_time_s) *
-                  100
-                ).toFixed(1)}%`
+                    ((previousMetrics.load_time_s - metrics.load_time_s) /
+                      previousMetrics.load_time_s) *
+                    100
+                  ).toFixed(1)}%`
                 : undefined,
               description: previousMetrics?.load_time_s
                 ? metrics.load_time_s < previousMetrics.load_time_s
@@ -168,7 +170,9 @@ export function TextGen({ workload }: TextGenProps) {
             },
             {
               name: 'Generation Time',
-              value: metrics.generation_time_s ? metrics.generation_time_s.toFixed(2) : '0.00',
+              value: metrics.generation_time_s
+                ? metrics.generation_time_s.toFixed(2)
+                : '0.00',
               unit: 's',
               trend: previousMetrics?.generation_time_s
                 ? metrics.generation_time_s < previousMetrics.generation_time_s
@@ -177,10 +181,11 @@ export function TextGen({ workload }: TextGenProps) {
                 : undefined,
               trendValue: previousMetrics?.generation_time_s
                 ? `${(
-                  ((previousMetrics.generation_time_s - metrics.generation_time_s) /
-                    previousMetrics.generation_time_s) *
-                  100
-                ).toFixed(1)}%`
+                    ((previousMetrics.generation_time_s -
+                      metrics.generation_time_s) /
+                      previousMetrics.generation_time_s) *
+                    100
+                  ).toFixed(1)}%`
                 : undefined,
               description: previousMetrics?.generation_time_s
                 ? metrics.generation_time_s < previousMetrics.generation_time_s
@@ -191,7 +196,9 @@ export function TextGen({ workload }: TextGenProps) {
             },
             {
               name: 'Time to First Token',
-              value: metrics.time_to_token_s ? metrics.time_to_token_s.toFixed(2) : '0.00',
+              value: metrics.time_to_token_s
+                ? metrics.time_to_token_s.toFixed(2)
+                : '0.00',
               unit: 's',
               trend: previousMetrics?.time_to_token_s
                 ? metrics.time_to_token_s < previousMetrics.time_to_token_s
@@ -200,10 +207,11 @@ export function TextGen({ workload }: TextGenProps) {
                 : undefined,
               trendValue: previousMetrics?.time_to_token_s
                 ? `${(
-                  ((previousMetrics.time_to_token_s - metrics.time_to_token_s) /
-                    previousMetrics.time_to_token_s) *
-                  100
-                ).toFixed(1)}%`
+                    ((previousMetrics.time_to_token_s -
+                      metrics.time_to_token_s) /
+                      previousMetrics.time_to_token_s) *
+                    100
+                  ).toFixed(1)}%`
                 : undefined,
               description: previousMetrics?.generation_time_s
                 ? metrics.generation_time_s < previousMetrics.generation_time_s
@@ -214,7 +222,9 @@ export function TextGen({ workload }: TextGenProps) {
             },
             {
               name: 'Throughput',
-              value: metrics.throughput_s ? metrics.throughput_s.toFixed(2) : '0.00',
+              value: metrics.throughput_s
+                ? metrics.throughput_s.toFixed(2)
+                : '0.00',
               unit: 'tokens/s',
               trend: previousMetrics?.throughput_s
                 ? metrics.throughput_s > previousMetrics.throughput_s
@@ -223,10 +233,10 @@ export function TextGen({ workload }: TextGenProps) {
                 : undefined,
               trendValue: previousMetrics?.throughput_s
                 ? `${(
-                  ((metrics.throughput_s - previousMetrics.throughput_s) /
-                    previousMetrics.throughput_s) *
-                  100
-                ).toFixed(1)}%`
+                    ((metrics.throughput_s - previousMetrics.throughput_s) /
+                      previousMetrics.throughput_s) *
+                    100
+                  ).toFixed(1)}%`
                 : undefined,
               description: previousMetrics?.throughput_s
                 ? metrics.throughput_s > previousMetrics.throughput_s
@@ -239,18 +249,22 @@ export function TextGen({ workload }: TextGenProps) {
         />
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="lg:col-span-3">
           <Card
-            className={cn("overflow-hidden py-0", workload.status === 'inactive' && "opacity-60 pointer-events-none select-none")}
+            className={cn(
+              'overflow-hidden py-0',
+              workload.status === 'inactive' &&
+                'pointer-events-none opacity-60 select-none',
+            )}
             aria-disabled={workload.status === 'inactive'}
           >
-            <div className="grid lg:grid-cols-2 gap-0">
+            <div className="grid gap-0 lg:grid-cols-2">
               {/* Left column - Settings */}
-              <div className="p-6 space-y-6">
+              <div className="space-y-6 p-6">
                 <div>
                   <h3 className="text-lg font-semibold">Text Generation</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Configure parameters for text generation
                   </p>
                 </div>
@@ -266,7 +280,7 @@ export function TextGen({ workload }: TextGenProps) {
                       value={[maxTokens]}
                       onValueChange={(value) => setMaxTokens(value[0])}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Maximum number of tokens to generate
                     </p>
                   </div>
@@ -274,7 +288,7 @@ export function TextGen({ workload }: TextGenProps) {
               </div>
 
               {/* Right column - Chat interface */}
-              <div className="relative bg-muted/20 flex flex-col h-[500px] border-l">
+              <div className="bg-muted/20 relative flex h-[500px] flex-col border-l">
                 <ScrollArea className="flex-1 p-4">
                   {messages.length > 0 ? (
                     <div className="space-y-4">
@@ -284,13 +298,14 @@ export function TextGen({ workload }: TextGenProps) {
                           className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`flex gap-2 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                            className={`flex max-w-[80%] gap-2 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
                           >
                             <div
-                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${message.role === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                                }`}
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                                message.role === 'user'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted'
+                              }`}
                             >
                               {message.role === 'user' ? (
                                 <User className="h-4 w-4" />
@@ -300,14 +315,17 @@ export function TextGen({ workload }: TextGenProps) {
                             </div>
                             <div>
                               <div
-                                className={`rounded-lg px-3 py-2 text-sm ${message.role === 'user'
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted'
-                                  }`}
+                                className={`rounded-lg px-3 py-2 text-sm ${
+                                  message.role === 'user'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted'
+                                }`}
                               >
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                <p className="text-sm whitespace-pre-wrap">
+                                  {message.content}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="text-muted-foreground mt-1 text-xs">
                                 {formatTime(message.timestamp)}
                               </p>
                             </div>
@@ -317,25 +335,27 @@ export function TextGen({ workload }: TextGenProps) {
                       <div ref={messagesEndRef} />
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full w-full text-muted-foreground">
+                    <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center">
                       <MessageSquare
                         strokeWidth={0.8}
-                        className="h-24 w-24 mt-30 mb-4 opacity-20"
+                        className="mt-30 mb-4 h-24 w-24 opacity-20"
                       />
                       <p className="text-lg font-medium">No messages yet</p>
-                      <p className="text-sm">Start a conversation by sending a message</p>
+                      <p className="text-sm">
+                        Start a conversation by sending a message
+                      </p>
                     </div>
                   )}
                 </ScrollArea>
 
                 {isInferencing && (
-                  <div className="px-4 py-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="text-muted-foreground flex items-center gap-2 px-4 py-2 text-sm">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     <span>Generating a response...</span>
                   </div>
                 )}
 
-                <div className="p-4 border-t bg-background flex gap-2">
+                <div className="bg-background flex gap-2 border-t p-4">
                   <Input
                     placeholder="Type your message..."
                     value={inputValue}
@@ -371,8 +391,9 @@ export function TextGen({ workload }: TextGenProps) {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="pl-4 pb-2 text-xs text-muted-foreground">
-                  Only letters, numbers, spaces, and basic punctuation allowed. Max 300 characters.
+                <p className="text-muted-foreground pb-2 pl-4 text-xs">
+                  Only letters, numbers, spaces, and basic punctuation allowed.
+                  Max 300 characters.
                 </p>
               </div>
             </div>

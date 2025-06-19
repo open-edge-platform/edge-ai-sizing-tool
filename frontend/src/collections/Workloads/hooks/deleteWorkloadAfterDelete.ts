@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { deletePm2Process, stopPm2Process } from '@/lib/pm2Lib'
 import { Workload } from '@/payload-types'
@@ -7,9 +7,12 @@ import { CollectionAfterDeleteHook } from 'payload'
 import fs from 'fs'
 import path from 'path'
 
-const ASSETS_PATH = process.env.ASSETS_PATH ?? path.join(process.cwd(), '../assets/media')
+const ASSETS_PATH =
+  process.env.ASSETS_PATH ?? path.join(process.cwd(), '../assets/media')
 
-export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<Workload> = async ({ doc }) => {
+export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
+  Workload
+> = async ({ doc }) => {
   if (doc.source?.type === 'file' && doc.source.name) {
     const basePath = path.resolve(ASSETS_PATH)
     const rawName = path.basename(doc.source.name)

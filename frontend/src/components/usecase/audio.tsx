@@ -1,11 +1,18 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
 import React from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Upload, FileAudio2, Loader2, Languages, FileText } from 'lucide-react'
+import {
+  Mic,
+  Upload,
+  FileAudio2,
+  Loader2,
+  Languages,
+  FileText,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -14,7 +21,13 @@ import { toast } from 'sonner'
 import { Workload } from '@/payload-types'
 import { useInfer } from '@/hooks/use-infer'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
 import { WorkloadProfile } from '@/components/workload-profile'
 import { PerformanceMetrics } from '@/components/performance-metrics'
 import { cn } from '@/lib/utils'
@@ -36,105 +49,105 @@ interface AudioProps {
 }
 
 const LANGUAGES = {
-  "en": "english",
-  "zh": "chinese",
-  "de": "german",
-  "es": "spanish",
-  "ru": "russian",
-  "ko": "korean",
-  "fr": "french",
-  "ja": "japanese",
-  "pt": "portuguese",
-  "tr": "turkish",
-  "pl": "polish",
-  "ca": "catalan",
-  "nl": "dutch",
-  "ar": "arabic",
-  "sv": "swedish",
-  "it": "italian",
-  "id": "indonesian",
-  "hi": "hindi",
-  "fi": "finnish",
-  "vi": "vietnamese",
-  "he": "hebrew",
-  "uk": "ukrainian",
-  "el": "greek",
-  "ms": "malay",
-  "cs": "czech",
-  "ro": "romanian",
-  "da": "danish",
-  "hu": "hungarian",
-  "ta": "tamil",
-  "no": "norwegian",
-  "th": "thai",
-  "ur": "urdu",
-  "hr": "croatian",
-  "bg": "bulgarian",
-  "lt": "lithuanian",
-  "la": "latin",
-  "mi": "maori",
-  "ml": "malayalam",
-  "cy": "welsh",
-  "sk": "slovak",
-  "te": "telugu",
-  "fa": "persian",
-  "lv": "latvian",
-  "bn": "bengali",
-  "sr": "serbian",
-  "az": "azerbaijani",
-  "sl": "slovenian",
-  "kn": "kannada",
-  "et": "estonian",
-  "mk": "macedonian",
-  "br": "breton",
-  "eu": "basque",
-  "is": "icelandic",
-  "hy": "armenian",
-  "ne": "nepali",
-  "mn": "mongolian",
-  "bs": "bosnian",
-  "kk": "kazakh",
-  "sq": "albanian",
-  "sw": "swahili",
-  "gl": "galician",
-  "mr": "marathi",
-  "pa": "punjabi",
-  "si": "sinhala",
-  "km": "khmer",
-  "sn": "shona",
-  "yo": "yoruba",
-  "so": "somali",
-  "af": "afrikaans",
-  "oc": "occitan",
-  "ka": "georgian",
-  "be": "belarusian",
-  "tg": "tajik",
-  "sd": "sindhi",
-  "gu": "gujarati",
-  "am": "amharic",
-  "yi": "yiddish",
-  "lo": "lao",
-  "uz": "uzbek",
-  "fo": "faroese",
-  "ht": "haitian creole",
-  "ps": "pashto",
-  "tk": "turkmen",
-  "nn": "nynorsk",
-  "mt": "maltese",
-  "sa": "sanskrit",
-  "lb": "luxembourgish",
-  "my": "myanmar",
-  "bo": "tibetan",
-  "tl": "tagalog",
-  "mg": "malagasy",
-  "as": "assamese",
-  "tt": "tatar",
-  "haw": "hawaiian",
-  "ln": "lingala",
-  "ha": "hausa",
-  "ba": "bashkir",
-  "jw": "javanese",
-  "su": "sundanese",
+  en: 'english',
+  zh: 'chinese',
+  de: 'german',
+  es: 'spanish',
+  ru: 'russian',
+  ko: 'korean',
+  fr: 'french',
+  ja: 'japanese',
+  pt: 'portuguese',
+  tr: 'turkish',
+  pl: 'polish',
+  ca: 'catalan',
+  nl: 'dutch',
+  ar: 'arabic',
+  sv: 'swedish',
+  it: 'italian',
+  id: 'indonesian',
+  hi: 'hindi',
+  fi: 'finnish',
+  vi: 'vietnamese',
+  he: 'hebrew',
+  uk: 'ukrainian',
+  el: 'greek',
+  ms: 'malay',
+  cs: 'czech',
+  ro: 'romanian',
+  da: 'danish',
+  hu: 'hungarian',
+  ta: 'tamil',
+  no: 'norwegian',
+  th: 'thai',
+  ur: 'urdu',
+  hr: 'croatian',
+  bg: 'bulgarian',
+  lt: 'lithuanian',
+  la: 'latin',
+  mi: 'maori',
+  ml: 'malayalam',
+  cy: 'welsh',
+  sk: 'slovak',
+  te: 'telugu',
+  fa: 'persian',
+  lv: 'latvian',
+  bn: 'bengali',
+  sr: 'serbian',
+  az: 'azerbaijani',
+  sl: 'slovenian',
+  kn: 'kannada',
+  et: 'estonian',
+  mk: 'macedonian',
+  br: 'breton',
+  eu: 'basque',
+  is: 'icelandic',
+  hy: 'armenian',
+  ne: 'nepali',
+  mn: 'mongolian',
+  bs: 'bosnian',
+  kk: 'kazakh',
+  sq: 'albanian',
+  sw: 'swahili',
+  gl: 'galician',
+  mr: 'marathi',
+  pa: 'punjabi',
+  si: 'sinhala',
+  km: 'khmer',
+  sn: 'shona',
+  yo: 'yoruba',
+  so: 'somali',
+  af: 'afrikaans',
+  oc: 'occitan',
+  ka: 'georgian',
+  be: 'belarusian',
+  tg: 'tajik',
+  sd: 'sindhi',
+  gu: 'gujarati',
+  am: 'amharic',
+  yi: 'yiddish',
+  lo: 'lao',
+  uz: 'uzbek',
+  fo: 'faroese',
+  ht: 'haitian creole',
+  ps: 'pashto',
+  tk: 'turkmen',
+  nn: 'nynorsk',
+  mt: 'maltese',
+  sa: 'sanskrit',
+  lb: 'luxembourgish',
+  my: 'myanmar',
+  bo: 'tibetan',
+  tl: 'tagalog',
+  mg: 'malagasy',
+  as: 'assamese',
+  tt: 'tatar',
+  haw: 'hawaiian',
+  ln: 'lingala',
+  ha: 'hausa',
+  ba: 'bashkir',
+  jw: 'javanese',
+  su: 'sundanese',
 }
 
 export function Audio({ workload }: AudioProps) {
@@ -146,11 +159,11 @@ export function Audio({ workload }: AudioProps) {
   } | null>(
     result
       ? {
-        generation_time_s: result.generation_time_s || 0,
-      }
+          generation_time_s: result.generation_time_s || 0,
+        }
       : {
-        generation_time_s: 0,
-      },
+          generation_time_s: 0,
+        },
   )
   const [previousMetrics, setPreviousMetrics] = useState<{
     generation_time_s: number
@@ -167,10 +180,12 @@ export function Audio({ workload }: AudioProps) {
     const fetchSampleAudio = async () => {
       try {
         const response = await fetch(
-          'https://storage.openvinotoolkit.org/models_contrib/speech/2021.2/librispeech_s5/how_are_you_doing_today.wav'
+          'https://storage.openvinotoolkit.org/models_contrib/speech/2021.2/librispeech_s5/how_are_you_doing_today.wav',
         )
         const blob = await response.blob()
-        const sampleFile = new File([blob], 'how_are_you_doing_today.wav', { type: 'audio/wav' })
+        const sampleFile = new File([blob], 'how_are_you_doing_today.wav', {
+          type: 'audio/wav',
+        })
 
         // Set the file and read it as a Data URL
         setFile(sampleFile)
@@ -301,7 +316,9 @@ export function Audio({ workload }: AudioProps) {
           metrics={[
             {
               name: 'Generation Time',
-              value: metrics.generation_time_s ? metrics.generation_time_s.toFixed(2) : '0.00',
+              value: metrics.generation_time_s
+                ? metrics.generation_time_s.toFixed(2)
+                : '0.00',
               unit: 's',
               trend: previousMetrics?.generation_time_s
                 ? metrics.generation_time_s < previousMetrics.generation_time_s
@@ -310,10 +327,11 @@ export function Audio({ workload }: AudioProps) {
                 : undefined,
               trendValue: previousMetrics?.generation_time_s
                 ? `${(
-                  ((previousMetrics.generation_time_s - metrics.generation_time_s) /
-                    previousMetrics.generation_time_s) *
-                  100
-                ).toFixed(1)}%`
+                    ((previousMetrics.generation_time_s -
+                      metrics.generation_time_s) /
+                      previousMetrics.generation_time_s) *
+                    100
+                  ).toFixed(1)}%`
                 : undefined,
               description: previousMetrics?.generation_time_s
                 ? metrics.generation_time_s < previousMetrics.generation_time_s
@@ -326,19 +344,24 @@ export function Audio({ workload }: AudioProps) {
         />
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
         <div className="lg:col-span-3">
           <Card
-            className={cn("overflow-hidden py-0", workload.status === 'inactive' && "opacity-60 pointer-events-none select-none")}
+            className={cn(
+              'overflow-hidden py-0',
+              workload.status === 'inactive' &&
+                'pointer-events-none opacity-60 select-none',
+            )}
             aria-disabled={workload.status === 'inactive'}
           >
-            <div className="grid lg:grid-cols-2 gap-0">
+            <div className="grid gap-0 lg:grid-cols-2">
               {/* Left column - Audio input and settings */}
-              <div className="p-6 space-y-6">
+              <div className="space-y-6 p-6">
                 <div>
                   <h3 className="text-lg font-semibold">Speech Recognition</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Upload an audio file to {task === 'transcribe' ? 'transcribe' : 'translate'}
+                  <p className="text-muted-foreground text-sm">
+                    Upload an audio file to{' '}
+                    {task === 'transcribe' ? 'transcribe' : 'translate'}
                   </p>
                 </div>
 
@@ -347,19 +370,27 @@ export function Audio({ workload }: AudioProps) {
                     <Label>Task</Label>
                     <RadioGroup
                       value={task}
-                      onValueChange={(value) => setTask(value as 'transcribe' | 'translate')}
+                      onValueChange={(value) =>
+                        setTask(value as 'transcribe' | 'translate')
+                      }
                       className="flex gap-4"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="transcribe" id="transcribe" />
-                        <Label htmlFor="transcribe" className="flex items-center cursor-pointer">
+                        <Label
+                          htmlFor="transcribe"
+                          className="flex cursor-pointer items-center"
+                        >
                           <FileText className="h-4 w-4" />
                           Transcribe
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="translate" id="translate" />
-                        <Label htmlFor="translate" className="flex items-center cursor-pointer">
+                        <Label
+                          htmlFor="translate"
+                          className="flex cursor-pointer items-center"
+                        >
                           <Languages className="h-4 w-4" />
                           Translate
                         </Label>
@@ -368,7 +399,7 @@ export function Audio({ workload }: AudioProps) {
                   </div>
 
                   {task === 'transcribe' && (
-                    <div className="space-y-2 h-[60px]">
+                    <div className="h-[60px] space-y-2">
                       <Label htmlFor="language">Target Language</Label>
                       <Select value={language} onValueChange={setLanguage}>
                         <SelectTrigger id="language">
@@ -386,8 +417,16 @@ export function Audio({ workload }: AudioProps) {
                   )}
 
                   <div
-                    className={`border-2 pt-10border-dashed rounded-lg p-6 flex flex-col items-center text-center cursor-pointer hover:bg-muted/50 ${file ? 'border-primary/40' : 'border-muted-foreground/15'} transition-colors`}
+                    className={`pt-10border-dashed hover:bg-muted/50 flex cursor-pointer flex-col items-center rounded-lg border-2 p-6 text-center ${file ? 'border-primary/40' : 'border-muted-foreground/15'} transition-colors`}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        fileInputRef.current?.click()
+                      }
+                    }}
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
                   >
@@ -401,20 +440,24 @@ export function Audio({ workload }: AudioProps) {
 
                     <FileAudio2
                       strokeWidth={1.2}
-                      className="h-12 w-12 text-muted-foreground mb-4"
+                      className="text-muted-foreground mb-4 h-12 w-12"
                     />
 
                     {file ? (
                       <div className="text-center">
-                        <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                        <p className="max-w-[200px] truncate text-sm font-medium">
+                          {file.name}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {formatFileSize(file.size)}
+                        </p>
                       </div>
                     ) : (
                       <div className="text-center">
-                        <p className="text-sm text-muted-foreground mb-1">
+                        <p className="text-muted-foreground mb-1 text-sm">
                           Click to upload or drag and drop your audio file here
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           Supports MP3, WAV, M4A, and more (max 50MB)
                         </p>
                       </div>
@@ -429,7 +472,9 @@ export function Audio({ workload }: AudioProps) {
                     {isInferencing ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        {task === 'transcribe' ? 'Transcribing...' : 'Translating...'}
+                        {task === 'transcribe'
+                          ? 'Transcribing...'
+                          : 'Translating...'}
                       </>
                     ) : (
                       <>
@@ -451,10 +496,11 @@ export function Audio({ workload }: AudioProps) {
               </div>
 
               {/* Right column - Results */}
-              <div className="relative bg-muted/40 flex flex-col h-[500px] border-l">
-                <div className="p-4 border-b">
+              <div className="bg-muted/40 relative flex h-[500px] flex-col border-l">
+                <div className="border-b p-4">
                   <h3 className="font-medium">
-                    {task === 'transcribe' ? 'Transcription' : 'Translation'} Result
+                    {task === 'transcribe' ? 'Transcription' : 'Translation'}{' '}
+                    Result
                   </h3>
                 </div>
 
@@ -463,10 +509,15 @@ export function Audio({ workload }: AudioProps) {
                     <div className="whitespace-pre-wrap">{result.text}</div>
                   </ScrollArea>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full w-full text-muted-foreground">
-                    <Mic strokeWidth={1.2} className="h-24 w-24 mb-4 opacity-20" />
+                  <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center">
+                    <Mic
+                      strokeWidth={1.2}
+                      className="mb-4 h-24 w-24 opacity-20"
+                    />
                     <p className="text-lg font-medium">
-                      No {task === 'transcribe' ? 'transcription' : 'translation'} yet
+                      No{' '}
+                      {task === 'transcribe' ? 'transcription' : 'translation'}{' '}
+                      yet
                     </p>
                     <p className="text-sm">
                       Upload an audio file and click{' '}

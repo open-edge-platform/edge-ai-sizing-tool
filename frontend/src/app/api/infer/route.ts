@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -24,16 +24,26 @@ export async function POST(req: NextRequest) {
 
     const portStr = String(port)
     if (!/^\d+$/.test(portStr)) {
-      return new Response('Invalid port. Only digits are allowed.', { status: 400 })
+      return new Response('Invalid port. Only digits are allowed.', {
+        status: 400,
+      })
     }
 
-    if (portStr.includes('..') || portStr.includes('//') || /\s/.test(portStr)) {
-      return new Response('Invalid characters in port parameter.', { status: 400 })
+    if (
+      portStr.includes('..') ||
+      portStr.includes('//') ||
+      /\s/.test(portStr)
+    ) {
+      return new Response('Invalid characters in port parameter.', {
+        status: 400,
+      })
     }
 
     const portNumber = parseInt(port, 10)
     if (portNumber < 1 || portNumber > 65535) {
-      return new Response('Invalid port. Port is out of range.', { status: 400 })
+      return new Response('Invalid port. Port is out of range.', {
+        status: 400,
+      })
     }
 
     const inferURL = `http://localhost:${portNumber}/infer`
@@ -41,7 +51,7 @@ export async function POST(req: NextRequest) {
     const response = await fetch(inferURL, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
@@ -57,7 +67,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result, { status: 200 })
   } catch (error) {
     console.error('An error occurred while infer a response:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal Server Error', details: errorMessage },
       { status: 500 },

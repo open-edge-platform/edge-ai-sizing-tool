@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -23,15 +23,25 @@ import { TextGenerationMessage } from '@/components/usecase/textgen'
  * @throws An error if the inference fails.
  */
 
- const ALLOWEDENDPOINT = "/api/infer"
+const ALLOWEDENDPOINT = '/api/infer'
 
-async function inferFetcher(url: string, { arg }: { arg: Record<string, unknown> | AudioMessage | TextToImageMessage | TextGenerationMessage }) {
-
-  if(url !== ALLOWEDENDPOINT){
+async function inferFetcher(
+  url: string,
+  {
+    arg,
+  }: {
+    arg:
+      | Record<string, unknown>
+      | AudioMessage
+      | TextToImageMessage
+      | TextGenerationMessage
+  },
+) {
+  if (url !== ALLOWEDENDPOINT) {
     console.error('Attempted to access unauthorized endpoint')
     return Promise.reject(new Error('Invalid API Endpoint'))
   }
- 
+
   const response = await fetch(ALLOWEDENDPOINT, {
     method: 'POST',
     headers: {
@@ -69,7 +79,13 @@ export function useInfer() {
    * @param message - The message details used to infer the response.
    * @returns A promise that resolves to the inferred response.
    */
-  const inferResponse = async (message: Record<string, string | number> | AudioMessage | TextToImageMessage | TextGenerationMessage) => {
+  const inferResponse = async (
+    message:
+      | Record<string, string | number>
+      | AudioMessage
+      | TextToImageMessage
+      | TextGenerationMessage,
+  ) => {
     setIsInferencing(true)
 
     try {

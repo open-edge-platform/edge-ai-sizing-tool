@@ -1,5 +1,5 @@
 # Copyright (C) 2025 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0 
+# SPDX-License-Identifier: Apache-2.0
 
 import os
 import sys
@@ -42,11 +42,18 @@ def optimum_cli(model_id, output_dir, additional_args: Dict[str, str] = None):
             if value:
                 export_command += f" {value}"
     try:
-        subprocess.run(export_command.split(" "), shell=(platform.system() == "Windows"), check=True, capture_output=True, env=env)
+        subprocess.run(
+            export_command.split(" "),
+            shell=(platform.system() == "Windows"),
+            check=True,
+            capture_output=True,
+            env=env,
+        )
     except Exception as e:
         logging.error(f"optimum-cli failed: {e}")
-        update_payload_status(args.id, status = 'failed')
+        update_payload_status(args.id, status="failed")
         sys.exit(1)
+
 
 def update_payload_status(workload_id: int, status):
     """
@@ -56,11 +63,11 @@ def update_payload_status(workload_id: int, status):
     if not isinstance(workload_id, int) and workload_id >= 0:
         logging.error(f"Invalid workload ID: {workload_id}. Refusing to update status.")
         return
-    
+
     # Hardcode scheme & authority (safe allow-list)
     allowed_scheme = "http"
     allowed_netloc = "127.0.0.1:8080"
-    
+
     # Build the path carefully. Reject characters such as '../'
     # in a real system, you might strictly allow digits only
     path = f"/api/workloads/{workload_id}"
@@ -73,19 +80,18 @@ def update_payload_status(workload_id: int, status):
     if parsed_url.scheme != allowed_scheme or parsed_url.netloc != allowed_netloc:
         logging.error(f"URL scheme or authority not allowed: {parsed_url.geturl()}")
         return
-    
     # Basic check for path traversal attempts (../, //, whitespace, etc.)
     if ".." in path or "//" in path or " " in path:
         logging.error(f"Invalid characters in URL path: {path}")
         return
-    
+
     # Now safe to use
     url = parsed_url.geturl()
-    
+
     data = {"status": status, "port": args.port}
     try:
         response = requests.patch(url, json=data)
-        response.raise_for_status() 
+        response.raise_for_status()
         logging.info(f"Successfully updated status to {status} for {workload_id}.")
     except requests.exceptions.RequestException as e:
         logging.info(f"Failed to update status: {e}")
@@ -96,15 +102,31 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-parser = argparse.ArgumentParser(description="FastAPI server for OpenVINO automatic speech recognition model")
-parser.add_argument("--model-name", type=str, required=True, help="Name of the OpenVINO model (.xml file) or hugging face ID")
-parser.add_argument("--device", type=str, default="CPU", help="Device to run the model on (e.g., CPU, GPU, MYRIAD)")
-parser.add_argument("--port", type=int, default=5997, help="Port to run the FastAPI server on")
-parser.add_argument("--id", type=int, default=1, help="Workload ID to update the workload status")
+parser = argparse.ArgumentParser(
+    description="FastAPI server for OpenVINO automatic speech recognition model"
+)
+parser.add_argument(
+    "--model-name",
+    type=str,
+    required=True,
+    help="Name of the OpenVINO model (.xml file) or hugging face ID",
+)
+parser.add_argument(
+    "--device",
+    type=str,
+    default="CPU",
+    help="Device to run the model on (e.g., CPU, GPU, MYRIAD)",
+)
+parser.add_argument(
+    "--port", type=int, default=5997, help="Port to run the FastAPI server on"
+)
+parser.add_argument(
+    "--id", type=int, default=1, help="Workload ID to update the workload status"
+)
 
 args = parser.parse_args()
 
@@ -115,43 +137,54 @@ logging.info(f"Model: {model}")
 if not os.path.exists(model):
     logging.info(f"Model {model} not found. Downloading...")
     additional_args = None
-    if 'NPU' in available_devices:
+    if "NPU" in available_devices:
         additional_args = {"disable-stateful": None}
     optimum_cli(args.model_name, model, additional_args)
 
-if os.path.realpath(model) != os.path.abspath(model): # Check if the model path is a symlink
-    logging.error(f"Model file {model} is a symlink or contains a symlink in its path. Refusing to open for security reasons.")
-    update_payload_status(args.id, status = 'failed')
+if os.path.realpath(model) != os.path.abspath(
+    model
+):  # Check if the model path is a symlink
+    logging.error(
+        f"Model file {model} is a symlink or contains a symlink in its path. Refusing to open for security reasons."
+    )
+    update_payload_status(args.id, status="failed")
     sys.exit(1)
-    
+
 try:
     pipe = openvino_genai.WhisperPipeline(model, args.device)
-    update_payload_status(args.id, status = 'active')
+    update_payload_status(args.id, status="active")
 except Exception as e:
     logging.error(f"Failed to load model: {e}")
-    update_payload_status(args.id, status = 'failed')
+    update_payload_status(args.id, status="failed")
     sys.exit(1)
+
 
 class Request(BaseModel):
     file: str
     task: str
     language: str
 
+
 @app.post("/infer")
 async def process_audio(request: Request):
     try:
-        file = request.file.split(',')[1]
+        file = request.file.split(",")[1]
         audio_data = base64.b64decode(file)
         audio_file = io.BytesIO(audio_data)
         raw_speech, _ = librosa.load(audio_file, sr=16000)
         start_time = time.perf_counter()
-        result = pipe.generate(raw_speech.tolist(), task=request.task, language=f'<|{request.language}|>')
-        inference_time = (time.perf_counter() - start_time)
+        result = pipe.generate(
+            raw_speech.tolist(), task=request.task, language=f"<|{request.language}|>"
+        )
+        inference_time = time.perf_counter() - start_time
 
         return {"text": str(result), "generation_time_s": round(inference_time, 1)}
     except Exception as e:
         logging.error(f"Error processing audio: {e}")
-        return JSONResponse({"status": False, "message":  "An error occurred while processing the audio"})
+        return JSONResponse(
+            {"status": False, "message": "An error occurred while processing the audio"}
+        )
+
 
 uvicorn.run(
     app,

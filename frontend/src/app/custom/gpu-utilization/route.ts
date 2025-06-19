@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { NextResponse } from 'next/server'
 import { spawn } from 'child_process'
@@ -14,7 +14,7 @@ export async function GET() {
       const graphicsData = await si.graphics()
       const gpuUtilizations = graphicsData.controllers.map((controller) => ({
         device: controller.model,
-        value: controller.utilizationGpu || 0
+        value: controller.utilizationGpu || 0,
       }))
 
       return NextResponse.json({ gpuUtilizations })
@@ -23,7 +23,7 @@ export async function GET() {
       const gpuUtilizations = graphicsData.controllers.map((controller) => ({
         device: controller.model,
         busaddr: controller.busAddress,
-        value: null as number | null
+        value: null as number | null,
       }))
 
       const osInfo = await si.osInfo()
@@ -31,7 +31,10 @@ export async function GET() {
         return new Promise((resolve, reject) => {
           const busAddress = controller.busAddress
           if (!busAddress) {
-            console.error('Bus address not found for controller:', controller.model)
+            console.error(
+              'Bus address not found for controller:',
+              controller.model,
+            )
             return resolve(0)
           }
 
@@ -46,7 +49,9 @@ export async function GET() {
           const process = spawn('intel_gpu_top', commandArgs)
 
           process.stderr.on('data', () => {
-            const gpu = gpuUtilizations.find((gpu) => gpu.busaddr === controller.busAddress)
+            const gpu = gpuUtilizations.find(
+              (gpu) => gpu.busaddr === controller.busAddress,
+            )
             if (gpu) {
               gpu.value = null
             }
@@ -79,7 +84,9 @@ export async function GET() {
                   }
                 }
 
-                const gpu = gpuUtilizations.find((gpu) => gpu.busaddr === controller.busAddress)
+                const gpu = gpuUtilizations.find(
+                  (gpu) => gpu.busaddr === controller.busAddress,
+                )
                 if (gpu) {
                   gpu.value = utilization as number
                 }
@@ -87,7 +94,7 @@ export async function GET() {
                 resolve(utilization)
                 process.kill()
               } catch (error) {
-                console.error('Failed to parse JSON:', error)
+                console.log('Failed to parse JSON:', error)
                 reject(error)
                 process.kill()
               }

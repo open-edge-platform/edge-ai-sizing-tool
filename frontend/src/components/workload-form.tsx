@@ -1,11 +1,17 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { useRef, useState, useEffect } from 'react'
 import { FileVideo, Upload, X } from 'lucide-react'
 import { Label } from '@/components/ui/label'
@@ -66,7 +72,9 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       type: '',
     },
   })
-  const [availableDevices, setAvailableDevices] = useState<{ id: string; name: string }[]>([])
+  const [availableDevices, setAvailableDevices] = useState<
+    { id: string; name: string }[]
+  >([])
   const [availableUsecases, setAvailableUsecases] = useState<string[]>([])
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [isDisable, setIsDisable] = useState<boolean>(true)
@@ -82,21 +90,27 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
   useEffect(() => {
     if (workload) {
-      setAvailableUsecases(Object.keys(metadata.tasks[workload.task as TaskType].usecase))
+      setAvailableUsecases(
+        Object.keys(metadata.tasks[workload.task as TaskType].usecase),
+      )
       setAvailableModels(
         Object.keys(
-          metadata.tasks[workload.task as TaskType].usecase[workload.usecase as UsecaseType].model,
+          metadata.tasks[workload.task as TaskType].usecase[
+            workload.usecase as UsecaseType
+          ].model,
         ),
       )
       setAvailableDevices(() => {
         const incompatibleDevices =
-          metadata.tasks[workload.task]?.usecase[workload.usecase]?.model[workload.model]
-            ?.devicesFiltered
+          metadata.tasks[workload.task]?.usecase[workload.usecase]?.model[
+            workload.model
+          ]?.devicesFiltered
 
         if (Array.isArray(acceleratorDevices)) {
           return acceleratorDevices.filter(
             (device) =>
-              Array.isArray(incompatibleDevices) && !incompatibleDevices.includes(device.id),
+              Array.isArray(incompatibleDevices) &&
+              !incompatibleDevices.includes(device.id),
           )
         } else {
           console.error('Devices are not an array:', acceleratorDevices)
@@ -115,12 +129,12 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       if (usecase.includes('DLStreamer')) {
         setIsDisable(
           !model ||
-          !devices?.length ||
-          !source ||
-          !source.name ||
-          source.name === '' ||
-          source.name === 'no-cam' ||
-          !source.type
+            !devices?.length ||
+            !source ||
+            !source.name ||
+            source.name === '' ||
+            source.name === 'no-cam' ||
+            !source.type,
         )
       } else {
         setIsDisable(!model || devices?.length === 0)
@@ -130,7 +144,10 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
   const handleAddWorkload = async () => {
     try {
-      if (addWorkload.usecase?.includes('DLStreamer') && addWorkload.source?.type === 'file') {
+      if (
+        addWorkload.usecase?.includes('DLStreamer') &&
+        addWorkload.source?.type === 'file'
+      ) {
         const file = selectedFileRef.current
         if (file) {
           const response = await uploadmedia.mutateAsync(file)
@@ -178,7 +195,9 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       devices: [],
     })
 
-    const usecases = Object.keys(metadata.tasks[selectedTask].usecase) as UsecaseType[]
+    const usecases = Object.keys(
+      metadata.tasks[selectedTask].usecase,
+    ) as UsecaseType[]
     setAvailableUsecases(usecases)
   }
 
@@ -190,7 +209,11 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         model: '',
         devices: [],
         source: selectedUseCase.includes('DLStreamer')
-          ? { type: 'predefined-videos', name: 'people-detection.mp4', size: null }
+          ? {
+              type: 'predefined-videos',
+              name: 'people-detection.mp4',
+              size: null,
+            }
           : undefined,
       })
 
@@ -211,12 +234,15 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       })
 
       const incompatibleDevices =
-        metadata.tasks[addWorkload.task]?.usecase[addWorkload.usecase]?.model[selectedModel]
-          .devicesFiltered || []
+        metadata.tasks[addWorkload.task]?.usecase[addWorkload.usecase]?.model[
+          selectedModel
+        ].devicesFiltered || []
 
       if (Array.isArray(acceleratorDevices)) {
         setAvailableDevices(
-          acceleratorDevices.filter((device) => !incompatibleDevices.includes(device.id)),
+          acceleratorDevices.filter(
+            (device) => !incompatibleDevices.includes(device.id),
+          ),
         )
       } else {
         console.error('Devices are not an array:', acceleratorDevices)
@@ -227,8 +253,9 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   const handleDeviceChange = (selectedDevice: string, isChecked: boolean) => {
     setAddWorkload((prevState) => {
       const allowMultipleDevices =
-        metadata.tasks[prevState.task as TaskType]?.usecase[prevState.usecase as UsecaseType]
-          ?.model[prevState.model as ModelType]?.allowMultipleDevices
+        metadata.tasks[prevState.task as TaskType]?.usecase[
+          prevState.usecase as UsecaseType
+        ]?.model[prevState.model as ModelType]?.allowMultipleDevices
       const updatedDevices = isChecked
         ? allowMultipleDevices
           ? [...(prevState.devices || []), { device: selectedDevice }]
@@ -286,7 +313,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
   function handleInputChanged(value: string) {
     if (value === 'predefined-videos') {
-      setAddWorkload(prev => ({
+      setAddWorkload((prev) => ({
         ...prev,
         source: {
           type: 'predefined-videos',
@@ -295,7 +322,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         },
       }))
     } else if (value === 'file') {
-      setAddWorkload(prev => ({
+      setAddWorkload((prev) => ({
         ...prev,
         source: {
           type: 'file',
@@ -333,11 +360,16 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       const typedError = error as ErrorResponse
       if (typedError.response?.errors) {
         const validationErrors = typedError.response.errors
-          .map((err) => `${err.data.errors[0].label}: ${err.data.errors[0].message}`)
+          .map(
+            (err) =>
+              `${err.data.errors[0].label}: ${err.data.errors[0].message}`,
+          )
           .join(', ')
         toast.error(`Failed to update workload: ${validationErrors}`)
       } else {
-        toast.error(`Failed to update workload: ${typedError.message || 'Unknown error'}`)
+        toast.error(
+          `Failed to update workload: ${typedError.message || 'Unknown error'}`,
+        )
       }
     }
   }
@@ -353,23 +385,28 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   }
 
   return (
-    <div className="w-full h-full">
-      <div className="flex flex-col h-full w-full lg:min-w-[750px] xl:min-w-[1000px] max-w-3xl mx-auto px-6">
+    <div className="h-full w-full">
+      <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-6 lg:min-w-[750px] xl:min-w-[1000px]">
         {/* Scrollable Content Area */}
-        <div className="pb-16 flex-1 overflow-auto hide-scrollbar">
+        <div className="hide-scrollbar flex-1 overflow-auto pb-16">
           <div className="w-full py-6">
-            <Card className="max-w-3xl mx-auto">
+            <Card className="mx-auto max-w-3xl">
               <CardHeader>
-                <div className="flex justify-between items-start">
+                <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-xl font-bold">
                       {isEdit ? 'Edit' : 'Add'} Workload
                     </CardTitle>
                     <CardDescription>
-                      {isEdit ? 'Edit' : 'Add new'} workload to evaluate system performance.
+                      {isEdit ? 'Edit' : 'Add new'} workload to evaluate system
+                      performance.
                     </CardDescription>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push('/')}
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -379,16 +416,21 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="task">Task</Label>
-                      <Select onValueChange={handleTaskChange} value={addWorkload.task}>
+                      <Select
+                        onValueChange={handleTaskChange}
+                        value={addWorkload.task}
+                      >
                         <SelectTrigger id="task">
                           <SelectValue placeholder="Select task" />
                         </SelectTrigger>
                         <SelectContent>
                           {Object.keys(metadata.tasks).map((task) => (
                             <SelectItem key={task} value={task}>
-                              {task.replace(/_/g, ' ').replace(/\b\w/g, function (char) {
-                                return char.toUpperCase()
-                              })}
+                              {task
+                                .replace(/_/g, ' ')
+                                .replace(/\b\w/g, function (char) {
+                                  return char.toUpperCase()
+                                })}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -397,16 +439,21 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
                     <div className="grid gap-2">
                       <Label htmlFor="usecase">Usecase</Label>
-                      <Select onValueChange={handleUseCaseChange} value={addWorkload.usecase}>
+                      <Select
+                        onValueChange={handleUseCaseChange}
+                        value={addWorkload.usecase}
+                      >
                         <SelectTrigger id="usecase">
                           <SelectValue placeholder="Select usecase" />
                         </SelectTrigger>
                         <SelectContent>
                           {availableUsecases.map((useCase) => (
                             <SelectItem key={useCase} value={useCase}>
-                              {useCase.replace(/_/g, ' ').replace(/\b\w/g, function (char) {
-                                return char.toUpperCase()
-                              })}
+                              {useCase
+                                .replace(/_/g, ' ')
+                                .replace(/\b\w/g, function (char) {
+                                  return char.toUpperCase()
+                                })}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -426,12 +473,16 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                           <SelectContent>
                             <SelectItem value={'cam'}>Camera</SelectItem>
                             <SelectItem value={'file'}>File</SelectItem>
-                            <SelectItem value={'predefined-videos'}>Predefined Videos</SelectItem>
+                            <SelectItem value={'predefined-videos'}>
+                              Predefined Videos
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         {addWorkload.source?.type === 'file' && (
                           <div
-                            className={`border-2 border-dashed rounded-lg p-6 text-center ${addWorkload.source ? 'border-primary' : 'border-muted-foreground/25'} transition-colors`}
+                            className={`rounded-lg border-2 border-dashed p-6 text-center ${addWorkload.source ? 'border-primary' : 'border-muted-foreground/25'} transition-colors`}
+                            role="button"
+                            tabIndex={0}
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => {
                               e.preventDefault()
@@ -441,12 +492,21 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                               }
                             }}
                             onClick={() => fileInputRef.current?.click()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                fileInputRef.current?.click()
+                              }
+                            }}
                           >
                             <input
                               type="file"
                               ref={fileInputRef}
                               onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
+                                if (
+                                  e.target.files &&
+                                  e.target.files.length > 0
+                                ) {
                                   validateAndSetFile(e.target.files[0])
                                 }
                               }}
@@ -454,28 +514,31 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                               className="hidden"
                             />
 
-                            {(!addWorkload.source || !addWorkload.source.name) ? (
+                            {!addWorkload.source || !addWorkload.source.name ? (
                               <div className="flex flex-col items-center justify-center py-4">
-                                <Upload className="h-10 w-10 text-muted-foreground mb-2" />
-                                <p className="text-sm text-muted-foreground mb-1">
+                                <Upload className="text-muted-foreground mb-2 h-10 w-10" />
+                                <p className="text-muted-foreground mb-1 text-sm">
                                   Drag and drop your video file here
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-muted-foreground text-xs">
                                   Supports MP4, MOV, and more (max 50MB)
                                 </p>
                               </div>
                             ) : (
                               <div className="flex items-center justify-between py-2">
                                 <div className="flex items-center">
-                                  <FileVideo className="h-8 w-8 text-primary mr-2" />
+                                  <FileVideo className="text-primary mr-2 h-8 w-8" />
                                   <div className="text-left">
-                                    <p className="text-sm font-medium truncate max-w-[200px]">
-                                      {addWorkload.source?.name || 'No source name available'}
+                                    <p className="max-w-[200px] truncate text-sm font-medium">
+                                      {addWorkload.source?.name ||
+                                        'No source name available'}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-muted-foreground text-xs">
                                       {addWorkload.source?.size !== null &&
-                                        addWorkload.source?.size !== undefined
-                                        ? formatFileSize(addWorkload.source.size)
+                                      addWorkload.source?.size !== undefined
+                                        ? formatFileSize(
+                                            addWorkload.source.size,
+                                          )
                                         : 'No size available'}
                                     </p>
                                   </div>
@@ -505,15 +568,18 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                 <SelectValue placeholder="Select input" />
                               </SelectTrigger>
                               <SelectContent>
-                                {Object.entries(camDevices?.devices ?? {}).map(([label, id]) => (
-                                  <SelectItem
-                                    key={(id as number).toString()}
-                                    value={(id as number).toString()}
-                                  >
-                                    {label as string}
-                                  </SelectItem>
-                                ))}
-                                {Object.entries(camDevices?.devices ?? {}).length === 0 && (
+                                {Object.entries(camDevices?.devices ?? {}).map(
+                                  ([label, id]) => (
+                                    <SelectItem
+                                      key={(id as number).toString()}
+                                      value={(id as number).toString()}
+                                    >
+                                      {label as string}
+                                    </SelectItem>
+                                  ),
+                                )}
+                                {Object.entries(camDevices?.devices ?? {})
+                                  .length === 0 && (
                                   <SelectItem value="no-cam" disabled>
                                     No camera devices found
                                   </SelectItem>
@@ -527,7 +593,10 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                             <Label htmlFor="videos">Videos</Label>
                             <Select
                               onValueChange={handleVideoChanged}
-                              value={addWorkload.source?.name ?? 'people-detection.mp4'}
+                              value={
+                                addWorkload.source?.name ??
+                                'people-detection.mp4'
+                              }
                             >
                               <SelectTrigger id="videoSelectionInput">
                                 <SelectValue placeholder="Select input" />
@@ -548,7 +617,10 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
                     <div className="grid gap-2">
                       <Label htmlFor="model">Model</Label>
-                      <Select onValueChange={handleModelChange} value={addWorkload.model}>
+                      <Select
+                        onValueChange={handleModelChange}
+                        value={addWorkload.model}
+                      >
                         <SelectTrigger id="model">
                           <SelectValue placeholder="Select model" />
                         </SelectTrigger>
@@ -571,31 +643,39 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                               type="checkbox"
                               id={device.id}
                               value={device.id}
-                              checked={addWorkload.devices?.some((d) => d.device === device.id)}
-                              onChange={(e) => handleDeviceChange(device.id, e.target.checked)}
+                              checked={addWorkload.devices?.some(
+                                (d) => d.device === device.id,
+                              )}
+                              onChange={(e) =>
+                                handleDeviceChange(device.id, e.target.checked)
+                              }
                               className="mr-2 cursor-pointer"
                             />
-                            <label className="mr-2 cursor-pointer" htmlFor={device.id}>
+                            <label
+                              className="mr-2 cursor-pointer"
+                              htmlFor={device.id}
+                            >
                               {device.name} - {device.id}
                             </label>
                           </div>
                         ))}
                       </div>
                       {addWorkload.devices?.length !== 0 && (
-                        <div className="mt-2 p-4 bg-gray-50 rounded-md dark:bg-gray-700">
+                        <div className="mt-2 rounded-md bg-gray-50 p-4 dark:bg-gray-700">
                           <Label className="mb-4">Priority order:</Label>
-                          <ol className="space-y-1 counter-reset-[list]">
+                          <ol className="counter-reset-[list] space-y-1">
                             {addWorkload.devices?.map((item, index) => {
                               const deviceDetails = availableDevices.find(
                                 (device) => device.id === item.device,
                               )
-                              const deviceName = deviceDetails?.name || item.device
+                              const deviceName =
+                                deviceDetails?.name || item.device
                               return (
                                 <li
                                   key={index}
-                                  className="flex items-center pl-4 pb-4 counter-increment-[list]"
+                                  className="counter-increment-[list] flex items-center pb-4 pl-4"
                                 >
-                                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary border border-primary">
+                                  <div className="bg-primary border-primary flex h-7 w-7 items-center justify-center rounded-full border">
                                     <span className="text-sm font-medium text-white before:content-[counter(list)]">
                                       {index + 1}
                                     </span>
@@ -615,7 +695,9 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                   </div>
                   <Button
                     className="w-full"
-                    onClick={() => (isEdit ? handleSaveWorkload() : handleAddWorkload())}
+                    onClick={() =>
+                      isEdit ? handleSaveWorkload() : handleAddWorkload()
+                    }
                     disabled={isDisable}
                   >
                     {isEdit ? 'Save' : 'Add'} Workload

@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { getRandomInt } from '@/lib/getRandomInt'
 import { CollectionConfig } from 'payload'
@@ -12,7 +12,7 @@ export const Workloads: CollectionConfig = {
     {
       name: 'task',
       type: 'text',
-      required: true
+      required: true,
     },
     {
       name: 'usecase',
@@ -42,7 +42,7 @@ export const Workloads: CollectionConfig = {
         {
           name: 'type',
           type: 'text',
-          required: false
+          required: false,
         },
         {
           name: 'name',
@@ -74,7 +74,7 @@ export const Workloads: CollectionConfig = {
       name: 'status',
       type: 'text',
       required: true,
-      defaultValue: 'prepare'
+      defaultValue: 'prepare',
     },
   ],
   hooks: {

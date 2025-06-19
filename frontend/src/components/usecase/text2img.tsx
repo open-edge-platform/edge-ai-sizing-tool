@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -43,14 +43,19 @@ interface Text2ImgProps {
   workload: Workload
 }
 
-function calculateThroughput(imageSize: string, generationTime: number): number {
+function calculateThroughput(
+  imageSize: string,
+  generationTime: number,
+): number {
   if (generationTime <= 0) {
     return 0 // Avoid division by zero or negative time
   }
 
   const [width, height] = imageSize.split('x').map(Number)
   if (isNaN(width) || isNaN(height)) {
-    throw new Error("Invalid image size format. Expected format 'widthxheight'.")
+    throw new Error(
+      "Invalid image size format. Expected format 'widthxheight'.",
+    )
   }
 
   const totalPixels = width * height
@@ -71,15 +76,17 @@ export function Text2Img({ workload }: Text2ImgProps) {
   } | null>(
     result
       ? {
-        generation_time_s: result.generation_time_s || 0,
-        throughput_s:
-          imageSize.split('x').reduce((a, b) => Number(a) * Number(b as unknown as number), 1) /
-          result.generation_time_s || 0,
-      }
+          generation_time_s: result.generation_time_s || 0,
+          throughput_s:
+            imageSize
+              .split('x')
+              .reduce((a, b) => Number(a) * Number(b as unknown as number), 1) /
+              result.generation_time_s || 0,
+        }
       : {
-        generation_time_s: 0,
-        throughput_s: 0,
-      },
+          generation_time_s: 0,
+          throughput_s: 0,
+        },
   )
   const [previousMetrics, setPreviousMetrics] = useState<{
     generation_time_s: number
@@ -109,7 +116,10 @@ export function Text2Img({ workload }: Text2ImgProps) {
       setPreviousMetrics(metrics)
       setMetrics({
         generation_time_s: result.generation_time_s || 0,
-        throughput_s: calculateThroughput(imageSize, result.generation_time_s || 0),
+        throughput_s: calculateThroughput(
+          imageSize,
+          result.generation_time_s || 0,
+        ),
       })
     } catch (error) {
       toast.error('Failed to generate image.')
@@ -169,7 +179,9 @@ export function Text2Img({ workload }: Text2ImgProps) {
           metrics={[
             {
               name: 'Generation Time',
-              value: metrics.generation_time_s ? metrics.generation_time_s.toFixed(2) : '0.00',
+              value: metrics.generation_time_s
+                ? metrics.generation_time_s.toFixed(2)
+                : '0.00',
               unit: 's',
               trend: previousMetrics?.generation_time_s
                 ? metrics.generation_time_s < previousMetrics.generation_time_s
@@ -178,10 +190,11 @@ export function Text2Img({ workload }: Text2ImgProps) {
                 : undefined,
               trendValue: previousMetrics?.generation_time_s
                 ? `${(
-                  ((previousMetrics.generation_time_s - metrics.generation_time_s) /
-                    previousMetrics.generation_time_s) *
-                  100
-                ).toFixed(1)}%`
+                    ((previousMetrics.generation_time_s -
+                      metrics.generation_time_s) /
+                      previousMetrics.generation_time_s) *
+                    100
+                  ).toFixed(1)}%`
                 : undefined,
               description: previousMetrics?.generation_time_s
                 ? metrics.generation_time_s < previousMetrics.generation_time_s
@@ -194,8 +207,8 @@ export function Text2Img({ workload }: Text2ImgProps) {
               name: 'Throughput',
               value: metrics.throughput_s
                 ? metrics.throughput_s.toLocaleString(undefined, {
-                  maximumFractionDigits: 0,
-                })
+                    maximumFractionDigits: 0,
+                  })
                 : '0',
               unit: 'pixels/s',
               trend: previousMetrics?.throughput_s
@@ -205,10 +218,10 @@ export function Text2Img({ workload }: Text2ImgProps) {
                 : undefined,
               trendValue: previousMetrics?.throughput_s
                 ? `${(
-                  ((metrics.throughput_s - previousMetrics.throughput_s) /
-                    previousMetrics.throughput_s) *
-                  100
-                ).toFixed(1)}%`
+                    ((metrics.throughput_s - previousMetrics.throughput_s) /
+                      previousMetrics.throughput_s) *
+                    100
+                  ).toFixed(1)}%`
                 : undefined,
               description: previousMetrics?.throughput_s
                 ? metrics.throughput_s > previousMetrics.throughput_s
@@ -221,18 +234,22 @@ export function Text2Img({ workload }: Text2ImgProps) {
         />
       ) : null}
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
         <div className="lg:col-span-3">
           <Card
-            className={cn("overflow-hidden py-0", workload.status === 'inactive' && "opacity-60 pointer-events-none select-none")}
+            className={cn(
+              'overflow-hidden py-0',
+              workload.status === 'inactive' &&
+                'pointer-events-none opacity-60 select-none',
+            )}
             aria-disabled={workload.status === 'inactive'}
           >
-            <div className="grid lg:grid-cols-2 gap-0">
+            <div className="grid gap-0 lg:grid-cols-2">
               {/* Left column - Image prompt inputs */}
-              <div className="p-6 space-y-6">
+              <div className="space-y-6 p-6">
                 <div>
                   <h3 className="text-lg font-semibold">Image Generation</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Enter a prompt to generate an image
                   </p>
                 </div>
@@ -254,13 +271,16 @@ export function Text2Img({ workload }: Text2ImgProps) {
                       className="min-h-[120px] resize-none"
                       maxLength={300}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Only letters, numbers, spaces, and basic punctuation allowed. Max 300 characters.
+                    <p className="text-muted-foreground text-xs">
+                      Only letters, numbers, spaces, and basic punctuation
+                      allowed. Max 300 characters.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="inference-steps">Inference Steps: {inferenceSteps}</Label>
+                    <Label htmlFor="inference-steps">
+                      Inference Steps: {inferenceSteps}
+                    </Label>
                     <Slider
                       id="inference-steps"
                       min={10}
@@ -269,7 +289,7 @@ export function Text2Img({ workload }: Text2ImgProps) {
                       value={[inferenceSteps]}
                       onValueChange={(value) => setInferenceSteps(value[0])}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Higher values = better quality, slower generation
                     </p>
                   </div>
@@ -287,7 +307,7 @@ export function Text2Img({ workload }: Text2ImgProps) {
                         <SelectItem value="1024x1024">1024 x 1024</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Larger sizes require more GPU memory
                     </p>
                   </div>
@@ -313,15 +333,15 @@ export function Text2Img({ workload }: Text2ImgProps) {
               </div>
 
               {/* Right column - Generated image */}
-              <div className="relative bg-muted/40 flex flex-col items-center min-h-[500px] max-w-[512px]justify-center p-6">
+              <div className="bg-muted/40 max-w-[512px]justify-center relative flex min-h-[500px] flex-col items-center p-6">
                 {result ? (
-                  <div className="flex flex-col items-center w-full">
-                    <div className="relative w-full aspect-square max-w-[480px] rounded-md overflow-hidden shadow-lg">
+                  <div className="flex w-full flex-col items-center">
+                    <div className="relative aspect-square w-full max-w-[480px] overflow-hidden rounded-md shadow-lg">
                       {
                         <Image
                           src={`data:image/png;base64, ${result.image}`}
                           alt="Generated image"
-                          className="w-full h-full object-cover"
+                          className="h-full w-full object-cover"
                           width={Number(imageSize.split('x')[0])}
                           height={Number(imageSize.split('x')[1])}
                           unoptimized
@@ -338,9 +358,14 @@ export function Text2Img({ workload }: Text2ImgProps) {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full w-full text-muted-foreground">
-                    <ImageIcon strokeWidth={0.8} className="h-24 w-24 mb-4 opacity-20" />
-                    <p className="text-lg font-medium">No image generated yet</p>
+                  <div className="text-muted-foreground flex h-full w-full flex-col items-center justify-center">
+                    <ImageIcon
+                      strokeWidth={0.8}
+                      className="mb-4 h-24 w-24 opacity-20"
+                    />
+                    <p className="text-lg font-medium">
+                      No image generated yet
+                    </p>
                     <p className="text-sm">Enter a prompt and click Generate</p>
                   </div>
                 )}

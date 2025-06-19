@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -9,7 +9,12 @@ import { Cpu, Server } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Workload } from '@/payload-types'
 import { Switch } from '@/components/ui/switch'
 import { useUpdateWorkload } from '@/hooks/useWorkload'
@@ -19,7 +24,8 @@ import { toast } from 'sonner'
 export function WorkloadProfile({ workload }: { workload: Workload }) {
   const updateWorkload = useUpdateWorkload(workload.id)
   const { data: deviceDetails } = useAccelerator()
-  const acceleratorDevices: { id: string; name?: string }[] | undefined = deviceDetails?.devices
+  const acceleratorDevices: { id: string; name?: string }[] | undefined =
+    deviceDetails?.devices
   // Format relative time (e.g., "2 hours ago")
   const getRelativeTime = (dateString: string) => {
     try {
@@ -48,9 +54,9 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
   }
 
   return (
-    <Card className="min-h-[500px] h-full">
+    <Card className="h-full min-h-[500px]">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Workload Details</CardTitle>
         </div>
       </CardHeader>
@@ -60,7 +66,9 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
             <div className="flex items-center gap-2">
               <Switch
                 checked={workload.status === 'active'}
-                onCheckedChange={(checked) => onStatusChange(checked ? 'active' : 'inactive')}
+                onCheckedChange={(checked) =>
+                  onStatusChange(checked ? 'active' : 'inactive')
+                }
                 className="py-0.5"
               />
               <span className="text-sm">{workload.status}</span>
@@ -71,9 +79,9 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
           </div>
 
           <div className="grid gap-3">
-            <div className="flex items-center gap-2 bg-muted/40 p-2 rounded-md">
-              <div className="font-medium text-sm min-w-24">Model</div>
-              <div className="text-sm flex-1 font-mono">
+            <div className="bg-muted/40 flex items-center gap-2 rounded-md p-2">
+              <div className="min-w-24 text-sm font-medium">Model</div>
+              <div className="flex-1 font-mono text-sm">
                 {workload.model.split('/').length > 1
                   ? workload.model.split('/')[1]
                   : workload.model}
@@ -84,20 +92,22 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
           <Separator />
 
           <div>
-            <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+            <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
               <Server className="h-4 w-4" />
               Allocated Devices
             </h3>
             <div className="flex flex-wrap gap-2">
               {workload.devices.map((device) => {
-                const deviceDetails = acceleratorDevices?.find((d) => d.id === device.device)
+                const deviceDetails = acceleratorDevices?.find(
+                  (d) => d.id === device.device,
+                )
                 const deviceName = deviceDetails?.name || 'NA'
                 return (
                   <TooltipProvider key={device.id}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2 text-sm border rounded-md p-2 cursor-help">
-                          <Cpu className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex cursor-help items-center gap-2 rounded-md border p-2 text-sm">
+                          <Cpu className="text-muted-foreground h-4 w-4" />
                           <span>{device.device}</span>
                         </div>
                       </TooltipTrigger>
@@ -117,7 +127,9 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
           <div className="grid grid-cols-1 gap-2 text-sm">
             <div>
               <div className="text-muted-foreground">Last Updated</div>
-              <div className="font-medium">{getRelativeTime(workload.updatedAt)}</div>
+              <div className="font-medium">
+                {getRelativeTime(workload.updatedAt)}
+              </div>
             </div>
           </div>
         </div>

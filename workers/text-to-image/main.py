@@ -1,5 +1,5 @@
 # Copyright (C) 2025 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0 
+# SPDX-License-Identifier: Apache-2.0
 
 from typing import Dict
 from PIL import Image
@@ -38,11 +38,18 @@ def optimum_cli(model_id, output_dir, additional_args: Dict[str, str] = None):
             if value:
                 export_command += f" {value}"
     try:
-        subprocess.run(export_command.split(" "), shell=(platform.system() == "Windows"), check=True, capture_output=True, env=env)
+        subprocess.run(
+            export_command.split(" "),
+            shell=(platform.system() == "Windows"),
+            check=True,
+            capture_output=True,
+            env=env,
+        )
     except Exception as e:
         logging.error(f"optimum-cli failed: {e}")
-        update_payload_status(args.id, status = 'failed')
+        update_payload_status(args.id, status="failed")
         sys.exit(1)
+
 
 def update_payload_status(workload_id: int, status):
     """
@@ -52,11 +59,11 @@ def update_payload_status(workload_id: int, status):
     if not isinstance(workload_id, int) and workload_id >= 0:
         logging.error(f"Invalid workload ID: {workload_id}. Refusing to update status.")
         return
-    
+
     # Hardcode scheme & authority (safe allow-list)
     allowed_scheme = "http"
     allowed_netloc = "127.0.0.1:8080"
-    
+
     # Build the path carefully. Reject characters such as '../'
     # in a real system, you might strictly allow digits only
     path = f"/api/workloads/{workload_id}"
@@ -69,19 +76,18 @@ def update_payload_status(workload_id: int, status):
     if parsed_url.scheme != allowed_scheme or parsed_url.netloc != allowed_netloc:
         logging.error(f"URL scheme or authority not allowed: {parsed_url.geturl()}")
         return
-    
     # Basic check for path traversal attempts (../, //, whitespace, etc.)
     if ".." in path or "//" in path or " " in path:
         logging.error(f"Invalid characters in URL path: {path}")
         return
-    
+
     # Now safe to use
     url = parsed_url.geturl()
-    
+
     data = {"status": status, "port": args.port}
     try:
         response = requests.patch(url, json=data)
-        response.raise_for_status() 
+        response.raise_for_status()
         logging.info(f"Successfully updated status to {status} for {workload_id}.")
     except requests.exceptions.RequestException as e:
         logging.info(f"Failed to update status: {e}")
@@ -92,20 +98,36 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Argument parser for command-line arguments
-parser = argparse.ArgumentParser(description="FastAPI server for OpenVINO text-to-image model")
-parser.add_argument("--model-name", type=str, required=True, help="Name of the OpenVINO model (.xml file)")
-parser.add_argument("--device", type=str, default="CPU", help="Device to run the model on (e.g., CPU, GPU, MYRIAD)")
-parser.add_argument("--port", type=int, default=5997, help="Port to run the FastAPI server on")
-parser.add_argument("--id", type=int, default=1, help="Workload ID to update the workload status")
+parser = argparse.ArgumentParser(
+    description="FastAPI server for OpenVINO text-to-image model"
+)
+parser.add_argument(
+    "--model-name",
+    type=str,
+    required=True,
+    help="Name of the OpenVINO model (.xml file)",
+)
+parser.add_argument(
+    "--device",
+    type=str,
+    default="CPU",
+    help="Device to run the model on (e.g., CPU, GPU, MYRIAD)",
+)
+parser.add_argument(
+    "--port", type=int, default=5997, help="Port to run the FastAPI server on"
+)
+parser.add_argument(
+    "--id", type=int, default=1, help="Workload ID to update the workload status"
+)
 
 args = parser.parse_args()
-    
-model = os.path.join("models",args.model_name)
+
+model = os.path.join("models", args.model_name)
 logging.info(f"Model: {model}")
 
 # download model if it doesn't exist
@@ -113,27 +135,33 @@ if not os.path.exists(model):
     logging.info(f"Model {model} not found. Downloading...")
     optimum_cli(args.model_name, model)
 
-if os.path.realpath(model) != os.path.abspath(model): # Check if the model path is a symlink
-    logging.error(f"Model file {model} is a symlink or contains a symlink in its path. Refusing to open for security reasons.")
-    update_payload_status(args.id, status = 'failed')
+if os.path.realpath(model) != os.path.abspath(
+    model
+):  # Check if the model path is a symlink
+    logging.error(
+        f"Model file {model} is a symlink or contains a symlink in its path. Refusing to open for security reasons."
+    )
+    update_payload_status(args.id, status="failed")
     sys.exit(1)
 
 try:
     pipe = openvino_genai.Text2ImagePipeline(model, args.device)
-    update_payload_status(args.id, status = 'active')
+    update_payload_status(args.id, status="active")
 except Exception as e:
     logging.error(f"Error loading model: {e}")
-    update_payload_status(args.id, status = 'failed')
+    update_payload_status(args.id, status="failed")
     sys.exit(1)
-    
+
+
 class Request(BaseModel):
     prompt: str
     inference_step: int = 1
     image_width: int = 256
     image_height: int = 256
 
+
 @app.post("/infer")
-async def generate_image(request: Request):    
+async def generate_image(request: Request):
     try:
         start_time = time.perf_counter()
         image_tensor = pipe.generate(
@@ -141,20 +169,23 @@ async def generate_image(request: Request):
             width=request.image_width,
             height=request.image_height,
             num_inference_steps=request.inference_step,
-            num_images_per_prompt=1
+            num_images_per_prompt=1,
         )
 
-        inference_time = (time.perf_counter() - start_time)
+        inference_time = time.perf_counter() - start_time
         image = Image.fromarray(image_tensor.data[0])
-        image_byte_arr = io.BytesIO() # in-memory storage
+        image_byte_arr = io.BytesIO()  # in-memory storage
         image.save(image_byte_arr, format="PNG")
         image_byte_arr.seek(0)
-        image_base64 = base64.b64encode(image_byte_arr.read()).decode('utf-8')
+        image_base64 = base64.b64encode(image_byte_arr.read()).decode("utf-8")
 
         return {"generation_time_s": round(inference_time, 1), "image": image_base64}
     except Exception as e:
         logging.error(f"Error generating image: {e}")
-        return JSONResponse({"status": False, "message": "An error occurred while generating the image"})
+        return JSONResponse(
+            {"status": False, "message": "An error occurred while generating the image"}
+        )
+
 
 uvicorn.run(
     app,

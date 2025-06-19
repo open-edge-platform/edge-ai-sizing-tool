@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 'use client'
 
@@ -72,7 +72,9 @@ const getUsecaseIcon = (usecase: string) => {
   }
 }
 
-export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function WorkloadsSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter()
   const workloadsData = useWorkloads()
   const deleteWorkload = useDeleteWorkload()
@@ -100,7 +102,10 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
         return
       }
       toast.success(`Workload ${id} deleted successfully`)
-      if (pathname.split('/')[1] === 'workload' && currentPageID === id.toString()) {
+      if (
+        pathname.split('/')[1] === 'workload' &&
+        currentPageID === id.toString()
+      ) {
         router.push(`/`)
       }
     } catch (error) {
@@ -119,10 +124,10 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
     <Sidebar collapsible="none" className="flex-1" {...props}>
       <SidebarHeader className="gap-3.5 border-b p-4">
         <div className="flex w-full items-center justify-between">
-          <div className="text-base font-medium text-foreground">Workloads</div>
+          <div className="text-foreground text-base font-medium">Workloads</div>
         </div>
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
           <SidebarInput
             placeholder="Search workloads"
             className="pl-8"
@@ -131,7 +136,7 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
           />
         </div>
         <Button
-          className="w-full flex items-center gap-2 justify-center"
+          className="flex w-full items-center justify-center gap-2"
           size="sm"
           onClick={() => router.push('/workload/add')}
         >
@@ -141,16 +146,26 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
       </SidebarHeader>
       <SidebarContent>
         {workloadsData.isLoading ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center mt-8">
-            <Package strokeWidth={0.6} className="h-16 w-16 text-primary mb-4 animate-bounce" />
-            <h3 className="font-medium mb-1">Loading workloads</h3>
-            <p className="text-xs text-muted-foreground">Fetching your AI workloads...</p>
+          <div className="mt-8 flex flex-col items-center justify-center p-8 text-center">
+            <Package
+              strokeWidth={0.6}
+              className="text-primary mb-4 h-16 w-16 animate-bounce"
+            />
+            <h3 className="mb-1 font-medium">Loading workloads</h3>
+            <p className="text-muted-foreground text-xs">
+              Fetching your AI workloads...
+            </p>
           </div>
         ) : workloadsData.isError ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
-            <ServerOff strokeWidth={0.6} className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="font-medium mb-1">Failed to load workloads</h3>
-            <p className="text-xs text-muted-foreground mb-4">{workloadsData.error.message}</p>
+            <ServerOff
+              strokeWidth={0.6}
+              className="text-muted-foreground mb-4 h-16 w-16"
+            />
+            <h3 className="mb-1 font-medium">Failed to load workloads</h3>
+            <p className="text-muted-foreground mb-4 text-xs">
+              {workloadsData.error.message}
+            </p>
             <Button
               variant="outline"
               size="sm"
@@ -165,40 +180,44 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <PackagePlus
               strokeWidth={0.6}
-              className="h-16 w-16 text-muted-foreground mb-2 opacity-30"
+              className="text-muted-foreground mb-2 h-16 w-16 opacity-30"
             />
-            <h3 className="font-medium mb-1">No workloads created yet</h3>
-            <p className="text-xs text-muted-foreground mb-4">
+            <h3 className="mb-1 font-medium">No workloads created yet</h3>
+            <p className="text-muted-foreground mb-4 text-xs">
               Get started by creating your first workload
             </p>
-            <div className="space-y-4 max-w-xs">
+            <div className="max-w-xs space-y-4">
               <div className="flex items-start gap-2 text-left">
-                <div className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs mt-0.5">
+                <div className="bg-primary text-primary-foreground mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-xs">
                   1
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Click &quot;Add Workload&quot; above</p>
-                  <p className="text-xs text-muted-foreground">To create a new workload</p>
+                  <p className="text-sm font-medium">
+                    Click &quot;Add Workload&quot; above
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    To create a new workload
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-2 text-left">
-                <div className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs mt-0.5">
+                <div className="bg-primary text-primary-foreground mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-xs">
                   2
                 </div>
                 <div>
                   <p className="text-sm font-medium">Configure your workload</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Choose task, usecase, model, and devices
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-2 text-left">
-                <div className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs mt-0.5">
+                <div className="bg-primary text-primary-foreground mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-xs">
                   3
                 </div>
                 <div>
                   <p className="text-sm font-medium">Deploy and run</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Your workload will appear in this list
                   </p>
                 </div>
@@ -209,14 +228,18 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
           <div className="flex flex-col items-center justify-center p-8 text-center">
             <PackageSearch
               strokeWidth={0.6}
-              className="h-16 w-16 text-muted-foreground mb-4 opacity-30"
+              className="text-muted-foreground mb-4 h-16 w-16 opacity-30"
             />
-            <h3 className="font-medium mb-1">No matching workloads</h3>
-            <p className="text-xs text-muted-foreground mb-4">
+            <h3 className="mb-1 font-medium">No matching workloads</h3>
+            <p className="text-muted-foreground mb-4 text-xs">
               No workloads match your search term &quot;{searchTerm}&quot;
             </p>
             <div className="flex gap-3">
-              <Button variant="outline" size="sm" onClick={() => setSearchTerm('')}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchTerm('')}
+              >
                 Clear Search
               </Button>
             </div>
@@ -230,20 +253,25 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
                   <SidebarMenuButton
                     onClick={() => handleSelectWorkload(workload)}
                     isActive={activeWorkload?.id === workload.id}
-                    className="justify-start h-14 rounded-none hover:bg-sidebar-primary/5 data-[active=true]:bg-sidebar-primary/5"
+                    className="hover:bg-sidebar-primary/5 data-[active=true]:bg-sidebar-primary/5 h-14 justify-start rounded-none"
                   >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md border bg-background">
+                    <div className="bg-background flex h-9 w-9 items-center justify-center rounded-md border">
                       <UsecaseIcon strokeWidth={1.4} className="h-5 w-5" />
                     </div>
                     <div className="grid flex-1 gap-0.5">
-                      <div className=" items-center flex flex-wrap gap-1">
-                        <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4 mr-1">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Badge
+                          variant="default"
+                          className="mr-1 h-4 px-1.5 py-0 text-[10px]"
+                        >
                           {workload.id}
                         </Badge>
-                        <span className="font-medium">{workload.usecase.replace(/-/g, ' ')}</span>
+                        <span className="font-medium">
+                          {workload.usecase.replace(/-/g, ' ')}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="truncate max-w-[180px]">
+                      <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                        <span className="max-w-[180px] truncate">
                           {workload.model.includes('/')
                             ? workload.model.split('/')[1]
                             : workload.model}
@@ -253,7 +281,7 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
                             <Badge
                               key={device.id}
                               variant="outline"
-                              className="text-[10px] px-1 py-0 h-4"
+                              className="h-4 px-1 py-0 text-[10px]"
                             >
                               {device.device}
                             </Badge>
@@ -270,7 +298,9 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" side="right">
                       <DropdownMenuItem
-                        onClick={() => router.push(`/workload/${workload.id}/edit`)}
+                        onClick={() =>
+                          router.push(`/workload/${workload.id}/edit`)
+                        }
                       >
                         <SquarePen className="mr-2 h-4 w-4" />
                         <span>Edit</span>
@@ -278,7 +308,9 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
                       <DropdownMenuSeparator />
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" />
                             <span>Delete</span>
                           </DropdownMenuItem>
@@ -287,8 +319,8 @@ export function WorkloadsSidebar({ ...props }: React.ComponentProps<typeof Sideb
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the
-                              workload.
+                              This action cannot be undone. This will
+                              permanently delete the workload.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
