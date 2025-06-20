@@ -84,7 +84,6 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 
     const styleId = `chart-style-${id}`
     let styleEl = document.getElementById(styleId) as HTMLStyleElement
-
     if (!styleEl) {
       styleEl = document.createElement('style')
       styleEl.id = styleId

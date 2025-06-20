@@ -78,7 +78,6 @@ def update_payload_status(workload_id: int, status):
     if parsed_url.scheme != allowed_scheme or parsed_url.netloc != allowed_netloc:
         logging.error(f"URL scheme or authority not allowed: {parsed_url.geturl()}")
         return
-
     # Basic check for path traversal attempts (../, //, whitespace, etc.)
     if ".." in path or "//" in path or " " in path:
         logging.error(f"Invalid characters in URL path: {path}")
@@ -110,7 +109,6 @@ async def lifespan(app: FastAPI):
     yield
     logging.info("--- Shutting down object detection worker ---")
     thread.join()
-
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -408,7 +406,6 @@ def is_valid_video_file(filepath):
     cap.release()
     return valid
 
-
 def is_valid_id(id):
     """
     Validate the workload ID to prevent URL manipulation and ensure it is a positive integer.
@@ -502,7 +499,6 @@ def main():
     else:
         update_payload_status(args.id, status="failed")
         exit(1)
-
     # Build the pipeline
     pipeline = build_pipeline(
         tcp_port=args.tcp_port,
@@ -513,7 +509,6 @@ def main():
         device=args.device,
         decode_device=args.decode_device,
     )
-
     # Start the pipeline
     logging.info("Starting the pipeline...")
     try:

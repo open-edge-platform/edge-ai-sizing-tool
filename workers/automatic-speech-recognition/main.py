@@ -34,7 +34,6 @@ env["PATH"] = f"{venv_path}:{env['PATH']}"
 core = ov.Core()
 available_devices = core.available_devices
 
-
 def optimum_cli(model_id, output_dir, additional_args: Dict[str, str] = None):
     export_command = f"optimum-cli export openvino --model {model_id} {output_dir}"
     if additional_args is not None:
@@ -81,7 +80,6 @@ def update_payload_status(workload_id: int, status):
     if parsed_url.scheme != allowed_scheme or parsed_url.netloc != allowed_netloc:
         logging.error(f"URL scheme or authority not allowed: {parsed_url.geturl()}")
         return
-
     # Basic check for path traversal attempts (../, //, whitespace, etc.)
     if ".." in path or "//" in path or " " in path:
         logging.error(f"Invalid characters in URL path: {path}")
@@ -97,7 +95,6 @@ def update_payload_status(workload_id: int, status):
         logging.info(f"Successfully updated status to {status} for {workload_id}.")
     except requests.exceptions.RequestException as e:
         logging.info(f"Failed to update status: {e}")
-
 
 app = FastAPI()
 
