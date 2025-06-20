@@ -1,0 +1,9 @@
+__pycache__
+venv
+models
+dist
+/assets/*
+!/assets/media/
+/assets/media/*
+!/assets/media/people-detection.mp4
+!/assets/media/person-bicycle-car-detection.mp4
