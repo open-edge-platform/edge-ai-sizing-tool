@@ -3,6 +3,20 @@
 
 import { useQuery } from '@tanstack/react-query'
 
+export const useGetGPUs = () => {
+  return useQuery({
+    queryKey: ['gpus'],
+    queryFn: async () => {
+      const response = await fetch('/custom/gpu')
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      }
+      return response.json()
+    },
+    retry: (failureCount: number): boolean => failureCount < 3,
+  })
+}
+
 export const useCpuUtilization = () => {
   return useQuery({
     queryKey: ['cpuUtilization'],
@@ -37,7 +51,9 @@ export const useMemoryUtilization = () => {
   })
 }
 
-export const useGpuUtilization = () => {
+export const useGpuUtilization = (
+  gpus: { device: string; busaddr: string }[],
+) => {
   return useQuery({
     queryKey: ['gpuUtilization'],
     queryFn: async (): Promise<{
@@ -47,11 +63,16 @@ export const useGpuUtilization = () => {
       }[]
     }> => {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 1000)
 
       try {
         const response = await fetch('/custom/gpu-utilization', {
           signal: controller.signal,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ gpus }),
         })
         if (!response.ok) {
           throw new Error('Network response was not ok')
@@ -68,6 +89,7 @@ export const useGpuUtilization = () => {
         clearTimeout(timeoutId)
       }
     },
+    enabled: gpus.length > 0,
     refetchInterval: (query) => {
       return query.state.status === 'success' ? 3000 : false
     },

@@ -2,13 +2,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { NextResponse } from 'next/server'
-import { spawn } from 'child_process'
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import si from 'systeminformation'
 import os from 'os'
 
-const isWindows = os.platform() === 'win32'
+interface GpuData {
+  device: string
+  busaddr: string | null
+}
 
-export async function GET() {
+function isValidBusAddress(busaddr: string | null): boolean {
+  if (!busaddr || typeof busaddr !== 'string') return false
+  // Typical PCI bus address: '00:02.0', '3e:00.0', etc.
+  return /^([0-9a-fA-F]{2}):([0-9a-fA-F]{2})\.[0-9]$/.test(busaddr)
+}
+
+const isWindows = os.platform() === 'win32'
+export async function POST(req: Request) {
+  const res = await req.json()
   try {
     if (isWindows) {
       const graphicsData = await si.graphics()
@@ -16,107 +27,124 @@ export async function GET() {
         device: controller.model,
         value: controller.utilizationGpu || 0,
       }))
-
       return NextResponse.json({ gpuUtilizations })
     } else {
-      const graphicsData = await si.graphics()
-      const gpuUtilizations = graphicsData.controllers.map((controller) => ({
-        device: controller.model,
-        busaddr: controller.busAddress,
-        value: null as number | null,
-      }))
+      let gpuData: GpuData[] = []
+      if (res.gpus && Array.isArray(res.gpus)) {
+        gpuData = res.gpus
+      } else {
+        const graphicsData = await si.graphics()
+        gpuData = graphicsData.controllers.map((controller) => ({
+          device: controller.model,
+          busaddr: controller.busAddress || null,
+        }))
+      }
 
       const osInfo = await si.osInfo()
-      const promises = graphicsData.controllers.map((controller) => {
-        return new Promise((resolve, reject) => {
-          const busAddress = controller.busAddress
-          if (!busAddress) {
-            console.error(
-              'Bus address not found for controller:',
-              controller.model,
-            )
-            return resolve(0)
+      const osVersion = osInfo.release.split(' ')[0]
+
+      const values = await Promise.all(
+        gpuData.map((gpu) => {
+          if (gpu.busaddr && isValidBusAddress(gpu.busaddr)) {
+            const formattedBusAddress = `pci:slot=0000:${gpu.busaddr}`
+            const commandArgs = osVersion.startsWith('24.04')
+              ? ['-J', '-p', '-d', formattedBusAddress]
+              : ['-J', '-d', formattedBusAddress]
+
+            const process = spawn('intel_gpu_top', commandArgs)
+            return getGpuUtilizationLinux(process, osVersion).then((result) => {
+              return Promise.resolve({
+                device: gpu.device,
+                busaddr: gpu.busaddr,
+                value: result,
+              })
+            })
+          } else {
+            return Promise.resolve({
+              device: gpu.device,
+              busaddr: gpu.busaddr,
+              value: 0,
+              error: 'Invalid or missing bus address',
+            })
           }
-
-          const formattedBusAddress = `pci:slot=0000:${busAddress}`
-
-          const osVersion = osInfo.release.split(' ')[0] // Extract '24.04' part
-
-          const commandArgs = osVersion.startsWith('24.04')
-            ? ['-J', '-p', '-d', formattedBusAddress]
-            : ['-J', '-d', formattedBusAddress]
-
-          const process = spawn('intel_gpu_top', commandArgs)
-
-          process.stderr.on('data', () => {
-            const gpu = gpuUtilizations.find(
-              (gpu) => gpu.busaddr === controller.busAddress,
-            )
-            if (gpu) {
-              gpu.value = null
-            }
-
-            resolve(0)
-            process.kill()
-          })
-
-          process.stdout.on('data', (data) => {
-            if (data) {
-              try {
-                const jsonData = JSON.parse(data.toString().substring(1))
-                let utilization = 0
-
-                if (osVersion.startsWith('22.04')) {
-                  // Check for Ubuntu 22.04
-                  if (jsonData.engines['[unknown]/0']) {
-                    utilization = jsonData.engines['[unknown]/0']['busy']
-                  } else if (jsonData.engines['Compute/0']) {
-                    utilization = jsonData.engines['Compute/0']['busy']
-                  } else if (jsonData.engines['Render/3D/0']) {
-                    utilization = jsonData.engines['Render/3D/0']['busy']
-                  }
-                } else {
-                  // For Ubuntu 24.04 or other versions
-                  if (jsonData.engines['Compute/0']) {
-                    utilization = jsonData.engines['Compute/0']['busy']
-                  } else if (jsonData.engines['Render/3D/0']) {
-                    utilization = jsonData.engines['Render/3D/0']['busy']
-                  }
-                }
-
-                const gpu = gpuUtilizations.find(
-                  (gpu) => gpu.busaddr === controller.busAddress,
-                )
-                if (gpu) {
-                  gpu.value = utilization as number
-                }
-
-                resolve(utilization)
-                process.kill()
-              } catch (error) {
-                console.log('Failed to parse JSON:', error)
-                reject(error)
-                process.kill()
-              }
-            }
-          })
-
-          process.on('error', (error) => {
-            console.error('Failed to spawn process:', error)
-            reject(error)
-            process.kill()
-          })
-        })
+        }),
+      )
+      return NextResponse.json({
+        gpuUtilizations: values.filter((v) => v !== null),
       })
-
-      await Promise.all(promises)
-      return NextResponse.json({ gpuUtilizations })
     }
   } catch (error) {
-    let errorMessage = 'Failed to do something exceptional'
-    if (error instanceof Error) {
-      errorMessage = error.message
-    }
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : 'Failed to do something exceptional'
     return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
+}
+
+function getGpuUtilizationLinux(
+  process: ChildProcessWithoutNullStreams,
+  osVersion: string,
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    let resolved = false
+
+    process.stderr.on('data', () => {
+      if (!resolved) {
+        resolved = true
+        resolve(0)
+        process.kill()
+      }
+    })
+
+    process.stdout.on('data', (data) => {
+      if (resolved) return
+      try {
+        // Try to find the first '{' and parse from there
+        const str = data.toString()
+        const jsonStart = str.indexOf('{')
+        if (jsonStart === -1) throw new Error('No JSON found')
+        const jsonData = JSON.parse(str.slice(jsonStart))
+        let utilization = 0
+
+        if (osVersion.startsWith('22.04')) {
+          utilization =
+            jsonData.engines['[unknown]/0']?.busy ??
+            jsonData.engines['Compute/0']?.busy ??
+            jsonData.engines['Render/3D/0']?.busy ??
+            0
+        } else {
+          utilization =
+            jsonData.engines['Compute/0']?.busy ??
+            jsonData.engines['Render/3D/0']?.busy ??
+            0
+        }
+
+        resolved = true
+        resolve(utilization)
+        process.kill()
+      } catch (error) {
+        if (!resolved) {
+          resolved = true
+          reject(error)
+          process.kill()
+        }
+      }
+    })
+
+    process.on('error', (error) => {
+      if (!resolved) {
+        resolved = true
+        reject(error)
+        process.kill()
+      }
+    })
+
+    process.on('close', () => {
+      if (!resolved) {
+        resolved = true
+        resolve(0)
+      }
+    })
+  })
 }
