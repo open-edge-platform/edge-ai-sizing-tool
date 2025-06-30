@@ -144,6 +144,21 @@ sudo sysctl -p
 
 This will ensure that the perf_events functionality remains enabled across system reboots.
 
+### 2. Tool Crashes or Stops Unexpectedly
+If you experience frequent crashes or the tool stops working unexpectedly, try enabling Resizable BAR first under BIOS setting. Add commentMore actions
+
+#### Enable Resizable BAR
+
+#### 1. **Enter BIOS/UEFI Setup**:
+Restart your computer. Press the appropriate key during startup to enter BIOS menu (usually F2, DEL, F10, or F12, depending on your motherboard)
+
+#### 2. **Enable Resizable BAR Setting**:
+Look for settings related to "Resizable BAR" or "Re-Size BAR Support". These settings are typically found under sections like "Advanced","PCI Subsystem Settings" or "PCI Configuration". Set the option to "Enabled" for Resizable Bar.
+
+#### 3. **Save and Exit**:
+Save your changes and exit BIOS. Your system will restart with Resizable BAR enabled.
+
+
 ## Limitations
 
 1. The Ubuntu intel-gpu-tools package does not support Intel Arc B-Series Graphics Cards, resulting in the inability to display GPU utilization metrics.

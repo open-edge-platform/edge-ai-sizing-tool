@@ -7,3 +7,6 @@ dist
 /assets/media/*
 !/assets/media/people-detection.mp4
 !/assets/media/person-bicycle-car-detection.mp4
+
+/tests/scan/*
+!/tests/scan/coverity_scan.sh

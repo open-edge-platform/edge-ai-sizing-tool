@@ -34,13 +34,14 @@ import { CpuChart } from '@/components/monitor/cpu-chart'
 import { MemoryChart } from '@/components/monitor/memory-chart'
 import { GpuChart, GpuUtilization } from '@/components/monitor/gpu-chart'
 import { NpuChart } from '@/components/monitor/npu-chart'
+import { NOT_AVAILABLE } from '@/lib/constants'
 import {
   useCpuUtilization,
+  useGetGPUs,
   useGpuUtilization,
   useMemoryUtilization,
   useNpuUtilization,
 } from '@/hooks/useSystemMonitoring'
-import { NOT_AVAILABLE } from '@/lib/constants'
 
 // Chart types
 type ChartType = 'memory' | 'cpu' | 'gpu' | 'npu' | 'n/a'
@@ -61,9 +62,11 @@ export function SystemMonitorSidebar({
   const { setOpen } = useSidebar()
 
   // Fetch data using custom hooks
+  const { data } = useGetGPUs()
+
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
-  const gpuData = useGpuUtilization()
+  const gpuData = useGpuUtilization(data?.gpus || [])
   const npuData = useNpuUtilization()
 
   // Create chart items based on available data

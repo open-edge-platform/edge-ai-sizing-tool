@@ -142,6 +142,7 @@ def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
     if not is_path_safe(Path.cwd(), converted_path):
         logging.error(f"Unsafe converted path detected: {converted_path}")
         sys.exit(1)
+
     # Load the converted model
     core = ov.Core()
     ov_model = core.read_model(model=os.path.join(converted_path, f"{model_name}.xml"))
@@ -164,6 +165,7 @@ def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
         logging.info(f"Removed {pt_file}")
 
     logging.info(f"Model saved: {model_path_fp32} and {model_path_fp16}")
+
     return True
 
 

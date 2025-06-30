@@ -5,15 +5,16 @@
 
 import { useRouter } from 'next/navigation'
 import { Package, PackageX, PackageOpen } from 'lucide-react'
-
 import { Button } from '@/components/ui/button'
 import { Text2Img } from '@/components/usecase/text2img'
 import { TextGen } from '@/components/usecase/textgen'
 import { Audio } from '@/components/usecase/audio'
-
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { useWorkload } from '@/hooks/useWorkload'
 import { DlStreamer } from '@/components/usecase/dlstreamer'
+import html2canvas from 'html2canvas-pro'
+import jsPDF from 'jspdf'
+import SystemInformationPage from '@/app/(frontend)/(main)/system/information/page'
 
 // Workload type definition
 
@@ -26,6 +27,47 @@ export default function WorkloadPage({
   const unwrappedParams = React.use(params)
   const workloadId = Number.parseInt(unwrappedParams.id)
   const { isLoading, data: workload } = useWorkload(Number(workloadId))
+  const workloadRef = useRef<HTMLDivElement>(null)
+  const systemInfoRef = useRef<HTMLDivElement>(null)
+  const [showSystemInfo, setShowSystemInfo] = useState(false)
+
+  const handleExportPDF = async () => {
+    setShowSystemInfo(true)
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 1000))
+    const workloadCanvas = await html2canvas(workloadRef.current!, {
+      useCORS: true,
+      scale: 3,
+    })
+    const workloadImg = workloadCanvas.toDataURL('image/jpeg')
+
+    const sysInfoCanvas = await html2canvas(systemInfoRef.current!, {
+      useCORS: true,
+      scale: 3,
+    })
+    const sysInfoImg = sysInfoCanvas.toDataURL('image/jpeg')
+
+    setShowSystemInfo(false)
+
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: 'a4',
+    })
+
+    const pdfWidth = pdf.internal.pageSize.getWidth()
+    let imgProps = pdf.getImageProperties(workloadImg)
+    let imgHeight = (imgProps.height * pdfWidth) / imgProps.width
+    pdf.addImage(workloadImg, 'JPEG', 0, 0, pdfWidth, imgHeight)
+
+    pdf.addPage()
+
+    imgProps = pdf.getImageProperties(sysInfoImg)
+    imgHeight = (imgProps.height * pdfWidth) / imgProps.width
+    pdf.addImage(sysInfoImg, 'JPEG', 0, 0, pdfWidth, imgHeight)
+    pdf.save(
+      `workload-ID(${workloadId})-${new Date().toISOString().slice(0, 10)}.pdf`,
+    )
+  }
 
   // Render the appropriate usecase component
   const renderUsecaseComponent = () => {
@@ -122,7 +164,19 @@ export default function WorkloadPage({
   }
 
   return (
-    <div className="container mx-auto flex h-full w-full flex-col px-6">
+    <div
+      ref={workloadRef}
+      className="container mx-auto flex h-full w-full flex-col px-6"
+    >
+      {showSystemInfo && (
+        <div
+          ref={systemInfoRef}
+          className="absolute top-0 left-[-9999px] w-[1122px]"
+          aria-hidden="true"
+        >
+          <SystemInformationPage />
+        </div>
+      )}
       {/* Scrollable Content Area */}
       <div className="hide-scrollbar flex-1 overflow-auto">
         <div className="my-4 flex items-center justify-between">
@@ -131,6 +185,7 @@ export default function WorkloadPage({
               {workload.usecase.replace(/-/g, ' ')}
             </h1>
           </div>
+          <Button onClick={handleExportPDF}>Export as PDF</Button>
         </div>
 
         <div className="container">
