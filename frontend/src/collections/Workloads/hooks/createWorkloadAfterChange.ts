@@ -8,6 +8,21 @@ import path from 'path'
 const ASSETS_PATH =
   process.env.ASSETS_PATH ?? path.join(process.cwd(), '../assets/media')
 
+interface DLStreamerMetadata {
+  numStreams?: number
+}
+
+function isDLStreamerMetadata(
+  metadata: unknown,
+): metadata is DLStreamerMetadata {
+  return (
+    typeof metadata === 'object' &&
+    metadata !== null &&
+    !Array.isArray(metadata) &&
+    typeof (metadata as { numStreams?: unknown }).numStreams === 'number'
+  )
+}
+
 export const createWorkloadAfterChange: CollectionAfterChangeHook<
   Workload
 > = async ({ doc, previousDoc }) => {
@@ -43,6 +58,14 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
         params += ' --input ' + path.join(ASSETS_PATH, doc.source.name)
       } else {
         params += ' --input ' + doc.source.name
+      }
+      let numStreams: number | undefined = undefined
+      if (isDLStreamerMetadata(doc.metadata)) {
+        numStreams = doc.metadata.numStreams
+      }
+
+      if (typeof numStreams === 'number' && numStreams > 0) {
+        params += ' --number_of_streams ' + numStreams
       }
     }
     await startPm2Process(doc.id.toString(), usecaseName, params)

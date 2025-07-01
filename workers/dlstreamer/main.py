@@ -4,6 +4,7 @@
 import argparse
 import cv2
 import logging
+import math
 import numpy as np
 import os
 import sys
@@ -103,6 +104,7 @@ async def lifespan(app: FastAPI):
         "total_fps": None,
         "number_streams": None,
         "average_fps_per_stream": None,
+        "fps_streams": None,
         "timestamp": None,
     }
     thread = threading.Thread(target=main, daemon=True)
@@ -186,10 +188,58 @@ def parse_arguments():
     parser.add_argument(
         "--id", type=int, help="Workload ID to update the workload status"
     )
+    parser.add_argument(
+        "--number_of_streams",
+        type=int,
+        default=1,
+        help="Number of streams to run (default: 1)",
+    )
+    parser.add_argument(
+        "--width_limit",
+        type=int,
+        default=640,
+        help="Width limit for the video stream (default: 640)",
+    )
+    parser.add_argument(
+        "--height_limit",
+        type=int,
+        default=480,
+        help="Height limit for the video stream (default: 480)",
+    )
     return parser.parse_args()
 
 
 args = parse_arguments()
+
+
+def build_compositor_props(num_streams, final_width, final_height):
+    """
+    Method to dynamically split a single final_width * final_height compositor output window into a grid of N sub-windows.
+    """
+    # Determine how many columns and rows a square-ish grid would need
+    grid_cols = math.ceil(math.sqrt(num_streams))
+    grid_rows = math.ceil(num_streams / grid_cols)
+
+    # Calculate each sub-window width and height
+    sub_width = final_width // grid_cols
+    sub_height = final_height // grid_rows
+
+    comp_props = []
+    for i in range(num_streams):
+        row = i // grid_cols
+        col = i % grid_cols
+
+        xpos = col * sub_width
+        ypos = row * sub_height
+
+        comp_props.append(
+            f"sink_{i}::xpos={xpos} "
+            f"sink_{i}::ypos={ypos} "
+            f"sink_{i}::width={sub_width} "
+            f"sink_{i}::height={sub_height}"
+        )
+
+    return " ".join(comp_props)
 
 
 def build_pipeline(
@@ -201,6 +251,7 @@ def build_pipeline(
     device,
     decode_device,
     batch_size=1,
+    number_of_streams=1,
 ):
     """
     Build the DLStreamer pipeline for MJPEG streaming.
@@ -214,11 +265,26 @@ def build_pipeline(
 
     # Check if input is a videofile
     if input.endswith((".mp4", ".avi", ".mov")):
-        source_command = ["multifilesrc", f"location={input}", "loop=true"]
+        source_command = [" multifilesrc", f"location={input}", "loop=true"]
     elif input.startswith("rtsp://"):
         source_command = ["rtspsrc", f"location={input}", "protocols=tcp"]
     else:
-        source_command = ["v4l2src", f"device={input}"]  # default to webcam
+        # Default to webcam
+        if number_of_streams > 1:
+            source_command = [
+                "v4l2src",
+                f"device={input}",
+                "!",
+                "videoconvert",
+                "!",
+                "tee",
+                "name=camtee",
+                "!",
+                "multiqueue",
+                "name=camq",
+            ]
+        else:
+            source_command = ["v4l2src", f"device={input}"]
 
     # Configure decode element
     if "CPU" in decode_device:
@@ -262,35 +328,74 @@ def build_pipeline(
     elif "GPU" in decode_device and "CPU" in device:
         inference_command.append("pre-process-backend=va")
 
-    # Build the full pipeline
-    pipeline = (
-        ["gst-launch-1.0", "-v"]
-        + source_command
-        + ["!"]
-        + decode_element
-        + ["!"]
-        + inference_command
-        + [
-            "!",
-            "queue",
-            "!",
-            "gvafpscounter",
-            "!",
-            "gvawatermark",
-            "!",
-            "videoconvert",
-            "!",
-            "jpegenc",
-            "!",
-            "multipartmux",
-            "boundary=frame",
-            "!",
-            "tcpserversink",
-            f"host=127.0.0.1",
-            f"port={tcp_port}",
-        ]
+    comp_props_str = build_compositor_props(
+        args.number_of_streams, args.width_limit, args.height_limit
     )
+    comp_props = comp_props_str.split()
+    logging.info(f"Compositor properties: {comp_props_str}")
 
+    # Build the compositor pipeline
+    pipeline = (
+        ["gst-launch-1.0", "compositor", "name=comp"]
+        + comp_props
+        + ["!"]
+        + ["jpegenc", "!", "multipartmux", "boundary=frame"]
+        + ["!"]
+        + ["tcpserversink", f"host=127.0.0.1", f"port={tcp_port}"]
+    )
+    logging.info(f"Partial Pipeline={pipeline}")
+
+    # Compose the full pipeline
+    if input.startswith("/dev/video") and number_of_streams > 1:
+        # For multiple webcam streams, use tee to split the source
+        pipeline += source_command
+        for i in range(number_of_streams):
+            pipeline += (
+                [
+                    f"camtee.",
+                    "!",
+                    "queue",
+                    "max-size-buffers=10",
+                    "leaky=downstream",
+                    "!",
+                ]
+                + decode_element
+                + [
+                    "!",
+                    *inference_command,
+                    "!",
+                    "queue",
+                    "!",
+                    "gvafpscounter",
+                    "!",
+                    "gvawatermark",
+                    "!",
+                    "videoconvert",
+                    "!",
+                    f"comp.sink_{i}",
+                ]
+            )
+    else:
+        for i in range(number_of_streams):
+            pipeline += (
+                source_command
+                + ["!"]
+                + decode_element
+                + ["!"]
+                + inference_command
+                + [
+                    "!",
+                    "queue",
+                    "!",
+                    "gvafpscounter",
+                    "!",
+                    "gvawatermark",
+                    "!",
+                    "videoconvert",
+                    "!",
+                    f"comp.sink_{i}",
+                ]
+            )
     # Log the pipeline
     logging.info(f"Full pipeline={' '.join(pipeline)}\n")
     return pipeline
@@ -347,27 +452,44 @@ def run_pipeline(pipeline):
 
 def filter_result(output):
     """
-    Extract the final FPS metrics from the command output.
+    Extract the FPS metrics from the command output.
 
     Args:
         output (str): The standard output from the command.
 
     Returns:
-        dict: A dictionary containing the total FPS, number of streams, and per-stream FPS.
+        dict: A dictionary containing the total FPS, the number of streams, the average FPS per stream, a mapping of individual stream FPS values and timestamp.
     """
     fps_pattern = re.compile(
-        r"FpsCounter\(average.*\): total=(\d+\.\d+) fps, number-streams=(\d+), per-stream=(\d+\.\d+) fps"
+        r"FpsCounter\(.*\): total=(\d+\.\d+) fps, number-streams=(\d+), per-stream=(\d+\.\d+) fps(?: \((.*?)\))?"
     )
     match = fps_pattern.search(output)
     if match:
-        total_fps = match.group(1)
-        number_streams = match.group(2)
-        average_fps_per_stream = match.group(3)
+        total_fps_str = match.group(1)
+        number_streams_str = match.group(2)
+        average_fps_per_stream_str = match.group(3)
+        all_streams_fps_str = match.group(4)
+
+        total_fps = float(total_fps_str)
+        number_streams = int(number_streams_str)
+        average_fps_per_stream = float(average_fps_per_stream_str)
+
+        if all_streams_fps_str:
+            all_streams_fps = [float(x.strip()) for x in all_streams_fps_str.split(",")]
+        else:
+            # If there is only one stream
+            all_streams_fps = [average_fps_per_stream]
+
+        fps_streams = {
+            f"stream_id {i+1}": fps_val
+            for i, fps_val in enumerate(all_streams_fps[:number_streams])
+        }
 
         return {
             "total_fps": total_fps,
             "number_streams": number_streams,
             "average_fps_per_stream": average_fps_per_stream,
+            "fps_streams": fps_streams,
             "timestamp": time.time(),
         }
     return None
@@ -512,6 +634,7 @@ def main():
         model_precision=args.model_precision,
         device=args.device,
         decode_device=args.decode_device,
+        number_of_streams=args.number_of_streams,
     )
 
     # Start the pipeline

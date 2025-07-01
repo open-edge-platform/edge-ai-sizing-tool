@@ -71,6 +71,11 @@ export const Workloads: CollectionConfig = {
       },
     },
     {
+      name: 'metadata',
+      type: 'json',
+      required: false,
+    },
+    {
       name: 'status',
       type: 'text',
       required: true,

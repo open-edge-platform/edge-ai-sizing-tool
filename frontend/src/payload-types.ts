@@ -149,6 +149,15 @@ export interface Workload {
     size?: number | null;
   };
   port?: number | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   status: string;
   updatedAt: string;
   createdAt: string;
@@ -247,6 +256,7 @@ export interface WorkloadsSelect<T extends boolean = true> {
         size?: T;
       };
   port?: T;
+  metadata?: T;
   status?: T;
   updatedAt?: T;
   createdAt?: T;
