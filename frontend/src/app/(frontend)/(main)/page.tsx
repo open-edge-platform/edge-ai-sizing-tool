@@ -22,16 +22,17 @@ import {
   Zap,
   Video,
 } from 'lucide-react'
-import {
-  useCpuUtilization,
-  useGpuUtilization,
-  useMemoryUtilization,
-  useNpuUtilization,
-} from '@/hooks/useSystemMonitoring'
 import { useWorkloads } from '@/hooks/useWorkload'
 import { Workload } from '@/payload-types'
 import { useSystemInfo } from '@/hooks/useSystemInformation'
 import { NOT_AVAILABLE } from '@/lib/constants'
+import {
+  useCpuUtilization,
+  useGetGPUs,
+  useGpuUtilization,
+  useMemoryUtilization,
+  useNpuUtilization,
+} from '@/hooks/useSystemMonitoring'
 
 // Helper function to get icon based on usecase
 const getUsecaseIcon = (usecase: string) => {
@@ -48,9 +49,11 @@ const getUsecaseIcon = (usecase: string) => {
 }
 
 export default function DashboardPage() {
+  const { data } = useGetGPUs()
+
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
-  const gpuData = useGpuUtilization()
+  const gpuData = useGpuUtilization(data?.gpus || [])
   const npuData = useNpuUtilization()
   const workloadsData = useWorkloads()
   const systemInfo = useSystemInfo()
