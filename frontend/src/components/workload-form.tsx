@@ -35,6 +35,7 @@ import { metadata, TaskOptions, UsecaseOptions } from '@/config/workloads'
 type TaskType = keyof typeof metadata.tasks
 type UsecaseType = keyof TaskOptions['usecase']
 type ModelType = keyof UsecaseOptions['model']
+type NumberStreamChange = number | undefined
 
 interface WorkloadResponse {
   doc: {
@@ -55,6 +56,22 @@ interface WorkloadResponse {
     createdAt: string
   }
   message: string
+}
+
+function getNumStreams(metadata: Workload['metadata']): number | undefined {
+  return isMetadataObject(metadata) && typeof metadata.numStreams === 'number'
+    ? metadata.numStreams
+    : undefined
+}
+
+function isMetadataObject(
+  metadata: Workload['metadata'],
+): metadata is { [k: string]: unknown } {
+  return (
+    typeof metadata === 'object' &&
+    metadata !== null &&
+    !Array.isArray(metadata)
+  )
 }
 
 export default function WorkloadForm({ workload }: { workload?: Workload }) {
@@ -118,7 +135,19 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         return []
       })
 
-      setAddWorkload(workload)
+      // setAddWorkload(workload)
+      // setAddWorkload({
+      //   ...workload,
+      //   numStreams:
+      //     workload.numStreams === null ? undefined : workload.numStreams,
+      // })
+      setAddWorkload({
+        ...workload,
+        metadata: {
+          ...(isMetadataObject(workload.metadata) ? workload.metadata : {}),
+          numStreams: getNumStreams(workload.metadata) ?? 1,
+        },
+      })
     }
   }, [acceleratorDevices, workload])
 
@@ -170,9 +199,13 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         device: item.device,
       }))
 
+      const isDLStreamer = addWorkload.usecase?.includes('DLStreamer')
       const response: WorkloadResponse = await createWorkload.mutateAsync({
         ...addWorkload,
         devices: transformedDevice,
+        ...(isDLStreamer && {
+          numStreams: getNumStreams(addWorkload.metadata),
+        }),
       })
 
       toast.success(response.message)
@@ -215,6 +248,12 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
               size: null,
             }
           : undefined,
+        metadata: {
+          ...(isMetadataObject(addWorkload.metadata)
+            ? addWorkload.metadata
+            : {}),
+          numStreams: selectedUseCase.includes('DLStreamer') ? 1 : undefined,
+        },
       })
 
       const models = Object.keys(
@@ -223,6 +262,18 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
       setAvailableModels(models)
     }
+  }
+
+  const handleUseCaseNumberStreamChange = (
+    selectedNumberStream: NumberStreamChange,
+  ) => {
+    setAddWorkload((prev) => ({
+      ...prev,
+      metadata: {
+        ...(isMetadataObject(prev.metadata) ? prev.metadata : {}),
+        numStreams: selectedNumberStream,
+      },
+    }))
   }
 
   const handleModelChange = (selectedModel: ModelType) => {
@@ -612,6 +663,40 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                             </Select>
                           </>
                         )}
+                        {
+                          <div className="grid gap-2">
+                            <Label htmlFor="numStreams">
+                              Number of streams
+                            </Label>
+                            <input
+                              id="numStreams"
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={getNumStreams(addWorkload.metadata) ?? ''}
+                              onChange={(e) => {
+                                const rawValue = e.target.value
+                                if (rawValue === '') {
+                                  handleUseCaseNumberStreamChange(undefined)
+                                } else {
+                                  const num = Number(rawValue)
+                                  handleUseCaseNumberStreamChange(
+                                    num < 1 ? 1 : num,
+                                  )
+                                }
+                              }}
+                              onBlur={() => {
+                                const numStreams = getNumStreams(
+                                  addWorkload.metadata,
+                                )
+                                if (!numStreams || numStreams < 1) {
+                                  handleUseCaseNumberStreamChange(1)
+                                }
+                              }}
+                              className="w-24 rounded border px-2 py-1"
+                            />
+                          </div>
+                        }
                       </div>
                     )}
 
