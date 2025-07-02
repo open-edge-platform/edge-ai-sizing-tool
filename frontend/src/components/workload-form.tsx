@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { useRef, useState, useEffect } from 'react'
-import { FileVideo, Upload, X } from 'lucide-react'
+import { FileVideo, Upload, X, FolderArchive } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -31,11 +31,20 @@ import { useUploadMedia } from '@/hooks/useMedia'
 import useGetDevices from '@/hooks/useDevices'
 import { ErrorResponse } from '@/types/error'
 import { metadata, TaskOptions, UsecaseOptions } from '@/config/workloads'
+import { Input } from './ui/input'
+import { useCustomModel, useUploadCustomModel } from '@/hooks/useModel'
 
 type TaskType = keyof typeof metadata.tasks
 type UsecaseType = keyof TaskOptions['usecase']
 type ModelType = keyof UsecaseOptions['model']
 type NumberStreamChange = number | undefined
+type CustomModel =
+  | {
+      name: string
+      size: number | null
+      type: string
+    }
+  | undefined
 
 interface WorkloadResponse {
   doc: {
@@ -51,6 +60,10 @@ interface WorkloadResponse {
       name: string
       size: number | null
     }
+    metadata: {
+      customModel?: CustomModel
+      numStreams?: number
+    }
     port: number
     updatedAt: string
     createdAt: string
@@ -62,6 +75,26 @@ function getNumStreams(metadata: Workload['metadata']): number | undefined {
   return isMetadataObject(metadata) && typeof metadata.numStreams === 'number'
     ? metadata.numStreams
     : undefined
+}
+
+function isCustomModel(
+  metadata: Workload['metadata'],
+): CustomModel | undefined {
+  if (
+    isMetadataObject(metadata) &&
+    typeof metadata.customModel === 'object' &&
+    metadata.customModel !== null &&
+    'name' in metadata.customModel &&
+    'size' in metadata.customModel &&
+    'type' in metadata.customModel
+  ) {
+    return metadata.customModel as {
+      name: string
+      size: number | null
+      type: string
+    }
+  }
+  return undefined
 }
 
 function isMetadataObject(
@@ -78,10 +111,12 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   const router = useRouter()
   const isEdit = !!workload
   const { data: camDevices } = useGetDevices()
+  const { data: customModelData } = useCustomModel()
   const [addWorkload, setAddWorkload] = useState<Partial<Workload>>({
     task: '' as TaskType,
     usecase: '',
     model: '',
+    metadata: { customModel: undefined, numStreams: undefined },
     devices: [],
     source: {
       name: '',
@@ -94,16 +129,23 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   >([])
   const [availableUsecases, setAvailableUsecases] = useState<string[]>([])
   const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [modelSelectionType, setModelSelectionType] = useState<
+    'predefined' | 'huggingface' | 'upload' | 'directory'
+  >('predefined')
   const [isDisable, setIsDisable] = useState<boolean>(true)
-  const selectedFileRef = useRef<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+  const selectedInputFileRef = useRef<File | null>(null)
+  const modelInputRef = useRef<HTMLInputElement>(null)
+  const selectedModelFileRef = useRef<File | null>(null)
 
   const { data: devicesData } = useAccelerator()
   const acceleratorDevices = devicesData?.devices
 
   const createWorkload = useCreateWorkload()
   const uploadmedia = useUploadMedia()
+  const uploadCustomModel = useUploadCustomModel()
   const updateWorkload = useUpdateWorkload(isEdit ? workload?.id : 0)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   useEffect(() => {
     if (workload) {
@@ -117,11 +159,36 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
           ].model,
         ),
       )
+      if (workload.model === 'custom_model') {
+        setModelSelectionType('upload')
+      } else if (
+        workload.model &&
+        workload.usecase &&
+        Array.isArray(customModelData[workload.usecase.replace(/ /g, '-')]) &&
+        customModelData[workload.usecase.replace(/ /g, '-')].includes(
+          workload.model,
+        )
+      ) {
+        setModelSelectionType('directory')
+      } else if (
+        workload.model &&
+        !Object.keys(
+          metadata.tasks[workload.task as TaskType].usecase[
+            workload.usecase as UsecaseType
+          ].model,
+        ).includes(workload.model)
+      ) {
+        setModelSelectionType('huggingface')
+      } else {
+        setModelSelectionType('predefined')
+      }
       setAvailableDevices(() => {
-        const incompatibleDevices =
+        const modelConfig =
           metadata.tasks[workload.task]?.usecase[workload.usecase]?.model[
             workload.model
-          ]?.devicesFiltered
+          ]
+
+        const incompatibleDevices = modelConfig?.devicesFiltered || []
 
         if (Array.isArray(acceleratorDevices)) {
           return acceleratorDevices.filter(
@@ -135,35 +202,50 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         return []
       })
 
-      // setAddWorkload(workload)
-      // setAddWorkload({
-      //   ...workload,
-      //   numStreams:
-      //     workload.numStreams === null ? undefined : workload.numStreams,
-      // })
       setAddWorkload({
         ...workload,
         metadata: {
           ...(isMetadataObject(workload.metadata) ? workload.metadata : {}),
+          customModel: isCustomModel(workload.metadata) ?? undefined,
           numStreams: getNumStreams(workload.metadata) ?? 1,
         },
       })
     }
-  }, [acceleratorDevices, workload])
+  }, [acceleratorDevices, workload, customModelData])
 
   useEffect(() => {
-    const { task, usecase, model, devices, source } = addWorkload
+    const { task, usecase, model, metadata, devices, source } = addWorkload
     setIsDisable(true)
     if (task && usecase) {
       if (usecase.includes('DLStreamer')) {
+        if (model === 'custom_model') {
+          setIsDisable(
+            !model ||
+              !devices?.length ||
+              !source ||
+              !source.name ||
+              source.name === '' ||
+              source.name === 'no-cam' ||
+              !source.type ||
+              !metadata ||
+              isCustomModel(metadata) === undefined,
+          )
+        } else {
+          setIsDisable(
+            !model ||
+              !devices?.length ||
+              !source ||
+              !source.name ||
+              source.name === '' ||
+              source.name === 'no-cam' ||
+              !source.type,
+          )
+        }
+      } else if (model === 'custom_model') {
         setIsDisable(
-          !model ||
-            !devices?.length ||
-            !source ||
-            !source.name ||
-            source.name === '' ||
-            source.name === 'no-cam' ||
-            !source.type,
+          !devices?.length ||
+            !metadata ||
+            isCustomModel(metadata) === undefined,
         )
       } else {
         setIsDisable(!model || devices?.length === 0)
@@ -172,12 +254,13 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   }, [addWorkload, isDisable])
 
   const handleAddWorkload = async () => {
+    setIsLoading(true)
     try {
       if (
         addWorkload.usecase?.includes('DLStreamer') &&
         addWorkload.source?.type === 'file'
       ) {
-        const file = selectedFileRef.current
+        const file = selectedInputFileRef.current
         if (file) {
           const response = await uploadmedia.mutateAsync(file)
           if (!response) {
@@ -191,6 +274,28 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
           addWorkload.source.name = response.file
         } else {
           toast.error('Please select a file')
+          return
+        }
+      }
+
+      if (
+        addWorkload.model === 'custom_model' &&
+        isCustomModel(addWorkload.metadata)?.type === 'file'
+      ) {
+        const file = selectedModelFileRef.current
+        if (file) {
+          const response = await uploadCustomModel.mutateAsync(file)
+          if (!response) {
+            toast.error('Failed to upload custom model')
+            return
+          }
+          if (response.error) {
+            toast.error(`Failed to upload custom model: ${response.error}`)
+            return
+          }
+          isCustomModel(addWorkload.metadata)!.name = response.file
+        } else {
+          toast.error('Please select a custom model file')
           return
         }
       }
@@ -216,6 +321,8 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       const typedError = error as ErrorResponse
       console.error('Failed to create workload:', typedError.message)
       toast.error(`Failed to add workload: ${typedError.message}`)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -224,7 +331,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       ...addWorkload,
       task: selectedTask,
       usecase: '',
-      model: '',
+      model: addWorkload.model === 'custom_model' ? 'custom_model' : '',
       devices: [],
     })
 
@@ -239,7 +346,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       setAddWorkload({
         ...addWorkload,
         usecase: selectedUseCase,
-        model: '',
+        model: addWorkload.model === 'custom_model' ? 'custom_model' : '',
         devices: [],
         source: selectedUseCase.includes('DLStreamer')
           ? {
@@ -284,10 +391,11 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         devices: [],
       })
 
-      const incompatibleDevices =
+      const modelConfig =
         metadata.tasks[addWorkload.task]?.usecase[addWorkload.usecase]?.model[
           selectedModel
-        ].devicesFiltered || []
+        ]
+      const incompatibleDevices = modelConfig?.devicesFiltered || []
 
       if (Array.isArray(acceleratorDevices)) {
         setAvailableDevices(
@@ -298,6 +406,14 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       } else {
         console.error('Devices are not an array:', acceleratorDevices)
       }
+    }
+
+    if (selectedModel === 'custom_model') {
+      setAddWorkload({
+        ...addWorkload,
+        model: 'custom_model',
+      })
+      setAvailableDevices(acceleratorDevices || [])
     }
   }
 
@@ -327,13 +443,43 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         toast.error('Please upload an audio file smaller than 50MB')
         return
       }
-      selectedFileRef.current = selectedFile
+      selectedInputFileRef.current = selectedFile
       setAddWorkload({
         ...addWorkload,
         source: {
           type: 'file',
           name: selectedFile.name,
           size: selectedFile.size,
+        },
+      })
+    } catch (error) {
+      console.error('Error validating file:', error)
+      toast.error('Failed to validate file.')
+    }
+  }
+
+  const validateAndSetCustomModel = (selectedFile: File) => {
+    try {
+      if (
+        selectedFile.type !== 'application/zip' &&
+        !selectedFile.name.endsWith('.zip')
+      ) {
+        toast.error('Please upload a ZIP file.')
+        return
+      }
+
+      selectedModelFileRef.current = selectedFile
+      setAddWorkload({
+        ...addWorkload,
+        metadata: {
+          ...(isMetadataObject(addWorkload.metadata)
+            ? addWorkload.metadata
+            : {}),
+          customModel: {
+            type: 'file',
+            name: selectedFile.name,
+            size: selectedFile.size,
+          },
         },
       })
     } catch (error) {
@@ -351,10 +497,30 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   const clearFile = () => {
     try {
       setAddWorkload((prev) => {
-        return { ...prev, source: { type: 'file', name: null, source: null } }
+        return { ...prev, source: { type: 'file', name: null, size: null } }
       })
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
+      if (videoInputRef.current) {
+        videoInputRef.current.value = ''
+      }
+    } catch (error) {
+      console.error('Error clearing file input:', error)
+      toast.error('Failed to clear file input.')
+    }
+  }
+
+  const clearZipFile = () => {
+    try {
+      setAddWorkload((prev) => {
+        return {
+          ...prev,
+          metadata: {
+            ...(isMetadataObject(prev.metadata) ? prev.metadata : {}),
+            customModel: undefined,
+          },
+        }
+      })
+      if (modelInputRef.current) {
+        modelInputRef.current.value = ''
       }
     } catch (error) {
       console.error('Error clearing file input:', error)
@@ -400,6 +566,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
   const handleSaveWorkload = async () => {
     if (!workload || !workload.id) return
+    setIsLoading(true)
     try {
       await updateWorkload.mutateAsync({ ...addWorkload, status: 'prepare' })
       toast.success('Workload updated successfully!')
@@ -422,6 +589,8 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
           `Failed to update workload: ${typedError.message || 'Unknown error'}`,
         )
       }
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -542,17 +711,17 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                 validateAndSetFile(files[0])
                               }
                             }}
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => videoInputRef.current?.click()}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault()
-                                fileInputRef.current?.click()
+                                videoInputRef.current?.click()
                               }
                             }}
                           >
                             <input
                               type="file"
-                              ref={fileInputRef}
+                              ref={videoInputRef}
                               onChange={(e) => {
                                 if (
                                   e.target.files &&
@@ -701,22 +870,311 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                     )}
 
                     <div className="grid gap-2">
-                      <Label htmlFor="model">Model</Label>
-                      <Select
-                        onValueChange={handleModelChange}
-                        value={addWorkload.model}
-                      >
-                        <SelectTrigger id="model">
-                          <SelectValue placeholder="Select model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableModels.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="modelSource">Model Source</Label>
+                      <div className="flex gap-4">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="predefined"
+                            name="model-type"
+                            value="predefined"
+                            checked={modelSelectionType === 'predefined'}
+                            onChange={(e) => {
+                              setModelSelectionType(
+                                e.target.value as
+                                  | 'predefined'
+                                  | 'huggingface'
+                                  | 'upload'
+                                  | 'directory',
+                              )
+                              setAddWorkload((prev) => ({
+                                ...prev,
+                                model: '',
+                                metadata: {
+                                  ...(isMetadataObject(prev.metadata)
+                                    ? prev.metadata
+                                    : {}),
+                                  customModel: undefined,
+                                },
+                              }))
+                            }}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="predefined" className="font-normal">
+                            Predefined Models
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="huggingface"
+                            name="model-type"
+                            value="huggingface"
+                            checked={modelSelectionType === 'huggingface'}
+                            disabled={addWorkload.usecase?.includes(
+                              'DLStreamer',
+                            )}
+                            onChange={(e) => {
+                              setModelSelectionType(
+                                e.target.value as
+                                  | 'predefined'
+                                  | 'huggingface'
+                                  | 'upload'
+                                  | 'directory',
+                              )
+                              setAddWorkload((prev) => ({
+                                ...prev,
+                                model: '',
+                                metadata: {
+                                  ...(isMetadataObject(prev.metadata)
+                                    ? prev.metadata
+                                    : {}),
+                                  customModel: undefined,
+                                },
+                              }))
+                            }}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="huggingface" className="font-normal">
+                            Hugging Face Model
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="upload"
+                            name="model-type"
+                            value="upload"
+                            checked={modelSelectionType === 'upload'}
+                            onChange={(e) => {
+                              setModelSelectionType(
+                                e.target.value as
+                                  | 'predefined'
+                                  | 'huggingface'
+                                  | 'upload'
+                                  | 'directory',
+                              )
+                              setAddWorkload((prev) => ({
+                                ...prev,
+                                model: 'custom_model',
+                                metadata: {
+                                  ...(isMetadataObject(prev.metadata)
+                                    ? prev.metadata
+                                    : {}),
+                                  customModel: {
+                                    name: '',
+                                    size: null,
+                                    type: '',
+                                  },
+                                },
+                              }))
+                              handleModelChange('custom_model')
+                            }}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="upload" className="font-normal">
+                            Upload Model File
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="directory"
+                            name="model-type"
+                            value="directory"
+                            checked={modelSelectionType === 'directory'}
+                            onChange={(e) => {
+                              setModelSelectionType(
+                                e.target.value as
+                                  | 'predefined'
+                                  | 'huggingface'
+                                  | 'upload'
+                                  | 'directory',
+                              )
+                              setAddWorkload((prev) => ({
+                                ...prev,
+                                model: '',
+                                metadata: {
+                                  ...(isMetadataObject(prev.metadata)
+                                    ? prev.metadata
+                                    : {}),
+                                  customModel: undefined,
+                                },
+                              }))
+                            }}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="directory" className="font-normal">
+                            Custom Model Directory
+                          </Label>
+                        </div>
+                      </div>
+
+                      {modelSelectionType === 'predefined' && (
+                        <>
+                          <div className="grid gap-2 pt-2">
+                            <Label htmlFor="model">Model</Label>
+                            <Select
+                              onValueChange={handleModelChange}
+                              value={addWorkload.model}
+                            >
+                              <SelectTrigger id="model">
+                                <SelectValue placeholder="Select model" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableModels.map((model) => (
+                                  <SelectItem key={model} value={model}>
+                                    {model}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+
+                      {modelSelectionType === 'huggingface' && (
+                        <div className="grid gap-2 pt-2">
+                          <Label htmlFor="hf-model-id">
+                            Hugging Face Model ID
+                          </Label>
+                          <Input
+                            id="hf-model-id"
+                            placeholder="e.g., microsoft/DialoGPT-medium"
+                            value={addWorkload.model || ''}
+                            onChange={(e) => handleModelChange(e.target.value)}
+                            className="font-normal"
+                            disabled={addWorkload.usecase?.includes(
+                              'DLStreamer',
+                            )}
+                          />
+                          <p className="text-muted-foreground text-xs">
+                            Enter the model ID from Hugging Face Hub (format:
+                            organization/model-name)
+                          </p>
+                        </div>
+                      )}
+
+                      {modelSelectionType === 'upload' && (
+                        <div className="grid gap-2 pt-2">
+                          <Label htmlFor="upload-model">Model ZIP File</Label>
+                          <div
+                            className={`rounded-lg border-2 border-dashed p-6 text-center ${
+                              isCustomModel(addWorkload.metadata)?.name
+                                ? 'border-primary'
+                                : 'border-muted-foreground/25'
+                            } transition-colors`}
+                            role="button"
+                            tabIndex={0}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault()
+                              const files = e.dataTransfer.files
+                              if (files.length > 0) {
+                                validateAndSetCustomModel(files[0])
+                              }
+                            }}
+                            onClick={() => modelInputRef.current?.click()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                modelInputRef.current?.click()
+                              }
+                            }}
+                          >
+                            <input
+                              type="file"
+                              ref={modelInputRef}
+                              onChange={(e) => {
+                                if (
+                                  e.target.files &&
+                                  e.target.files.length > 0
+                                ) {
+                                  validateAndSetCustomModel(e.target.files[0])
+                                }
+                              }}
+                              accept=".zip,application/zip"
+                              className="hidden"
+                            />
+                            {!isCustomModel(addWorkload.metadata)?.name ? (
+                              <div className="flex flex-col items-center justify-center py-4">
+                                <Upload className="text-muted-foreground mb-2 h-10 w-10" />
+                                <p className="text-muted-foreground mb-1 text-sm">
+                                  Drag and drop your model ZIP file here
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  Supports ZIP file containing OpenVINO IR
+                                  (.xml, .bin) model files only.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between py-2">
+                                <div className="flex items-center">
+                                  <FolderArchive className="text-primary mr-2 h-8 w-8" />
+                                  <div className="text-left">
+                                    <p className="max-w-[200px] truncate text-sm font-medium">
+                                      {isCustomModel(addWorkload.metadata)
+                                        ? isCustomModel(addWorkload.metadata)
+                                            ?.name
+                                        : ''}
+                                    </p>
+                                    <p className="text-muted-foreground text-xs">
+                                      {isCustomModel(addWorkload.metadata)
+                                        ? formatFileSize(
+                                            isCustomModel(addWorkload.metadata)
+                                              ?.size || 0,
+                                          )
+                                        : 'No size available'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    clearZipFile()
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {modelSelectionType === 'directory' && (
+                        <>
+                          <div className="grid gap-2 pt-2">
+                            <Label htmlFor="model-dir">Custom Model</Label>
+                            <Select
+                              onValueChange={handleModelChange}
+                              value={addWorkload.model}
+                            >
+                              <SelectTrigger id="model-dir">
+                                <SelectValue placeholder="Select model" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {customModelData &&
+                                  addWorkload.usecase &&
+                                  Array.isArray(
+                                    customModelData[
+                                      addWorkload.usecase.replace(/ /g, '-')
+                                    ],
+                                  ) &&
+                                  customModelData[
+                                    addWorkload.usecase.replace(/ /g, '-')
+                                  ].map((model: string) => (
+                                    <SelectItem key={model} value={model}>
+                                      {model}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="grid gap-2">
@@ -783,9 +1241,13 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                     onClick={() =>
                       isEdit ? handleSaveWorkload() : handleAddWorkload()
                     }
-                    disabled={isDisable}
+                    disabled={isDisable || isLoading}
                   >
-                    {isEdit ? 'Save' : 'Add'} Workload
+                    {isLoading
+                      ? 'Loading...'
+                      : isEdit
+                        ? 'Save Workload'
+                        : 'Add Workload'}
                   </Button>
                 </div>
               </CardContent>

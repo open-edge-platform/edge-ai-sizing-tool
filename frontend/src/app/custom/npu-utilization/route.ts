@@ -53,10 +53,10 @@ export async function GET() {
       }
       return NextResponse.json({ error: errorMessage }, { status: 500 })
     }
+  } else {
+    return NextResponse.json({
+      name: NOT_AVAILABLE,
+      value: null,
+    })
   }
-
-  return NextResponse.json({
-    name: npuUtilization.name,
-    value: npuUtilization.value,
-  })
 }

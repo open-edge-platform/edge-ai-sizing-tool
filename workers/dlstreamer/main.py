@@ -9,7 +9,6 @@ import numpy as np
 import os
 import sys
 import re
-import shlex
 import socket
 import signal
 import uvicorn
@@ -18,13 +17,14 @@ import subprocess as sp
 import requests
 import time
 import urllib.parse
+import zipfile
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from pathlib import Path
-from yolo_download import export_yolo_model, YOLO_MODELS
+from yolo_download import export_yolo_model
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -50,7 +50,8 @@ venv_path = os.path.dirname(sys.executable)
 env["PATH"] = f"{venv_path}:{env['PATH']}"
 
 VIDEO_DIR = Path("../assets/media")
-MODEL_DIR = Path("../assets/models")
+MODEL_DIR = Path("./models")
+CUSTOM_MODELS_DIR = Path("../custom_models/object-detection-(DLStreamer)")
 RTSP_SERVER_URL = "rtsp://localhost:8554"
 
 
@@ -246,8 +247,8 @@ def build_pipeline(
     tcp_port,
     input,
     inference_mode,
-    model_name,
-    model_precision,
+    model_full_path,
+    model_label_path,
     device,
     decode_device,
     batch_size=1,
@@ -256,13 +257,7 @@ def build_pipeline(
     """
     Build the DLStreamer pipeline for MJPEG streaming.
     """
-    model_parent_dir = (
-        Path(args.model_parent_dir)
-        / f"{model_name}-{model_precision}"
-        / "1"
-        / f"{model_name}.xml"
-    )
-
+    
     # Check if input is a videofile
     if input.endswith((".mp4", ".avi", ".mov")):
         source_command = [" multifilesrc", f"location={input}", "loop=true"]
@@ -317,9 +312,12 @@ def build_pipeline(
     # Configure inference command
     inference_command = [
         f"{inference_mode}",
-        f"model={model_parent_dir}",
+        f"model={model_full_path}",
         f"device={device}",
     ]
+    
+    if model_label_path is not None:
+        inference_command.append(f"labels-file={model_label_path}")
 
     if "GPU" in decode_device and "GPU" in device:
         inference_command.append(f"batch-size={batch_size}")
@@ -612,26 +610,71 @@ def main():
         update_payload_status(args.id, status="failed")
         exit(1)
     else:
-        time.sleep(5)  # Give 2 seconds for mediamtx to start digesting the stream
+        time.sleep(5)  # Give 5 seconds for mediamtx to start digesting the stream
 
-    # download_sample_videofile("https://storage.openvinotoolkit.org/data/test_data/videos/people-detection.mp4")
-    model_status = export_yolo_model(
-        model_name=args.model, model_parent_dir=args.model_parent_dir
-    )
+    model_label_path = None
 
-    if model_status:
-        update_payload_status(args.id, status="active")
+    if args.model.endswith(".zip"):
+        model_zipfile_name = Path(args.model).stem
+        model_extract_dir = MODEL_DIR / model_zipfile_name
+        if not model_extract_dir.exists():
+            logging.info(f"Extracting {args.model} to {model_extract_dir}")
+            try:
+                with zipfile.ZipFile(args.model, 'r') as zip_ref:
+                    zip_ref.extractall(model_extract_dir)
+            except Exception as e:
+                logging.error(f"Failed to extract zip file {args.model}: {e}")
+                update_payload_status(args.id, status="failed")
+                exit(1)
+        else:
+            logging.info(f"Model directory {model_extract_dir} already exists, skipping extraction.")
+        # Find for .xml file
+        model_files = list(model_extract_dir.glob("*.xml"))
+        if not model_files:
+            logging.error(f"No model XML files found in {model_extract_dir}.")
+            update_payload_status(args.id, status="failed")
+            exit(1)
+        model_full_path = model_files[0]
+        # Find model label file
+        label_files = list(model_extract_dir.glob("*.txt"))
+        if label_files:
+            model_label_path = label_files[0]
     else:
-        update_payload_status(args.id, status="failed")
-        exit(1)
+        # handle custom model uploaded to directory
+        custom_model_path = CUSTOM_MODELS_DIR / args.model
+        if not custom_model_path.exists():
+            # predefined model
+            model_status = export_yolo_model(
+                model_name=args.model, model_parent_dir=args.model_parent_dir
+            )
+            
+            if not model_status:
+                update_payload_status(args.id, status="failed")
+                exit(1)
+                
+            model_full_path = (
+                Path(args.model_parent_dir)
+                / f"{args.model}-{args.model_precision}"
+                / f"{args.model}.xml"
+            )
+        else:
+            custom_model_files = list(custom_model_path.glob("*.xml"))
+            if not custom_model_files:
+                logging.error(f"No model XML files found in {custom_model_path}.")
+                update_payload_status(args.id, status="failed")
+                exit(1)
+            model_full_path = custom_model_files[0]
+            label_files = list(custom_model_path.glob("*.txt"))
+            if label_files:
+                model_label_path = label_files[0]
 
     # Build the pipeline
     pipeline = build_pipeline(
         tcp_port=args.tcp_port,
         inference_mode=args.inference_mode,
         input=args.input,
-        model_name=args.model,
-        model_precision=args.model_precision,
+        model_full_path=model_full_path,
+        model_label_path=model_label_path,
         device=args.device,
         decode_device=args.decode_device,
         number_of_streams=args.number_of_streams,
@@ -640,6 +683,7 @@ def main():
     # Start the pipeline
     logging.info("Starting the pipeline...")
     try:
+        update_payload_status(args.id, status="active")
         run_pipeline(pipeline)
     except KeyboardInterrupt:
         logging.info("Pipeline interrupted. Exiting...")

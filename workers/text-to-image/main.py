@@ -20,11 +20,17 @@ import logging
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import urllib.parse
+import zipfile
+from huggingface_hub import whoami
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+
+hf_token = os.getenv("HF_TOKEN")
+if hf_token:
+    user = whoami(token=hf_token)
 
 env = os.environ.copy()
 venv_path = os.path.dirname(sys.executable)
@@ -130,8 +136,35 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-model = os.path.join("models", args.model_name)
-logging.info(f"Model: {model}")
+# Prepare model path and extraction if needed
+models_dir = "models"
+custom_models_dir = "../custom_models/text-to-image"
+os.makedirs(models_dir, exist_ok=True)
+
+# handle custom model in zip format
+if args.model_name.endswith(".zip"):
+    model_zipfile_name = os.path.splitext(os.path.basename(args.model_name))[0]
+    model = os.path.join(models_dir, model_zipfile_name)
+    if not os.path.exists(model):
+        logging.info(f"Extracting {args.model_name} to {model}")
+        try:
+            with zipfile.ZipFile(os.path.abspath(args.model_name), 'r') as zip_ref:
+                zip_ref.extractall(model)
+        except Exception as e:
+            logging.error(f"Failed to extract zip file {args.model_name}: {e}")
+            update_payload_status(args.id, status="failed")
+            sys.exit(1)
+    else:
+        logging.info(f"Model directory {model} already exists and is not empty, skipping extraction.")
+else:
+    # handle custom model uploaded to directory
+    model = os.path.join(custom_models_dir, args.model_name)
+    if not os.path.exists(model):
+        # predefined model or hugging face model id
+        model = os.path.join(models_dir, args.model_name)
+        logging.info(f"Model: {model}")
+    else:
+        logging.info(f"Custom Model: {model} exists.")
 
 # download model if it doesn't exist
 if not os.path.exists(model):

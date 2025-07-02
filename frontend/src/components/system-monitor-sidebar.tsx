@@ -248,7 +248,7 @@ export function SystemMonitorSidebar({
                   isRefetching={gpuData.isRefetching}
                 />
               )}
-              {chart.type === 'npu' && (
+              {chart.type === 'npu' && npuData.data && (
                 <NpuChart
                   className="w-full"
                   compact

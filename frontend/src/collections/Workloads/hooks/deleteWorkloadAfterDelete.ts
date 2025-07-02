@@ -9,6 +9,8 @@ import path from 'path'
 
 const ASSETS_PATH =
   process.env.ASSETS_PATH ?? path.join(process.cwd(), '../assets/media')
+const MODELS_PATH =
+  process.env.MODELS_PATH ?? path.join(process.cwd(), './models')
 
 export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
   Workload
@@ -33,15 +35,89 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
     // Ensure file exists before deleting
     if (fs.existsSync(candidatePath)) {
       // Break taint flow by splitting into segments and re-validating
-      const parts = candidatePath.split(path.sep)
+      const parts = candidatePath.split(path.sep).filter(Boolean)
       for (let i = 0; i < parts.length; i++) {
         if (!/^[\w.-]+$/.test(parts[i])) {
           console.error(`Rejecting invalid path segment: ${parts[i]}`)
           return doc
         }
       }
-      const sanitizedCandidatePath = path.join(...parts)
-      fs.unlinkSync(sanitizedCandidatePath)
+      const sanitizedCandidatePath = path.resolve(path.join(path.sep, ...parts))
+      fs.rmSync(sanitizedCandidatePath, { force: true })
+    }
+  }
+
+  type WorkloadMetadata = {
+    numStreams?: number
+    customModel?: {
+      name: string
+      [key: string]: unknown
+    }
+    [key: string]: unknown
+  }
+
+  const metadata = doc.metadata as WorkloadMetadata | null
+
+  const hasCustomModel =
+    doc.model === 'custom_model' &&
+    metadata !== null &&
+    typeof metadata === 'object' &&
+    typeof metadata.customModel === 'object' &&
+    metadata.customModel !== null &&
+    'name' in metadata.customModel &&
+    metadata.customModel.name &&
+    metadata.customModel.type === 'file'
+
+  if (hasCustomModel) {
+    const basePath = path.resolve(MODELS_PATH)
+    const rawName = path.basename(metadata!.customModel!.name)
+    const candidatePath = path.resolve(path.join(basePath, rawName)) // Zip file path
+    const candidateExtractedPath = path.resolve(
+      path.join(basePath, rawName.replace(/\.zip$/i, '')),
+    ) // Extracted file path
+
+    // Check if candidatePath and candidateExtractedPath are within our trusted directory
+    if (
+      !candidatePath.startsWith(basePath) ||
+      !candidateExtractedPath.startsWith(basePath)
+    ) {
+      console.error(
+        `Path traversal attempt detected: ${candidatePath} or ${candidateExtractedPath}`,
+      )
+      return doc
+    }
+
+    // Check the file name for only allowed characters
+    if (!/^[a-zA-Z0-9._-]+$/.test(rawName)) {
+      console.error(`Rejecting filename with invalid characters: ${rawName}`)
+      return doc
+    }
+
+    // Ensure zip file exists before deleting
+    if (fs.existsSync(candidatePath)) {
+      // Break taint flow by splitting into segments and re-validating
+      const parts = candidatePath.split(path.sep).filter(Boolean)
+      for (let i = 0; i < parts.length; i++) {
+        if (!/^[\w.-]+$/.test(parts[i])) {
+          console.error(`Rejecting invalid path segment: ${parts[i]}`)
+          return doc
+        }
+      }
+      const sanitizedCandidatePath = path.resolve(path.join(path.sep, ...parts))
+      fs.rmSync(sanitizedCandidatePath)
+    }
+
+    if (fs.existsSync(candidateExtractedPath)) {
+      // Break taint flow by splitting into segments and re-validating
+      const parts = candidateExtractedPath.split(path.sep).filter(Boolean)
+      for (let i = 0; i < parts.length; i++) {
+        if (!/^[\w.-]+$/.test(parts[i])) {
+          console.error(`Rejecting invalid path segment: ${parts[i]}`)
+          return doc
+        }
+      }
+      const sanitizedExtractedPath = path.resolve(path.join(path.sep, ...parts))
+      fs.rmSync(sanitizedExtractedPath, { recursive: true, force: true })
     }
   }
 
