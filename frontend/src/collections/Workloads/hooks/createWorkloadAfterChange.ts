@@ -5,16 +5,22 @@ import { Workload } from '@/payload-types'
 import { CollectionAfterChangeHook } from 'payload'
 import { startPm2Process, stopPm2Process } from '@/lib/pm2Lib'
 import path from 'path'
+
 const ASSETS_PATH =
   process.env.ASSETS_PATH ?? path.join(process.cwd(), '../assets/media')
+const MODELS_PATH =
+  process.env.MODELS_PATH ?? path.join(process.cwd(), './models')
 
-interface DLStreamerMetadata {
+type WorkloadMetadata = {
   numStreams?: number
+  customModel?: {
+    name: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
 }
 
-function isDLStreamerMetadata(
-  metadata: unknown,
-): metadata is DLStreamerMetadata {
+function isDLStreamerMetadata(metadata: unknown): metadata is WorkloadMetadata {
   return (
     typeof metadata === 'object' &&
     metadata !== null &&
@@ -42,11 +48,28 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
 
     const devices = doc.devices.length > 1 ? `AUTO:${devicesName}` : devicesName
     let usecaseName = doc.usecase
+
+    const metadata = doc.metadata as WorkloadMetadata | null
+
+    const hasCustomModel =
+      doc.model === 'custom_model' &&
+      metadata !== null &&
+      typeof metadata === 'object' &&
+      typeof metadata.customModel === 'object' &&
+      metadata.customModel !== null &&
+      'name' in metadata.customModel &&
+      metadata.customModel.name
+
+    const modelName =
+      hasCustomModel && metadata && metadata.customModel
+        ? path.join(MODELS_PATH, metadata.customModel.name)
+        : doc.model
+
     let params =
       '--device ' +
       devices +
       ' --model ' +
-      doc.model +
+      modelName +
       ' --port ' +
       doc.port +
       ' --id ' +

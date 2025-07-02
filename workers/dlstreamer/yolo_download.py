@@ -92,26 +92,21 @@ def model_files_exist_and_safe(model_path_fp32: Path, model_path_fp16: Path) -> 
 def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
     """
     Download and convert YOLO models to OpenVINO format.
-
-    The expected structure for the model directory:
-    model_parent_dir
-    ├── model_name-model_precision
-    │   └── 1
-    │       ├── model_name.bin
-    │       └── model_name.xml
     """
-    # Retrieve the model type
-    model_type = YOLO_MODELS[model_name]
+    
     # Validate the model name
     if model_name not in YOLO_MODELS:
-        logging.info(f"Error: Invalid model name '{model_name}'.")
-        logging.info("Available models:", ", ".join(YOLO_MODELS.keys()))
-        sys.exit(1)
+        logging.error(f"Error: Invalid model name '{model_name}'.")
+        logging.info(f"Available models: {', '.join(YOLO_MODELS.keys())}")
+        return False
 
+    # Retrieve the model type
+    model_type = YOLO_MODELS[model_name]
+    
     # Define paths for FP32 and FP16 models
     base_dir = Path(model_parent_dir).resolve()
-    model_dir_fp32 = base_dir / f"{model_name}-FP32" / "1"
-    model_dir_fp16 = base_dir / f"{model_name}-FP16" / "1"
+    model_dir_fp32 = base_dir / f"{model_name}-FP32"
+    model_dir_fp16 = base_dir / f"{model_name}-FP16"
     model_path_fp32 = model_dir_fp32 / f"{model_name}.xml"
     model_path_fp16 = model_dir_fp16 / f"{model_name}.xml"
 

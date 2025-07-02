@@ -10,3 +10,6 @@ dist
 
 /tests/scan/*
 !/tests/scan/coverity_scan.sh
+
+/custom_models/*
+!/custom_models/README.md

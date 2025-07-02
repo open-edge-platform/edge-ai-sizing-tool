@@ -37,22 +37,75 @@ Please ensure that these ports are available before running the application.
 
 ### Supported AI Models
 
-The Edge AI Sizing Tool supports the following AI models:
+The Edge AI Sizing Tool supports the following types of AI models:
 
-| Model Name                                   | Task Type                     | Source / License Information                                               |
-|----------------------------------------------|-------------------------------|----------------------------------------------------------------------------|
-| YOLOv8                                       | Object Detection              | [Ultralytics Docs](https://docs.ultralytics.com/)                          |
-| YOLOv11                                      | Object Detection              | [Ultralytics Docs](https://docs.ultralytics.com/)                          |
-| dreamlike-art/dreamlike-anime-1.0            | Text-To-Image                 | [Hugging Face](https://huggingface.co/dreamlike-art/dreamlike-anime-1.0)   |
-| stabilityai/stable-diffusion-2               | Text-To-Image                 | [Hugging Face](https://huggingface.co/stabilityai/stable-diffusion-2)      |
-| TinyLlama/TinyLlama-1.1B-Chat-v1.0           | Text Generation               | [Hugging Face](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)  |
-| Qwen/Qwen1.5-7B-Chat                         | Text Generation               | [Hugging Face](https://huggingface.co/Qwen/Qwen1.5-7B-Chat)                |
-| OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov    | Text Generation               | [Hugging Face](https://huggingface.co/OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov) |
-| OpenVINO/Phi-3-mini-4k-instruct-int4-ov      | Text Generation               | [Hugging Face](https://huggingface.co/OpenVINO/Phi-3-mini-4k-instruct-int4-ov)   |
-| openai/whisper-tiny                          | Automatic Speech Recognition  | [Hugging Face](https://huggingface.co/openai/whisper-tiny)                 |
-| openai/whisper-base                          | Automatic Speech Recognition  | [Hugging Face](https://huggingface.co/openai/whisper-base)                 |
+#### 1. Predefined Models
 
-> **Disclaimer:** Before proceeding to set up and start the application, please review the license terms for each model listed above. By continuing with the setup and starting the application, you acknowledge and agree to comply with the terms and conditions of the respective model licenses.
+A curated set of popular models for common AI tasks:
+
+| Model Name                                   | Task Type                    | Source / License Information                                               |
+|----------------------------------------------|------------------------------|----------------------------------------------------------------------------|
+| YOLOv8                                       | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                          |
+| YOLOv11                                      | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                          |
+| dreamlike-art/dreamlike-anime-1.0            | Text-To-Image                | [Hugging Face](https://huggingface.co/dreamlike-art/dreamlike-anime-1.0)   |
+| stabilityai/stable-diffusion-2               | Text-To-Image                | [Hugging Face](https://huggingface.co/stabilityai/stable-diffusion-2)      |
+| TinyLlama/TinyLlama-1.1B-Chat-v1.0           | Text Generation              | [Hugging Face](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)  |
+| Qwen/Qwen1.5-7B-Chat                         | Text Generation              | [Hugging Face](https://huggingface.co/Qwen/Qwen1.5-7B-Chat)                |
+| OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov    | Text Generation              | [Hugging Face](https://huggingface.co/OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov) |
+| OpenVINO/Phi-3-mini-4k-instruct-int4-ov      | Text Generation              | [Hugging Face](https://huggingface.co/OpenVINO/Phi-3-mini-4k-instruct-int4-ov)   |
+| openai/whisper-tiny                          | Automatic Speech Recognition | [Hugging Face](https://huggingface.co/openai/whisper-tiny)                 |
+| openai/whisper-base                          | Automatic Speech Recognition | [Hugging Face](https://huggingface.co/openai/whisper-base)                 |
+
+> **Disclaimer:** Before setting up and starting the application, review the license terms for each model above. By proceeding, you acknowledge and agree to comply with the respective model licenses.
+
+---
+
+#### 2. Hugging Face Model ID
+
+Specify a Hugging Face model repository ID to download and use models directly from Hugging Face.
+
+- For models requiring authentication, set your Hugging Face access token as an environment variable before starting the application:
+
+  ```bash
+  export HF_TOKEN='your_huggingface_token'
+  ```
+
+  Replace `'your_huggingface_token'` with your actual token from Hugging Face account settings.
+
+> **Note:** Some models may not be supported by the libraries or accelerators used in this application.
+
+---
+
+#### 3. Upload Model ZIP
+
+Upload your own custom model as a ZIP file.
+
+- The ZIP must contain all necessary model files in OpenVINO IR format (e.g., `.xml`, `.bin`, and optionally `labels.txt` for object detection).
+
+  ```
+  my-model.zip
+  ├── model.xml
+  ├── model.bin
+  └── labels.txt   # (optional)
+  ```
+
+- Only OpenVINO models are supported. Ensure your model is exported to OpenVINO IR format before uploading.
+
+> **Note:** Some workloads may fail if the model is not compatible with the application’s supported libraries or accelerators.
+
+---
+
+#### 4. Custom Model Directory
+
+Place your custom model files in the `./custom_models/` directory as described in [custom_models/README.md](./custom_models/README.md):
+
+- Each model should be in its own subdirectory under `custom_models/`, containing all required files in OpenVINO IR format (e.g., `.xml`, `.bin`, and optionally `labels.txt`).
+- The application will automatically detect and list models found in this directory.
+- For details, refer to [custom_models/README.md](./custom_models/README.md).
+
+> **Note:** Only OpenVINO IR models are supported in the custom model directory. Ensure your model files are correctly structured and compatible.
+
+
 
 ## Quick Start
 
