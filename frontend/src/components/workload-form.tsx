@@ -164,6 +164,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       } else if (
         workload.model &&
         workload.usecase &&
+        customModelData &&
         Array.isArray(customModelData[workload.usecase.replace(/ /g, '-')]) &&
         customModelData[workload.usecase.replace(/ /g, '-')].includes(
           workload.model,
