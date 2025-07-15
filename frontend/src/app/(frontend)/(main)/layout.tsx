@@ -54,8 +54,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </BreadcrumbList>
                 </Breadcrumb>
               </header>
-
-              <main className="w-full flex-1 overflow-hidden">
+              <main className="w-full flex-1 overflow-y-auto">
                 <div className="max-w-screen-3xl mx-auto flex h-full w-full flex-wrap justify-center gap-4">
                   {children}
                 </div>

@@ -19,6 +19,7 @@ import { Badge } from '../ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
 export interface GpuUtilization {
+  uuid: string | null
   device: string
   value: number | null
 }
