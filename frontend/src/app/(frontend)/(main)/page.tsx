@@ -97,7 +97,7 @@ export default function DashboardPage() {
                 </div>
 
                 {gpuData.data?.gpuUtilizations.map((gpu) => (
-                  <div key={gpu.device} className="space-y-2">
+                  <div key={gpu.uuid || gpu.device} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center gap-1">
                         <Zap className="h-4 w-4" /> {gpu.device} Usage

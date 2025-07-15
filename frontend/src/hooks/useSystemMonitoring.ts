@@ -59,6 +59,7 @@ export const useGpuUtilization = (
     queryFn: async (): Promise<{
       gpuUtilizations: {
         device: string
+        uuid: string | null
         value: number | null
       }[]
     }> => {
