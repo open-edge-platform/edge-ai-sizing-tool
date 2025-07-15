@@ -113,7 +113,7 @@ export function SystemMonitorSidebar({
           gpu.device.split('[')[1]?.replace(']', '') || gpu.device
         if (gpu.value !== null) {
           items.push({
-            id: `gpu-${gpu.device}`,
+            id: gpu.uuid || `gpu ${gpu.device}`,
             type: 'gpu',
             title: `GPU: ${gpuDisplayName}`,
             description: 'Graphics processor utilization',
@@ -122,7 +122,7 @@ export function SystemMonitorSidebar({
           })
         } else {
           items.push({
-            id: `gpu-${gpu.device}`,
+            id: gpu.uuid || `gpu ${gpu.device}`,
             type: 'n/a',
             title: `GPU: ${gpuDisplayName}`,
             description: 'Currently Not Supported',
