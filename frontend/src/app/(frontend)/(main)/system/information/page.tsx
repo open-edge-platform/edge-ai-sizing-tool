@@ -236,9 +236,7 @@ export default function SystemInformationPage() {
                               Device:
                             </div>
                             <div className="text-sm font-medium">
-                              {gpu.device !== NOT_AVAILABLE
-                                ? gpu.device
-                                : gpu.device}
+                              {gpu.device}
                             </div>
                           </div>
                           {index < data.gpuInfo.length - 1 && (
