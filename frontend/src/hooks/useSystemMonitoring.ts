@@ -64,7 +64,7 @@ export const useGpuUtilization = (
       }[]
     }> => {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 1000)
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
 
       try {
         const response = await fetch('/custom/gpu-utilization', {

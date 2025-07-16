@@ -65,7 +65,7 @@ function runCommand(command, args, options = {}) {
   const sanitizedArgs = args.map(sanitizeArg)
 
   return new Promise((resolve, reject) => {
-    const proc = spawn(safeCommand, sanitizedArgs, { stdio: 'inherit', shell: false, ...options })
+    const proc = spawn(safeCommand, sanitizedArgs, { stdio: 'inherit', shell: isWindows ? true : false, ...options })
     proc.on('close', (code) => {
       code !== 0
         ? reject(new Error(`${safeCommand} ${sanitizedArgs.join(' ')} exited with code ${code}`))

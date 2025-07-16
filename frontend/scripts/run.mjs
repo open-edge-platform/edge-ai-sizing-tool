@@ -4,7 +4,10 @@
 import { spawn, execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import crypto from 'crypto'
+
+const isWindows = os.platform() === 'win32'
 
 const getNpmPathWindows = () => {
   try {
@@ -65,6 +68,9 @@ const runCommand = (command) => {
   return new Promise((resolve, reject) => {
     try {
       const [cmdName, ...rawArgs] = command.split(' ')
+      if (isWindows && rawArgs[1] === 'npm') {
+        rawArgs[1] = "%NPM_CLI_JS%"
+      }
 
       if (!Object.keys(ALLOWED_COMMANDS).includes(cmdName)) {
         return reject(new Error(`Command not allowed: ${cmdName}`))
@@ -75,7 +81,7 @@ const runCommand = (command) => {
 
       const process = spawn(cmd, args, {
         stdio: 'inherit',
-        shell: false
+        shell: isWindows ? true : false,
       })
 
       process.on('close', (code) => {
@@ -173,7 +179,7 @@ const runInstallBuildStart = async () => {
       return new Promise((resolve) => {
         const pm2Path = ALLOWED_COMMANDS['pm2']
         const pm2Process = spawn(pm2Path, ['list'], { 
-          shell: false,
+          shell: isWindows ? true : false,
           stdio: ['ignore', 'pipe', 'ignore'] 
         })
         let output = ''

@@ -110,14 +110,64 @@ export async function POST(req: Request) {
   const res = await req.json()
   try {
     if (isWindows) {
-      const graphicsData = await si.graphics()
-      const gpuUtilizations = graphicsData.controllers.map((controller) => ({
-        device: controller.model,
-        busaddr: controller.busAddress,
-        uuid: null,
-        value: controller.utilizationGpu || 0,
-      }))
-      return NextResponse.json({ gpuUtilizations })
+      let gpuData: GpuData[] = []
+      let resolved = false
+
+      const command = `(Get-Counter "\\GPU Engine(*Compute)\\Utilization Percentage").CounterSamples | Where-Object { $_.CookedValue -ne $null } | Group-Object { $_.InstanceName.Split("_")[4] } | ForEach-Object { [PSCustomObject]@{ LUID = $_.Name; Utilization = ($_.Group | Measure-Object -Property CookedValue -Sum).Sum } } | ConvertTo-Json`
+
+      await new Promise((resolve, reject) => {
+        const process = spawn('powershell.exe', [command])
+
+        process.stderr.on('data', () => {
+          if (!resolved) {
+            resolved = true
+            resolve(0)
+            process.kill()
+          }
+        })
+
+        process.stdout.on('data', (data) => {
+          if (resolved) return
+          try {
+            const parsedData = JSON.parse(data)
+            const gpuArray = Array.isArray(parsedData)
+              ? parsedData
+              : [parsedData]
+            gpuData = gpuArray.map((gpu) => ({
+              device: gpu.LUID,
+              busaddr: null,
+              value: Math.min(gpu.Utilization, 100),
+            }))
+            resolved = true
+            resolve(gpuData)
+            process.kill()
+          } catch (error) {
+            if (!resolved) {
+              resolved = true
+              console.error('Failed to get gpu utilization:', error)
+              reject(error)
+              process.kill()
+            }
+          }
+        })
+
+        process.on('error', (error) => {
+          if (!resolved) {
+            resolved = true
+            console.error('Failed to get gpu utilization:', error)
+            reject(error)
+            process.kill()
+          }
+        })
+
+        process.on('close', () => {
+          if (!resolved) {
+            resolved = true
+            resolve(0)
+          }
+        })
+      })
+      return NextResponse.json({ gpuUtilizations: gpuData })
     } else {
       await getDeviceInfoFromClinfo()
       let gpuData: GpuData[] = []
