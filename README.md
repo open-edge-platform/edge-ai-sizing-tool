@@ -20,6 +20,7 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 - Operating system:
   - Linux: Ubuntu\* 24.04 LTS Desktop
   - Linux: Ubuntu\* 22.04 LTS Desktop
+  - Windows: Windows\* 11
 - Python version: 3.10+
 - Node.js version: 22+
 - Intel GPU drivers version: 25.09.32961.5
@@ -111,6 +112,8 @@ Place your custom model files in the `./custom_models/` directory as described i
 
 This section provides a streamlined process for setting up and running the Edge AI Sizing Tool on your local or isolated system. Follow these steps to quickly configure the environment and launch the application, allowing you to explore its features and capabilities with minimal setup.
 
+### For Linux:
+
 #### 1. Setup Platform
 
 Follow the [Edge Developer Kit Reference Scripts](https://github.com/intel/edge-developer-kit-reference-scripts) to install drivers and configure your system.
@@ -142,6 +145,32 @@ To stop the application gracefully:
 ```bash
 ./stop.sh
 ```
+
+This script ensures that all services are properly shut down, including background workers.
+
+### For Windows:
+
+#### 1. Setup Platform
+
+Depending on your system configuration, you may install [GPU drivers](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html) and [NPU drivers](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html).
+
+#### 2. Install Dependencies
+
+Double-click the `install.bat`.
+
+This installs all required packages, sets up Python and Node.js environments.
+
+#### 3. Run the Application
+
+Double-click the `start.bat` shortcut on your Desktop.
+
+Once started, open http://localhost:8080 in your browser.
+
+#### 4. Stop the Application
+
+To stop the application gracefully:
+
+Double-click the `stop.bat` shortcut on your Desktop.
 
 This script ensures that all services are properly shut down, including background workers.
 

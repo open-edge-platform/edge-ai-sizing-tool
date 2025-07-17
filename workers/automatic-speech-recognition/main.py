@@ -35,7 +35,10 @@ if hf_token:
 
 env = os.environ.copy()
 venv_path = os.path.dirname(sys.executable)
-env["PATH"] = f"{venv_path}:{env['PATH']}"
+if platform.system() == "Windows":
+    env["PATH"] = f"{venv_path};{env['PATH']}"
+else:
+    env["PATH"] = f"{venv_path}:{env['PATH']}"
 
 core = ov.Core()
 available_devices = core.available_devices
@@ -165,6 +168,9 @@ else:
     if not os.path.exists(model):
         # predefined model or hugging face model id
         model = os.path.join(models_dir, args.model_name)
+        if platform.system() == "Windows":
+            current_dir = os.getcwd()
+            model = os.path.join(current_dir, model).replace("/", "\\")
         logging.info(f"Model: {model}")
     else:
         logging.info(f"Custom Model: {model} exists.")

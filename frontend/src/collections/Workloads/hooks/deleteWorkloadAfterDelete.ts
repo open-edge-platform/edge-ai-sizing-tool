@@ -6,6 +6,10 @@ import { Workload } from '@/payload-types'
 import { CollectionAfterDeleteHook } from 'payload'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
+
+// Determine the platform
+const isWindows = os.platform() === 'win32'
 
 const ASSETS_PATH =
   process.env.ASSETS_PATH ?? path.join(process.cwd(), '../assets/media')
@@ -15,6 +19,9 @@ const MODELS_PATH =
 export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
   Workload
 > = async ({ doc }) => {
+  // Stop the PM2 process before deleting files
+  await stopPm2Process(doc.id.toString())
+
   if (doc.source?.type === 'file' && doc.source.name) {
     const basePath = path.resolve(ASSETS_PATH)
     const rawName = path.basename(doc.source.name)
@@ -98,12 +105,19 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
       // Break taint flow by splitting into segments and re-validating
       const parts = candidatePath.split(path.sep).filter(Boolean)
       for (let i = 0; i < parts.length; i++) {
+        // Allow Windows drive letters (like "C:") only as the first segment and only on Windows
+        if (i === 0 && isWindows && /^[A-Za-z]:$/.test(parts[i])) {
+          continue
+        }
+        // Validate each segment for allowed characters
         if (!/^[\w.-]+$/.test(parts[i])) {
           console.error(`Rejecting invalid path segment: ${parts[i]}`)
           return doc
         }
       }
-      const sanitizedCandidatePath = path.resolve(path.join(path.sep, ...parts))
+      const sanitizedCandidatePath = isWindows
+        ? path.join(...parts)
+        : path.resolve(basePath, ...parts)
       fs.rmSync(sanitizedCandidatePath)
     }
 
@@ -111,18 +125,24 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
       // Break taint flow by splitting into segments and re-validating
       const parts = candidateExtractedPath.split(path.sep).filter(Boolean)
       for (let i = 0; i < parts.length; i++) {
+        // Allow Windows drive letters (like "C:") only as the first segment and only on Windows
+        if (i === 0 && isWindows && /^[A-Za-z]:$/.test(parts[i])) {
+          continue
+        }
+        // Validate each segment for allowed characters
         if (!/^[\w.-]+$/.test(parts[i])) {
           console.error(`Rejecting invalid path segment: ${parts[i]}`)
           return doc
         }
       }
-      const sanitizedExtractedPath = path.resolve(path.join(path.sep, ...parts))
+      const sanitizedExtractedPath = isWindows
+        ? path.join(...parts)
+        : path.resolve(basePath, ...parts)
       fs.rmSync(sanitizedExtractedPath, { recursive: true, force: true })
     }
   }
 
-  // Clean up PM2 processes after handling file deletion
-  await stopPm2Process(doc.id.toString())
+  // Delete PM2 processes after handling file deletion
   await deletePm2Process(doc.id.toString())
 
   return doc

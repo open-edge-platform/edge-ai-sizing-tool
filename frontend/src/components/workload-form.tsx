@@ -71,6 +71,12 @@ interface WorkloadResponse {
   message: string
 }
 
+if (navigator.userAgent.includes('Windows')) {
+  delete metadata.tasks['computer vision'].usecase[
+    'object detection (DLStreamer)'
+  ]
+}
+
 function getNumStreams(metadata: Workload['metadata']): number | undefined {
   return isMetadataObject(metadata) && typeof metadata.numStreams === 'number'
     ? metadata.numStreams

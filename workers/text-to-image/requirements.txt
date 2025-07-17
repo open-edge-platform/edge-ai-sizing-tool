@@ -1,7 +1,6 @@
 fastapi==0.115.11
 openvino_genai==2025.1.0
 Pillow==11.1.0
-router==0.1
 uvicorn==0.34.0
 optimum-intel==1.23.0
 accelerate==1.5.1

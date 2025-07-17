@@ -18,7 +18,7 @@ export async function startPm2Process(
     // Basic sanitization to prevent command injection
     pm2Name = pm2Name?.replace(/[^\w.@\-\/ \-]/g, '') || ''
     scriptName = scriptName?.replace(/[^\w.@\-\/ \-]/g, '') || ''
-    params = params?.replace(/[^\w.@\-\/ :,]/g, '') || ''
+    params = params?.replace(/[^\w.@\-\/\\ :,]/g, '') || ''
 
     if (!scriptName && !params) {
       const command = `npx pm2 start ${pm2Name}`

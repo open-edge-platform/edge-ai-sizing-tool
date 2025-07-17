@@ -23,6 +23,7 @@ body:
       options:
         - Ubuntu 22.04 (LTS)
         - Ubuntu 24.04 (LTS)
+        - Windows 11
     validations:
       required: true
   - type: textarea
