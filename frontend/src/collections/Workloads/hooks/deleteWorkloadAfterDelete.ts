@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { deletePm2Process, stopPm2Process } from '@/lib/pm2Lib'
+import { normalizeUseCase } from '@/lib/normalizeUsecase'
 import { Workload } from '@/payload-types'
 import { CollectionAfterDeleteHook } from 'payload'
 import fs from 'fs'
@@ -19,9 +20,7 @@ const MODELS_PATH =
 export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
   Workload
 > = async ({ doc }) => {
-  // Stop the PM2 process before deleting files
-  await stopPm2Process(doc.id.toString())
-
+  const pm2Name = `${normalizeUseCase(doc.usecase)}-${doc.id}`
   if (doc.source?.type === 'file' && doc.source.name) {
     const basePath = path.resolve(ASSETS_PATH)
     const rawName = path.basename(doc.source.name)
@@ -143,7 +142,8 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
   }
 
   // Delete PM2 processes after handling file deletion
-  await deletePm2Process(doc.id.toString())
+  await stopPm2Process(pm2Name)
+  await deletePm2Process(pm2Name)
 
   return doc
 }

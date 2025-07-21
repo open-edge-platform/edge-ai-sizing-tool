@@ -3,7 +3,8 @@
 
 import { Workload } from '@/payload-types'
 import { CollectionAfterChangeHook } from 'payload'
-import { startPm2Process, stopPm2Process } from '@/lib/pm2Lib'
+import { deletePm2Process, startPm2Process, stopPm2Process } from '@/lib/pm2Lib'
+import { normalizeUseCase } from '@/lib/normalizeUsecase'
 import path from 'path'
 
 const ASSETS_PATH =
@@ -31,12 +32,26 @@ function isDLStreamerMetadata(metadata: unknown): metadata is WorkloadMetadata {
 
 export const createWorkloadAfterChange: CollectionAfterChangeHook<
   Workload
-> = async ({ doc, previousDoc }) => {
+> = async ({ doc, previousDoc, operation }) => {
+  const newPm2Name = `${normalizeUseCase(doc.usecase)}-${doc.id}`
+  const prevPm2Name =
+    previousDoc && previousDoc.id && previousDoc.usecase
+      ? `${normalizeUseCase(previousDoc.usecase)}-${previousDoc.id}`
+      : undefined
+
   if (previousDoc.status === 'active' && doc.status === 'inactive') {
-    await stopPm2Process(doc.id.toString())
+    await stopPm2Process(newPm2Name)
   } else if (previousDoc.status === 'inactive' && doc.status === 'active') {
-    await startPm2Process(doc.id.toString(), '', '')
+    await startPm2Process(newPm2Name, '', '')
   } else if (doc.status === 'prepare') {
+    if (
+      operation === 'update' &&
+      doc.id === previousDoc.id &&
+      prevPm2Name !== undefined
+    ) {
+      await stopPm2Process(prevPm2Name)
+      await deletePm2Process(prevPm2Name)
+    }
     const devicesName = doc.devices.reduce((acc, device) => {
       const deviceName = device.device || ''
       if (acc === '') {
@@ -48,7 +63,6 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
 
     const devices = doc.devices.length > 1 ? `AUTO:${devicesName}` : devicesName
     let usecaseName = doc.usecase
-
     const metadata = doc.metadata as WorkloadMetadata | null
 
     const hasCustomModel =
@@ -91,8 +105,7 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
         params += ' --number_of_streams ' + numStreams
       }
     }
-    await startPm2Process(doc.id.toString(), usecaseName, params)
+    await startPm2Process(newPm2Name, usecaseName, params)
   }
-
   return doc
 }
