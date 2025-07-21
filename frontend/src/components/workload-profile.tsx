@@ -20,6 +20,7 @@ import { Switch } from '@/components/ui/switch'
 import { useUpdateWorkload } from '@/hooks/useWorkload'
 import { useAccelerator } from '@/hooks/useAccelerator'
 import { toast } from 'sonner'
+import { normalizeUseCase } from '@/lib/normalizeUsecase'
 
 export function WorkloadProfile({ workload }: { workload: Workload }) {
   const updateWorkload = useUpdateWorkload(workload.id)
@@ -63,7 +64,7 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Switch
                 checked={workload.status === 'active'}
                 onCheckedChange={(checked) =>
@@ -72,8 +73,10 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
                 className="py-0.5"
               />
               <span className="text-sm">{workload.status}</span>
+              <div className="flex-1"></div>
               <Badge variant="secondary" className="px-2 py-0.5">
-                ID: {workload.id}
+                <span className="mr-2">Name:</span>
+                {normalizeUseCase(workload.usecase) + '-' + workload.id}
               </Badge>
             </div>
           </div>

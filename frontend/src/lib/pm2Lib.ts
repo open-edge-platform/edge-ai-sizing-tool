@@ -75,13 +75,8 @@ export async function startPm2Process(
           return
         }
 
-        // Check if the process is already running
-        const processExists = stdout.includes(`name: '${pm2Name}'`)
-
         // Construct the PM2 command based on whether the process exists
-        const command = processExists
-          ? `npx pm2 delete ${pm2Name} && npx pm2 start ${scriptPath} --name ${pm2Name} --interpreter=${virtualEnvPath} -- ${params}`
-          : `npx pm2 start ${scriptPath} --name ${pm2Name} --interpreter=${virtualEnvPath} -- ${params}`
+        const command = `npx pm2 start ${scriptPath} --name ${pm2Name} --interpreter=${virtualEnvPath} -- ${params}`
 
         console.log(command)
 
@@ -110,11 +105,8 @@ export async function startPm2Process(
 }
 
 export async function stopPm2Process(pm2Name: string): Promise<void> {
-  // Basic sanitization
   pm2Name = pm2Name?.replace(/[^\w.@\-\/ \-]/g, '') || ''
-
   const command = `npx pm2 stop ${pm2Name}`
-
   return new Promise((resolve, reject) => {
     exec(
       command,
@@ -138,11 +130,8 @@ export async function stopPm2Process(pm2Name: string): Promise<void> {
 }
 
 export async function deletePm2Process(pm2Name: string): Promise<void> {
-  // Basic sanitization
   pm2Name = pm2Name?.replace(/[^\w.@\-\/ \-]/g, '') || ''
-
   const command = `npx pm2 delete ${pm2Name}`
-
   return new Promise((resolve, reject) => {
     exec(
       command,

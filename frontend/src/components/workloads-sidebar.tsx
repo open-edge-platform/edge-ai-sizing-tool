@@ -94,14 +94,16 @@ export function WorkloadsSidebar({
   }, [workloadsData.data?.docs, searchTerm])
 
   // Handle workload deletion
-  const handleDeleteWorkload = async (id: number) => {
+  const handleDeleteWorkload = async (id: number, usecase: string) => {
     try {
       const response = await deleteWorkload.mutateAsync(id)
       if (!response) {
         toast.error('Failed to delete workload')
         return
       }
-      toast.success(`Workload ${id} deleted successfully`)
+      toast.success(
+        `Workload ${usecase.replace(/[()\s]+/g, '-').toLowerCase()}-${id} deleted successfully`,
+      )
       if (
         pathname.split('/')[1] === 'workload' &&
         currentPageID === id.toString()
@@ -260,12 +262,6 @@ export function WorkloadsSidebar({
                     </div>
                     <div className="grid flex-1 gap-0.5">
                       <div className="flex flex-wrap items-center gap-1">
-                        <Badge
-                          variant="default"
-                          className="mr-1 h-4 px-1.5 py-0 text-[10px]"
-                        >
-                          {workload.id}
-                        </Badge>
                         <span className="font-medium">
                           {workload.usecase.replace(/-/g, ' ')}
                         </span>
@@ -327,7 +323,12 @@ export function WorkloadsSidebar({
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-destructive/90 text-destructive-foreground hover:bg-destructive"
-                              onClick={() => handleDeleteWorkload(workload.id)}
+                              onClick={() =>
+                                handleDeleteWorkload(
+                                  workload.id,
+                                  workload.usecase,
+                                )
+                              }
                             >
                               Delete
                             </AlertDialogAction>
