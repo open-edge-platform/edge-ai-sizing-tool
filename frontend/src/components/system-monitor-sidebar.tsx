@@ -239,7 +239,7 @@ export function SystemMonitorSidebar({
                     gpuData.isLoading
                       ? 0
                       : (gpuData.data?.gpuUtilizations.find(
-                          (gpu: GpuUtilization) => gpu.device === chart.device,
+                          (gpu: GpuUtilization) => gpu.uuid === chart.id,
                         )?.value ?? 0)
                   }
                   isLoading={gpuData.isLoading}
