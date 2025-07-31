@@ -82,6 +82,14 @@ if %errorlevel% equ 0 (
     )
 )
 
+REM Check if XPU-SMI is already installed
+echo Checking if XPU-SMI is installed...
+if not exist "C:\EAST\Tools\xpu-smi\xpu-smi.exe" (
+    echo Installing XPU-SMI...
+    curl --create-dirs -L -O --output-dir C:\EAST\Tools\xpu-smi https://github.com/intel/xpumanager/releases/download/V1.3.1/xpu-smi-1.3.1-20250724.061318.60921e5e_win.zip
+    tar -xf C:\EAST\Tools\xpu-smi\xpu-smi-1.3.1-20250724.061318.60921e5e_win.zip -C C:\EAST\Tools\xpu-smi >nul 2>&1
+)
+
 REM Disable path length limit for Python
 echo Disabling path length limit...
 set "REG_PATH=HKLM\SYSTEM\CurrentControlSet\Control\FileSystem"

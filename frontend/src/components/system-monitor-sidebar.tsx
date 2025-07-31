@@ -11,6 +11,7 @@ import {
   Zap,
   RefreshCw,
   Microchip,
+  MemoryStick,
 } from 'lucide-react'
 
 import {
@@ -33,6 +34,10 @@ import { Badge } from '@/components/ui/badge'
 import { CpuChart } from '@/components/monitor/cpu-chart'
 import { MemoryChart } from '@/components/monitor/memory-chart'
 import { GpuChart, GpuUtilization } from '@/components/monitor/gpu-chart'
+import {
+  GpuMemoryChart,
+  GpuMemoryUtilization,
+} from './monitor/gpu-memory-chart'
 import { NpuChart } from '@/components/monitor/npu-chart'
 import { NOT_AVAILABLE } from '@/lib/constants'
 import {
@@ -41,10 +46,12 @@ import {
   useGpuUtilization,
   useMemoryUtilization,
   useNpuUtilization,
+  useGpuMemory,
+  useGPUXpum,
 } from '@/hooks/useSystemMonitoring'
 
 // Chart types
-type ChartType = 'memory' | 'cpu' | 'gpu' | 'npu' | 'n/a'
+type ChartType = 'memory' | 'cpu' | 'gpu' | 'npu' | 'gpu-memory' | 'n/a'
 
 interface ChartItem {
   id: string
@@ -63,11 +70,13 @@ export function SystemMonitorSidebar({
 
   // Fetch data using custom hooks
   const { data } = useGetGPUs()
+  const { data: XpumData } = useGPUXpum()
 
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
   const gpuData = useGpuUtilization(data?.gpus || [])
   const npuData = useNpuUtilization()
+  const gpuMemoryData = useGpuMemory(XpumData?.gpus || [])
 
   // Create chart items based on available data
   const chartItems = React.useMemo(() => {
@@ -133,6 +142,39 @@ export function SystemMonitorSidebar({
       })
     }
 
+    if (gpuMemoryData.isLoading) {
+      items.push({
+        id: 'gpu-memory-loading',
+        type: 'gpu-memory',
+        title: 'GPU Memory: Loading',
+        description: 'Fetching GPU Memory data...',
+        icon: RefreshCw,
+        device: 'loading-device',
+      })
+    } else if (gpuMemoryData.error) {
+      items.push({
+        id: 'gpu-memory-error',
+        type: 'gpu-memory',
+        title: 'GPU Memory: Error',
+        description: 'Failed to fetch GPU Memory data',
+        icon: MemoryStick,
+        device: 'error-device',
+      })
+    } else if (gpuMemoryData.data) {
+      gpuMemoryData.data.gpuMemory.forEach((gpu: GpuMemoryUtilization) => {
+        const gpuDisplayName =
+          gpu.device.split('[')[1]?.replace(']', '') || gpu.device
+        items.push({
+          id: gpu.busaddr || `gpu ${gpu.device}`,
+          type: 'gpu-memory',
+          title: `GPU: ${gpuDisplayName}`,
+          description: 'Graphics processor memory utilization',
+          icon: MemoryStick,
+          device: gpu.device,
+        })
+      })
+    }
+
     if (npuData.isLoading) {
       items.push({
         id: 'npu-loading',
@@ -166,6 +208,9 @@ export function SystemMonitorSidebar({
     gpuData.data,
     gpuData.error,
     gpuData.isLoading,
+    gpuMemoryData.data,
+    gpuMemoryData.error,
+    gpuMemoryData.isLoading,
     npuData.data,
     npuData.error,
     npuData.isLoading,
@@ -246,6 +291,29 @@ export function SystemMonitorSidebar({
                   error={chart.id === 'gpu-error' ? gpuData.error : undefined}
                   refetch={gpuData.refetch}
                   isRefetching={gpuData.isRefetching}
+                />
+              )}
+              {chart.type === 'gpu-memory' && chart.device && (
+                <GpuMemoryChart
+                  className="w-full"
+                  compact
+                  device={chart.device}
+                  value={
+                    gpuMemoryData.isLoading
+                      ? 0
+                      : (gpuMemoryData.data?.gpuMemory.find(
+                          (gpu: GpuMemoryUtilization) =>
+                            gpu.busaddr === chart.id,
+                        )?.vram_usage ?? 0)
+                  }
+                  isLoading={gpuMemoryData.isLoading}
+                  error={
+                    chart.id === 'gpu-memory-error'
+                      ? gpuMemoryData.error
+                      : undefined
+                  }
+                  refetch={gpuMemoryData.refetch}
+                  isRefetching={gpuMemoryData.isRefetching}
                 />
               )}
               {chart.type === 'npu' && npuData.data && (

@@ -21,6 +21,7 @@ import {
   Server,
   Zap,
   Video,
+  MemoryStick,
 } from 'lucide-react'
 import { useWorkloads } from '@/hooks/useWorkload'
 import { Workload } from '@/payload-types'
@@ -32,6 +33,8 @@ import {
   useGpuUtilization,
   useMemoryUtilization,
   useNpuUtilization,
+  useGPUXpum,
+  useGpuMemory,
 } from '@/hooks/useSystemMonitoring'
 
 // Helper function to get icon based on usecase
@@ -50,11 +53,13 @@ const getUsecaseIcon = (usecase: string) => {
 
 export default function DashboardPage() {
   const { data } = useGetGPUs()
+  const { data: XpumData } = useGPUXpum()
 
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
   const gpuData = useGpuUtilization(data?.gpus || [])
   const npuData = useNpuUtilization()
+  const gpuMemoryData = useGpuMemory(XpumData?.gpus || [])
   const workloadsData = useWorkloads()
   const systemInfo = useSystemInfo()
 
@@ -109,6 +114,23 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <Progress value={gpu.value ?? 0} />
+                  </div>
+                ))}
+
+                {gpuMemoryData.data?.gpuMemory.map((gpu) => (
+                  <div key={gpu.busaddr || gpu.device} className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-1">
+                        <MemoryStick className="h-4 w-4" /> {gpu.device} Memory
+                        Usage
+                      </span>
+                      <span>
+                        {gpu.vram_usage !== null
+                          ? `${gpu.vram_usage.toFixed(1)}%`
+                          : 'Currently not available'}
+                      </span>
+                    </div>
+                    <Progress value={gpu.vram_usage ?? 0} />
                   </div>
                 ))}
 

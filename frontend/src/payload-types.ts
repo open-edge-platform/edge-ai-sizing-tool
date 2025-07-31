@@ -139,11 +139,6 @@ export interface Workload {
   task: string;
   usecase: string;
   model: string;
-  customModel?: {
-    type?: string | null;
-    name?: string | null;
-    size?: number | null;
-  };
   devices: {
     device?: string | null;
     id?: string | null;
@@ -247,13 +242,6 @@ export interface WorkloadsSelect<T extends boolean = true> {
   task?: T;
   usecase?: T;
   model?: T;
-  customModel?:
-    | T
-    | {
-        type?: T;
-        name?: T;
-        size?: T;
-      };
   devices?:
     | T
     | {
