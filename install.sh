@@ -17,11 +17,15 @@ apt update
 echo "Installing necessary packages..."
 apt install -y intel-gpu-tools curl python3-venv v4l-utils
 
-# Install Intel® DLStreamer and its dependencies
-echo "Installing Intel® DLStreamer and its dependencies..."
-# Check Ubuntu version
 if grep -q "Ubuntu 22" /etc/os-release; then
   echo "The system is running Ubuntu 22."
+  # Install Intel® XPU Manager
+  echo "Installing Intel® XPU Manager for Ubuntu 22..."
+  wget https://github.com/intel/xpumanager/releases/download/V1.3.1/xpumanager_1.3.1_20250724.061629.60921e5e_u22.04_amd64.deb
+  dpkg -i xpumanager_1.3.1_20250724.061629.60921e5e_u22.04_amd64.deb
+  rm -f xpumanager_1.3.1_20250724.061629.60921e5e_u22.04_amd64.deb
+  # Install Intel® DLStreamer and its dependencies
+  echo "Installing Intel® DLStreamer and its dependencies..."
   wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
   wget -O- https://eci.intel.com/sed-repos/gpg-keys/GPG-PUB-KEY-INTEL-SED.gpg | sudo tee /usr/share/keyrings/sed-archive-keyring.gpg > /dev/null
   echo "deb [signed-by=/usr/share/keyrings/sed-archive-keyring.gpg] https://eci.intel.com/sed-repos/$(source /etc/os-release && echo "$VERSION_CODENAME") sed main" | sudo tee /etc/apt/sources.list.d/sed.list
@@ -29,6 +33,13 @@ if grep -q "Ubuntu 22" /etc/os-release; then
   bash -c 'echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/openvino/2025 ubuntu22 main" | sudo tee /etc/apt/sources.list.d/intel-openvino-2025.list'
 elif grep -q "Ubuntu 24" /etc/os-release; then
   echo "The system is running Ubuntu 24."
+  # Install Intel® XPU Manager
+  echo "Installing Intel® XPU Manager for Ubuntu 24..."
+  wget https://github.com/intel/xpumanager/releases/download/V1.3.1/xpumanager_1.3.1_20250724.061629.60921e5e_u24.04_amd64.deb
+  dpkg -i xpumanager_1.3.1_20250724.061629.60921e5e_u24.04_amd64.deb
+  rm -f xpumanager_1.3.1_20250724.061629.60921e5e_u24.04_amd64.deb
+  # Install Intel® DLStreamer and its dependencies
+  echo "Installing Intel® DLStreamer and its dependencies..."
   wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
   wget -O- https://eci.intel.com/sed-repos/gpg-keys/GPG-PUB-KEY-INTEL-SED.gpg | sudo tee /usr/share/keyrings/sed-archive-keyring.gpg > /dev/null
   echo "deb [signed-by=/usr/share/keyrings/sed-archive-keyring.gpg] https://eci.intel.com/sed-repos/$(source /etc/os-release && echo "$VERSION_CODENAME") sed main" | sudo tee /etc/apt/sources.list.d/sed.list
@@ -36,9 +47,10 @@ elif grep -q "Ubuntu 24" /etc/os-release; then
   bash -c 'echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/openvino/2025 ubuntu24 main" | sudo tee /etc/apt/sources.list.d/intel-openvino-2025.list'  
 else
   echo "The system is not Ubuntu 22 or 24."
-  echo "Error: The system is not compatible with  Intel® DLStreamer" >&2
+  echo "Error: The system is not compatible with Intel® XPU Manager and Intel® DLStreamer" >&2
   exit 1
 fi
+
 # Install  Intel® DLStreamer and additional plugins
 apt update
 apt-get -y install intel-dlstreamer
@@ -55,8 +67,6 @@ node -v
 
 # Enable perf_events for non-root users
 echo "Enabling perf_events for non-root users..."
-
-# Add kernel.perf_event_paranoid=0 to /etc/sysctl.conf if not already present
 if ! grep -q "kernel.perf_event_paranoid=0" /etc/sysctl.conf; then
     echo "kernel.perf_event_paranoid=0" >> /etc/sysctl.conf
     echo "Added kernel.perf_event_paranoid=0 to /etc/sysctl.conf"

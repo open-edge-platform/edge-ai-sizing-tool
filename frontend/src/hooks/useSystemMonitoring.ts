@@ -114,3 +114,62 @@ export const useNpuUtilization = () => {
     retry: (failureCount: number): boolean => failureCount < 3,
   })
 }
+
+export const useGPUXpum = () => {
+  return useQuery({
+    queryKey: ['gpuXpum'],
+    queryFn: async () => {
+      const response = await fetch('/custom/xpum-gpu')
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      }
+      return response.json()
+    },
+    retry: (failureCount: number): boolean => failureCount < 3,
+  })
+}
+
+export const useGpuMemory = (gpus: { device: string; busaddr: string }[]) => {
+  return useQuery({
+    queryKey: ['gpuMemory'],
+    queryFn: async (): Promise<{
+      gpuMemory: {
+        device: string
+        busaddr: string | null
+        vram_usage: number | null
+      }[]
+    }> => {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+      try {
+        const response = await fetch('/custom/gpu-memory', {
+          signal: controller.signal,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ gpus }),
+        })
+        if (!response.ok) {
+          throw new Error('Network response was not ok')
+        }
+        return response.json()
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error(
+            'Request timed out. Please refer to the troubleshooting guide.',
+          )
+        }
+        throw error
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    },
+    enabled: gpus.length > 0,
+    refetchInterval: (query) => {
+      return query.state.status === 'success' ? 3000 : false
+    },
+    retry: (failureCount: number): boolean => failureCount < 3,
+  })
+}
