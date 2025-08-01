@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { deletePm2Process, stopPm2Process } from '@/lib/pm2Lib'
-import { normalizeUseCase } from '@/lib/normalizeUsecase'
+import { normalizeUseCase } from '@/lib/utils'
 import { Workload } from '@/payload-types'
 import { CollectionAfterDeleteHook } from 'payload'
 import fs from 'fs'

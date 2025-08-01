@@ -3,22 +3,39 @@
 
 import { NextResponse } from 'next/server'
 import os from 'os'
-
-function bytesToGigabytes(bytes: number) {
-  const gigabytes = bytes / 1024 ** 3
-  return Math.round(gigabytes * 10) / 10 // Round to 1 decimal place
-}
+import { bytesToGigabytes, calculatePercentage } from '@/lib/utils'
+import { NOT_AVAILABLE } from '@/lib/constants'
 
 export async function GET() {
-  const totalMemory = os.totalmem()
-  const freeMemory = os.freemem()
-  const usedMemory = totalMemory - freeMemory
-  const memoryUsage = (usedMemory / totalMemory) * 100
+  const totalMemory = Number.isFinite(os.totalmem())
+    ? os.totalmem()
+    : NOT_AVAILABLE
+  const freeMemory = Number.isFinite(os.freemem())
+    ? os.freemem()
+    : NOT_AVAILABLE
 
+  if (totalMemory === NOT_AVAILABLE || freeMemory === NOT_AVAILABLE) {
+    return NextResponse.json({
+      free: NOT_AVAILABLE,
+      used: NOT_AVAILABLE,
+      total: NOT_AVAILABLE,
+      freePercentage: NOT_AVAILABLE,
+      usedPercentage: NOT_AVAILABLE,
+    })
+  }
+  const usedMemory = totalMemory - freeMemory
+  const freeMemoryInGigabyte = bytesToGigabytes(freeMemory)
+  const usedMemoryInGigabyte = bytesToGigabytes(usedMemory)
   const totalMemoryInGigabyte = bytesToGigabytes(totalMemory)
 
+  const usedMemoryPercentage = calculatePercentage(usedMemory, totalMemory)
+  const freeMemoryPercentage = calculatePercentage(freeMemory, totalMemory)
+
   return NextResponse.json({
-    memoryUsage,
+    free: freeMemoryInGigabyte,
+    used: usedMemoryInGigabyte,
     total: totalMemoryInGigabyte,
+    freePercentage: freeMemoryPercentage,
+    usedPercentage: usedMemoryPercentage,
   })
 }

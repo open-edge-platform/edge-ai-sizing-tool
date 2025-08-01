@@ -20,7 +20,7 @@ import { Switch } from '@/components/ui/switch'
 import { useUpdateWorkload } from '@/hooks/useWorkload'
 import { useAccelerator } from '@/hooks/useAccelerator'
 import { toast } from 'sonner'
-import { normalizeUseCase } from '@/lib/normalizeUsecase'
+import { normalizeUseCase } from '@/lib/utils'
 
 export function WorkloadProfile({ workload }: { workload: Workload }) {
   const updateWorkload = useUpdateWorkload(workload.id)
@@ -64,7 +64,7 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Switch
                 checked={workload.status === 'active'}
                 onCheckedChange={(checked) =>
@@ -73,18 +73,19 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
                 className="py-0.5"
               />
               <span className="text-sm">{workload.status}</span>
-              <div className="flex-1"></div>
-              <Badge variant="secondary" className="px-2 py-0.5">
-                <span className="mr-2">Name:</span>
-                {normalizeUseCase(workload.usecase) + '-' + workload.id}
+              <Badge variant="secondary" className="flex-1 flex-wrap">
+                <span className="mr-1 text-sm font-medium">Name:</span>
+                <span className="text-sm text-gray-900 italic">
+                  {normalizeUseCase(workload.usecase) + '-' + workload.id}
+                </span>
               </Badge>
             </div>
           </div>
 
           <div className="grid gap-3">
-            <div className="bg-muted/40 flex items-center gap-2 rounded-md p-2">
+            <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-md p-2">
               <div className="min-w-24 text-sm font-medium">Model</div>
-              <div className="flex-1 font-mono text-sm">
+              <div className="flex-1 flex-wrap font-mono text-sm">
                 {workload.model.split('/').length > 1
                   ? workload.model.split('/')[1]
                   : workload.model}

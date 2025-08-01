@@ -8,10 +8,13 @@ import { CpuIcon, Layers, Cpu, Server } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useSystemInfo } from '@/hooks/useSystemInformation'
+import { useMemoryUtilization } from '@/hooks/useSystemMonitoring'
+
 import { NOT_AVAILABLE } from '@/lib/constants'
 
 export default function SystemInformationPage() {
   const { data, isLoading, error } = useSystemInfo()
+  const memoryData = useMemoryUtilization()
 
   if (isLoading) return <div className="text-center">Loading...</div>
   if (error)
@@ -55,27 +58,33 @@ export default function SystemInformationPage() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Platform:</span>
-                      <span>{data.platform}</span>
+                      <span>{data.os.platform}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Distro:</span>
-                      <span>{data.osDistro}</span>
+                      <span>{data.os.distro}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">OS Release:</span>
-                      <span>{data.osRelease}</span>
+                      <span>{data.os.release}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Architecture:</span>
-                      <span>{data.osArc}</span>
+                      <span>{data.os.arc}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Hostname:</span>
-                      <span>{data.hostname}</span>
+                      <span>{data.os.hostname}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Kernel:</span>
-                      <span>{data.kernelVersion}</span>
+                      <span>{data.os.kernelVersion}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Timezone:</span>
+                      <span>
+                        {data.os.timezone} ({data.os.timezoneName})
+                      </span>
                     </div>
                   </div>
 
@@ -83,50 +92,57 @@ export default function SystemInformationPage() {
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Total Memory:</span>
                       <span>
-                        {data.memory.total !== NOT_AVAILABLE
-                          ? `${data.memory.total} GB`
-                          : data.memory.total}
+                        {memoryData.data &&
+                        memoryData.data.total !== NOT_AVAILABLE
+                          ? `${memoryData.data.total.toFixed(0)} GB`
+                          : (memoryData.data?.total ?? NOT_AVAILABLE)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Used Memory:</span>
                       <span>
-                        {data.memory.used !== NOT_AVAILABLE
-                          ? `${data.memory.used} GB (${data.memory.usedPercentage}%)`
-                          : data.memory.used}
+                        {memoryData.data &&
+                        memoryData.data.used !== NOT_AVAILABLE
+                          ? `${memoryData.data.used.toFixed(1)} GB (${memoryData.data.usedPercentage.toFixed(0)}%)`
+                          : memoryData.data.used}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Free Memory:</span>
                       <span>
-                        {data.memory.free !== NOT_AVAILABLE
-                          ? `${data.memory.free} GB (${data.memory.freePercentage}%)`
-                          : data.memory.free}
+                        {memoryData.data &&
+                        memoryData.data.free !== NOT_AVAILABLE
+                          ? `${memoryData.data.free.toFixed(1)} GB (${memoryData.data.freePercentage.toFixed(0)}%)`
+                          : memoryData.data.free}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Total Disk Size:</span>
                       <span>
-                        {data.disk.total !== NOT_AVAILABLE
-                          ? `${data.disk.total} GB`
+                        {data.disk && data.disk?.total !== NOT_AVAILABLE
+                          ? `${data.disk.total.toFixed(0)} GB`
                           : data.disk.total}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Used Disk Size:</span>
                       <span>
-                        {data.disk.used !== NOT_AVAILABLE
-                          ? `${data.disk.used} GB (${data.disk.usedPercentage}%)`
+                        {data.disk && data.disk?.used !== NOT_AVAILABLE
+                          ? `${data.disk.used.toFixed(0)} GB (${data.disk.usedPercentage.toFixed(0)}%)`
                           : data.disk.used}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Free Disk Size:</span>
                       <span>
-                        {data.disk.free !== NOT_AVAILABLE
-                          ? `${data.disk.free} GB (${data.disk.freePercentage}%)`
+                        {data.disk && data.disk?.free !== NOT_AVAILABLE
+                          ? `${data.disk.free.toFixed(0)} GB (${data.disk.freePercentage.toFixed(0)}%)`
                           : data.disk.free}
                       </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">Up Time:</span>
+                      <span>{data.os.uptime}</span>
                     </div>
                   </div>
                 </div>
@@ -145,7 +161,10 @@ export default function SystemInformationPage() {
                 <div className="grid gap-6 md:grid-cols-2">
                   <div>
                     <h3 className="mb-2 text-lg font-semibold">
-                      {displayManufacturerBrand(data.manufacturer, data.brand)}
+                      {displayManufacturerBrand(
+                        data.cpu.manufacturer,
+                        data.cpu.brand,
+                      )}
                     </h3>
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-1">
@@ -153,7 +172,9 @@ export default function SystemInformationPage() {
                           Physical Cores:
                         </div>
                         <div className="text-sm font-medium">
-                          {data.physicalCores}
+                          {data.cpu && data.cpu?.physicalCores !== undefined
+                            ? data.cpu.physicalCores
+                            : NOT_AVAILABLE}
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
@@ -161,7 +182,9 @@ export default function SystemInformationPage() {
                           Threads:
                         </div>
                         <div className="text-sm font-medium">
-                          {data.threads}
+                          {data.cpu && data.cpu?.threads !== undefined
+                            ? data.cpu.threads
+                            : NOT_AVAILABLE}
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
@@ -169,9 +192,9 @@ export default function SystemInformationPage() {
                           Min Speed:
                         </div>
                         <div className="text-sm font-medium">
-                          {data.cpuSpeedMin !== NOT_AVAILABLE
-                            ? `${data.cpuSpeedMin} GHz`
-                            : data.cpuSpeedMin}
+                          {data.cpu && data.cpu?.cpuSpeedMin !== NOT_AVAILABLE
+                            ? `${data.cpu.cpuSpeedMin} GHz`
+                            : data.cpu.cpuSpeedMin}
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-1">
@@ -179,9 +202,9 @@ export default function SystemInformationPage() {
                           Max Speed:
                         </div>
                         <div className="text-sm font-medium">
-                          {data.cpuSpeedMax !== NOT_AVAILABLE
-                            ? `${data.cpuSpeedMax} GHz`
-                            : data.cpudSpeedMax}
+                          {data.cpu && data.cpu?.cpuSpeedMax !== NOT_AVAILABLE
+                            ? `${data.cpu.cpuSpeedMax} GHz`
+                            : data.cpu.cpuSpeedMax}
                         </div>
                       </div>
                     </div>
@@ -192,13 +215,16 @@ export default function SystemInformationPage() {
                       <div className="mb-2 flex items-center justify-between">
                         <div className="text-sm font-medium">Temperature</div>
                         <div className="text-sm font-medium">
-                          {data.temperature !== NOT_AVAILABLE
-                            ? `${data.temperature} °C`
-                            : data.temperature}
+                          {data.cpu && data.cpu?.temperature !== NOT_AVAILABLE
+                            ? `${data.cpu.temperature} °C`
+                            : data.cpu.temperature}
                         </div>
                       </div>
-                      {data?.temperature !== NOT_AVAILABLE && (
-                        <Progress value={data.temperature} className="h-2" />
+                      {data.cpu && data.cpu?.temperature !== NOT_AVAILABLE && (
+                        <Progress
+                          value={data.cpu.temperature}
+                          className="h-2"
+                        />
                       )}
                     </div>
                   </div>
@@ -207,14 +233,14 @@ export default function SystemInformationPage() {
             </Card>
 
             {/* GPU Cards */}
-            <Card>
+            <Card className="gpu-card">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Layers className="mr-2 h-5 w-5" />
                   GPU Information
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="gpu-info">
                 {data.gpuInfo && data.gpuInfo.length > 0 ? (
                   <div className="space-y-4">
                     {data.gpuInfo.map(
@@ -262,14 +288,14 @@ export default function SystemInformationPage() {
 
             {/* NPU Card */}
             {data.npu && data.npu !== NOT_AVAILABLE && (
-              <Card>
+              <Card className="npu-card">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Cpu className="mr-2 h-5 w-5" />
                     Neural Processing Unit (NPU)
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="npu-info">
                   <div className="grid gap-6 md:grid-cols-1">
                     <div>
                       <div className="space-y-2">

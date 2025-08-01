@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import si from 'systeminformation'
 import { addon as ov } from 'openvino-node'
 import { NOT_AVAILABLE } from '@/lib/constants'
+import { bytesToGigabytes, calculatePercentage } from '@/lib/utils'
 
 function getAvailableDevices() {
   const core = new ov.Core()
@@ -50,98 +51,110 @@ function getNPUInfo(): string {
   }
 }
 
-function bytesToGigabytes(bytes: number) {
-  const gigabytes = bytes / 1024 ** 3
-  return Math.round(gigabytes * 10) / 10
-}
+function formatUptime(sec: number): string {
+  const days = Math.floor(sec / (24 * 3600))
+  sec %= 24 * 3600
+  const hours = Math.floor(sec / 3600)
+  sec %= 3600
+  const mins = Math.floor(sec / 60)
+  sec = Math.floor(sec % 60)
 
-function calculatePercentage(num: number, total: number): number {
-  if (total === 0) return 0
-  return Math.round((num / total) * 1000) / 10
+  let result = ''
+  if (days > 0) {
+    result += `${days}d `
+  }
+  if (hours > 0) {
+    result += `${hours}h `
+  }
+  if (mins > 0) {
+    result += `${mins}m `
+  }
+  return result
 }
 
 export async function GET() {
   try {
-    const memInfo = await si.mem()
-    const osInfo = await si.osInfo()
-    const cpuInfo = await si.cpu()
-    const cpuTemp = await si.cpuTemperature()
+    const [osInfo, systemTime, cpuInfo, cpuTemp, gpuInfo] = await Promise.all([
+      si.osInfo(),
+      si.time(),
+      si.cpu(),
+      si.cpuTemperature(),
+      getGPUInfo(),
+    ])
+
+    const formattedUpTime =
+      typeof systemTime.uptime === 'number'
+        ? formatUptime(systemTime.uptime)
+        : NOT_AVAILABLE
     const fsInfo = await si.fsSize()
-    const disk = fsInfo[0]
+    let disk
+    if (process.platform === 'win32') {
+      disk = fsInfo.find(
+        (disk) =>
+          disk.mount &&
+          (disk.mount.toUpperCase() === 'C:' ||
+            disk.mount.toUpperCase() === 'C' ||
+            disk.mount.toUpperCase().startsWith('C:\\')),
+      )
+    } else {
+      disk = fsInfo.find((disk) => disk.mount === '/')
+    }
 
-    const memory =
-      typeof memInfo.total === 'number'
-        ? bytesToGigabytes(memInfo.total)
-        : NOT_AVAILABLE
-    const freeMemory =
-      typeof memInfo.free === 'number'
-        ? bytesToGigabytes(memInfo.free)
-        : NOT_AVAILABLE
-    const freeMemoryPercentage =
-      typeof memory === 'number' && typeof freeMemory === 'number'
-        ? calculatePercentage(freeMemory, memory)
-        : NOT_AVAILABLE
-    const usedMemory =
-      typeof memory === 'number' && typeof freeMemory === 'number'
-        ? Math.round((memory - freeMemory) * 10) / 10
-        : NOT_AVAILABLE
-    const usedMemoryPercentage =
-      typeof usedMemory === 'number' && typeof memory === 'number'
-        ? calculatePercentage(usedMemory, memory)
-        : NOT_AVAILABLE
-
-    const freeDisk =
-      typeof disk.available === 'number'
-        ? bytesToGigabytes(disk.available)
-        : NOT_AVAILABLE
-    const totalDisk =
-      typeof disk.size === 'number'
+    const totalDiskInGigabytes =
+      disk && Number.isFinite(disk.size)
         ? bytesToGigabytes(disk.size)
         : NOT_AVAILABLE
-    const usedDisk =
-      typeof disk.used === 'number'
+    const usedDiskInGigabytes =
+      disk && Number.isFinite(disk.used)
         ? bytesToGigabytes(disk.used)
         : NOT_AVAILABLE
+    const freeDiskInGigabytes =
+      disk && Number.isFinite(disk.size) && Number.isFinite(disk.used)
+        ? bytesToGigabytes(disk.size - disk.used)
+        : NOT_AVAILABLE
+
     const freeDiskPercentage =
-      typeof freeDisk === 'number' && typeof totalDisk === 'number'
-        ? calculatePercentage(freeDisk, totalDisk)
+      typeof freeDiskInGigabytes === 'number' &&
+      typeof totalDiskInGigabytes === 'number'
+        ? calculatePercentage(freeDiskInGigabytes, totalDiskInGigabytes)
         : NOT_AVAILABLE
     const usedDiskPercentage =
-      typeof usedDisk === 'number' && typeof totalDisk === 'number'
-        ? calculatePercentage(usedDisk, totalDisk)
+      typeof usedDiskInGigabytes === 'number' &&
+      typeof totalDiskInGigabytes === 'number'
+        ? calculatePercentage(usedDiskInGigabytes, totalDiskInGigabytes)
         : NOT_AVAILABLE
 
     return NextResponse.json({
-      platform: osInfo.platform ?? NOT_AVAILABLE,
-      osRelease: osInfo.release ?? NOT_AVAILABLE,
-      osArc: osInfo.arch ?? NOT_AVAILABLE,
-      osDistro: osInfo.distro ?? NOT_AVAILABLE,
-      hostname: osInfo.hostname ?? NOT_AVAILABLE,
-      kernelVersion: osInfo.kernel ?? NOT_AVAILABLE,
-      memory: {
-        total: memory,
-        free: freeMemory,
-        freePercentage: freeMemoryPercentage,
-        used: usedMemory,
-        usedPercentage: usedMemoryPercentage,
+      os: {
+        platform: osInfo.platform ?? NOT_AVAILABLE,
+        release: osInfo.release ?? NOT_AVAILABLE,
+        arc: osInfo.arch ?? NOT_AVAILABLE,
+        distro: osInfo.distro ?? NOT_AVAILABLE,
+        hostname: osInfo.hostname ?? NOT_AVAILABLE,
+        kernelVersion: osInfo.kernel ?? NOT_AVAILABLE,
+        timezone: systemTime.timezone ?? NOT_AVAILABLE,
+        timezoneName: systemTime.timezoneName ?? NOT_AVAILABLE,
+        uptime: formattedUpTime,
       },
       disk: {
-        total: totalDisk,
-        free: freeDisk,
-        freePercentage: freeDiskPercentage,
-        used: usedDisk,
+        total: totalDiskInGigabytes,
+        free: freeDiskInGigabytes,
+        used: usedDiskInGigabytes,
         usedPercentage: usedDiskPercentage,
+        freePercentage: freeDiskPercentage,
       },
-      manufacturer: cpuInfo.manufacturer ?? NOT_AVAILABLE,
-      brand: cpuInfo.brand ?? NOT_AVAILABLE,
-      physicalCores: cpuInfo.physicalCores ?? NOT_AVAILABLE,
-      threads: cpuInfo.cores ?? NOT_AVAILABLE,
-      cpuSpeed: cpuInfo.speed ?? NOT_AVAILABLE,
-      cpuSpeedMin: cpuInfo.speedMin ?? NOT_AVAILABLE,
-      cpuSpeedMax: cpuInfo.speedMax ?? NOT_AVAILABLE,
-      temperature: cpuTemp.main ?? NOT_AVAILABLE,
-      gpuInfo: await getGPUInfo(),
-      npu: getNPUInfo() ?? NOT_AVAILABLE,
+      cpu: {
+        manufacturer: cpuInfo.manufacturer ?? NOT_AVAILABLE,
+        brand: cpuInfo.brand ?? NOT_AVAILABLE,
+        physicalCores: cpuInfo.physicalCores ?? NOT_AVAILABLE,
+        threads: cpuInfo.cores ?? NOT_AVAILABLE,
+        cpuSpeed: cpuInfo.speed ?? NOT_AVAILABLE,
+        cpuSpeedMin: cpuInfo.speedMin ?? NOT_AVAILABLE,
+        cpuSpeedMax: cpuInfo.speedMax ?? NOT_AVAILABLE,
+        temperature: cpuTemp.main ?? NOT_AVAILABLE,
+      },
+      gpuInfo,
+      npu: getNPUInfo(),
     })
   } catch (error) {
     console.error('Error fetching system information details:', error)

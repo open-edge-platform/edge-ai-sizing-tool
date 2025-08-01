@@ -33,6 +33,7 @@ import { ErrorResponse } from '@/types/error'
 import { metadata, TaskOptions, UsecaseOptions } from '@/config/workloads'
 import { Input } from './ui/input'
 import { useCustomModel, useUploadCustomModel } from '@/hooks/useModel'
+import { useSystemInfo } from '@/hooks/useSystemInformation'
 
 type TaskType = keyof typeof metadata.tasks
 type UsecaseType = keyof TaskOptions['usecase']
@@ -69,12 +70,6 @@ interface WorkloadResponse {
     createdAt: string
   }
   message: string
-}
-
-if (navigator.userAgent.includes('Windows')) {
-  delete metadata.tasks['computer vision'].usecase[
-    'object detection (DLStreamer)'
-  ]
 }
 
 function getNumStreams(metadata: Workload['metadata']): number | undefined {
@@ -146,6 +141,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
 
   const { data: devicesData } = useAccelerator()
   const acceleratorDevices = devicesData?.devices
+  const { data } = useSystemInfo()
 
   const createWorkload = useCreateWorkload()
   const uploadmedia = useUploadMedia()
@@ -154,16 +150,14 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
   useEffect(() => {
+    if (data?.os?.distro?.includes('Windows')) {
+      delete metadata.tasks['computer vision'].usecase[
+        'object detection (DLStreamer)'
+      ]
+    }
     if (workload) {
       setAvailableUsecases(
         Object.keys(metadata.tasks[workload.task as TaskType].usecase),
-      )
-      setAvailableModels(
-        Object.keys(
-          metadata.tasks[workload.task as TaskType].usecase[
-            workload.usecase as UsecaseType
-          ].model,
-        ),
       )
       if (workload.model === 'custom_model') {
         setModelSelectionType('upload')
@@ -218,7 +212,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         },
       })
     }
-  }, [acceleratorDevices, workload, customModelData])
+  }, [acceleratorDevices, workload, customModelData, data?.os?.distro])
 
   useEffect(() => {
     const { task, usecase, model, metadata, devices, source } = addWorkload
