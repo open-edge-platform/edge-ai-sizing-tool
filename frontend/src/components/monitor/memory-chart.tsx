@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
 
 export interface MemoryUtilizationData {
-  memoryUsage: number
+  usedPercentage: number
   total: number
 }
 
@@ -57,7 +57,7 @@ export function MemoryChart({
             ...prevData,
             {
               time: new Date().toLocaleTimeString(),
-              memoryUsage: data.memoryUsage,
+              memoryUsage: data.usedPercentage,
               total: data.total,
             },
           ]
@@ -138,7 +138,8 @@ export function MemoryChart({
               Memory
             </div>
             <div className="float-right">
-              {Math.round(data?.memoryUsage ?? 0)}% of {data?.total ?? 0}GB
+              {data?.usedPercentage.toFixed(0) ?? 0}% of{' '}
+              {data?.total.toFixed(0) ?? 0} GB
             </div>
           </CardTitle>
         </CardHeader>

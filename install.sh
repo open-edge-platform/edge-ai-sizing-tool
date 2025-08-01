@@ -3,7 +3,7 @@
 # Copyright (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0 
 
-# Check if the script is run with sudo
+#Check if the script is run with sudo
 if [ "$EUID" -ne 0 ]; then
   echo "This script must be run as root. Please use sudo."
   exit 1
@@ -80,5 +80,15 @@ sysctl -p
 
 #Install mediamtx
 ./scripts/setup_mediamtx.sh
+
+if ! groups "$SUDO_USER" | grep -qw "video"; then 
+  sudo usermod -aG video "$SUDO_USER"
+  echo "Added $SUDO_USER to group video"
+  echo "=============================================================="
+  echo "IMPORTANT: To apply video group changes, you must:"
+  echo "  - Log out and log back in, OR"
+  echo "  - Run: newgrp video"
+  echo "=============================================================="
+fi
 
 echo "Installation and configuration completed!"

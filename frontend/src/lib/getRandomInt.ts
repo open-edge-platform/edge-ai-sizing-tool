@@ -15,6 +15,5 @@ export function getRandomInt(min: number, max: number) {
     crypto.getRandomValues(randomBuffer)
     randomNumber = randomBuffer[0] & 0x7fffffff // Ensure positive integer
   } while (randomNumber >= Math.floor(0x80000000 / range) * range)
-  console.log(min + (randomNumber % range))
   return min + (randomNumber % range)
 }

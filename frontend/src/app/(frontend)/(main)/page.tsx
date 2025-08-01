@@ -90,19 +90,18 @@ export default function DashboardPage() {
                       <HardDrive className="h-4 w-4" /> Memory Usage
                     </span>
                     <span>
-                      {(
-                        ((memoryData.data?.memoryUsage ?? 0) *
-                          (memoryData.data?.total ?? 0)) /
-                        100
-                      )?.toFixed(1)}{' '}
-                      GB / {memoryData.data?.total ?? 0} GB
+                      {memoryData.data?.used.toFixed(1) ?? 0} GB /{' '}
+                      {memoryData.data?.total.toFixed(0) ?? 0} GB
                     </span>
                   </div>
-                  <Progress value={memoryData.data?.memoryUsage ?? 0} />
+                  <Progress value={memoryData.data?.usedPercentage ?? 0} />
                 </div>
 
                 {gpuData.data?.gpuUtilizations.map((gpu) => (
-                  <div key={gpu.uuid || gpu.device} className="space-y-2">
+                  <div
+                    key={`${gpu.uuid ?? gpu.device ?? 'unknown'}`}
+                    className="space-y-2"
+                  >
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center gap-1">
                         <Zap className="h-4 w-4" /> {gpu.device} Usage
@@ -207,22 +206,22 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="text-muted-foreground">Model</div>
                   <div>
-                    {!systemInfo.data
+                    {!systemInfo.data?.cpu
                       ? ''
-                      : systemInfo.data?.manufacturer === NOT_AVAILABLE &&
-                          systemInfo.data?.brand === NOT_AVAILABLE
+                      : systemInfo.data?.cpu.manufacturer === NOT_AVAILABLE &&
+                          systemInfo.data?.cpu.brand === NOT_AVAILABLE
                         ? NOT_AVAILABLE
-                        : systemInfo.data?.manufacturer === NOT_AVAILABLE
-                          ? systemInfo.data?.brand
-                          : systemInfo.data?.brand === NOT_AVAILABLE
-                            ? systemInfo.data?.manufacturer
-                            : `${systemInfo.data?.manufacturer} ${systemInfo.data?.brand}`}
+                        : systemInfo.data?.cpu.manufacturer === NOT_AVAILABLE
+                          ? systemInfo.data?.cpu.brand
+                          : systemInfo.data?.cpu.brand === NOT_AVAILABLE
+                            ? systemInfo.data?.cpu.manufacturer
+                            : `${systemInfo.data?.cpu.manufacturer} ${systemInfo.data?.cpu.brand}`}
                   </div>
                   <div className="text-muted-foreground">Cores</div>
-                  <div>{systemInfo.data?.physicalCores}</div>
+                  <div>{systemInfo.data?.cpu.physicalCores}</div>
 
                   <div className="text-muted-foreground">Threads</div>
-                  <div>{systemInfo.data?.threads}</div>
+                  <div>{systemInfo.data?.cpu.threads}</div>
                 </div>
               </div>
 
@@ -234,18 +233,18 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="text-muted-foreground">Total</div>
                   <div>
-                    {!systemInfo.data
+                    {!systemInfo.data?.disk
                       ? ''
-                      : systemInfo.data.disk.total !== NOT_AVAILABLE
-                        ? `${systemInfo.data.disk.total} GB`
-                        : systemInfo.data.disk.total}
+                      : systemInfo.data?.disk?.total !== NOT_AVAILABLE
+                        ? `${systemInfo.data?.disk.total.toFixed(0)} GB`
+                        : systemInfo.data?.disk.total}
                   </div>
                   <div className="text-muted-foreground">Used</div>
                   <div>
                     {!systemInfo.data
                       ? ''
-                      : systemInfo.data?.disk.used !== NOT_AVAILABLE
-                        ? `${systemInfo.data?.disk.used} GB`
+                      : systemInfo.data?.disk?.used !== NOT_AVAILABLE
+                        ? `${systemInfo.data?.disk.used.toFixed(0)} GB`
                         : systemInfo.data?.disk.used}
                   </div>
                   <div className="text-muted-foreground">Free</div>
@@ -253,7 +252,7 @@ export default function DashboardPage() {
                     {!systemInfo.data
                       ? ''
                       : systemInfo.data?.disk.free !== NOT_AVAILABLE
-                        ? `${systemInfo.data?.disk.free} GB`
+                        ? `${systemInfo.data?.disk.free.toFixed(0)} GB`
                         : systemInfo.data?.disk.free}
                   </div>
                 </div>
