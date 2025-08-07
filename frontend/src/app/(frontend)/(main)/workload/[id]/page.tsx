@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Text2Img } from '@/components/usecase/text2img'
 import { TextGen } from '@/components/usecase/textgen'
 import { Audio } from '@/components/usecase/audio'
+import { Text2Speech } from '@/components/usecase/text2speech'
 import React, { useRef, useState } from 'react'
 import { useWorkload } from '@/hooks/useWorkload'
 import { DlStreamer } from '@/components/usecase/dlstreamer'
@@ -81,6 +82,8 @@ export default function WorkloadPage({
         return <Audio workload={workload} />
       case 'object detection (DLStreamer)':
         return <DlStreamer workload={workload} />
+      case 'text-to-speech':
+        return <Text2Speech workload={workload} />
       default:
         return (
           <div className="container py-10 text-center">

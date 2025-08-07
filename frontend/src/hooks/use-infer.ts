@@ -6,9 +6,10 @@
 import { useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import { toast } from 'sonner'
-import { AudioMessage } from '@/components/usecase/audio'
-import { TextToImageMessage } from '@/components/usecase/text2img'
-import { TextGenerationMessage } from '@/components/usecase/textgen'
+import { AudioMessage } from '@/types/audio-types'
+import { TextToImageMessage } from '@/types/text2img-types'
+import { TextGenerationMessage } from '@/types/textgen-types'
+import { TtsMessage } from '@/types/text2speech-types'
 
 /**
  * Fetcher function for inference response.
@@ -35,6 +36,7 @@ async function inferFetcher(
       | AudioMessage
       | TextToImageMessage
       | TextGenerationMessage
+      | TtsMessage
   },
 ) {
   if (url !== ALLOWEDENDPOINT) {
@@ -84,7 +86,8 @@ export function useInfer() {
       | Record<string, string | number>
       | AudioMessage
       | TextToImageMessage
-      | TextGenerationMessage,
+      | TextGenerationMessage
+      | TtsMessage,
   ) => {
     setIsInferencing(true)
 

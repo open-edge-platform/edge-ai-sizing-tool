@@ -1,0 +1,7 @@
+openvino_genai==2025.2.0
+soundfile==0.13.1
+optimum-intel==1.24.0
+sentencepiece==0.2.0
+fastapi==0.115.11
+huggingface_hub[cli]==0.33.1
+uvicorn==0.34.0

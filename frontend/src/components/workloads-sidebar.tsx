@@ -6,10 +6,6 @@
 import React, { useMemo, useState } from 'react'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import {
-  FileText,
-  Image,
-  MessageSquare,
-  Mic,
   MoreVertical,
   Package,
   PackagePlus,
@@ -20,7 +16,6 @@ import {
   ServerOff,
   SquarePen,
   Trash2,
-  Video,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -55,22 +50,7 @@ import {
 import { useDeleteWorkload, useWorkloads } from '@/hooks/useWorkload'
 import { Workload } from '@/payload-types'
 import { toast } from 'sonner'
-
-// Helper function to get icon based on usecase
-const getUsecaseIcon = (usecase: string) => {
-  switch (usecase) {
-    case 'text-to-image':
-      return Image
-    case 'text-generation':
-      return MessageSquare
-    case 'automatic-speech-recognition':
-      return Mic
-    case 'object detection (DLStreamer)':
-      return Video
-    default:
-      return FileText
-  }
-}
+import { getUsecaseIcon } from '@/lib/utils'
 
 export function WorkloadsSidebar({
   ...props

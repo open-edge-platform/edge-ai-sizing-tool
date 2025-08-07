@@ -4,15 +4,15 @@
 import os
 import sys
 import shutil
-import openvino as ov
-import argparse
 import logging
+import argparse
+import openvino as ov
 
-from ultralytics import YOLO
 from pathlib import Path
+from ultralytics import YOLO
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
@@ -93,7 +93,7 @@ def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
     """
     Download and convert YOLO models to OpenVINO format.
     """
-    
+
     # Validate the model name
     if model_name not in YOLO_MODELS:
         logging.error(f"Error: Invalid model name '{model_name}'.")
@@ -102,7 +102,7 @@ def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
 
     # Retrieve the model type
     model_type = YOLO_MODELS[model_name]
-    
+
     # Define paths for FP32 and FP16 models
     base_dir = Path(model_parent_dir).resolve()
     model_dir_fp32 = base_dir / f"{model_name}-FP32"

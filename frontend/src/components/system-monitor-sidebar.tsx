@@ -33,11 +33,8 @@ import { Badge } from '@/components/ui/badge'
 
 import { CpuChart } from '@/components/monitor/cpu-chart'
 import { MemoryChart } from '@/components/monitor/memory-chart'
-import { GpuChart, GpuUtilization } from '@/components/monitor/gpu-chart'
-import {
-  GpuMemoryChart,
-  GpuMemoryUtilization,
-} from './monitor/gpu-memory-chart'
+import { GpuChart } from '@/components/monitor/gpu-chart'
+import { GpuMemoryChart } from './monitor/gpu-memory-chart'
 import { NpuChart } from '@/components/monitor/npu-chart'
 import { NOT_AVAILABLE } from '@/lib/constants'
 import {
@@ -49,18 +46,8 @@ import {
   useGpuMemory,
   useGPUXpum,
 } from '@/hooks/useSystemMonitoring'
-
-// Chart types
-type ChartType = 'memory' | 'cpu' | 'gpu' | 'npu' | 'gpu-memory' | 'n/a'
-
-interface ChartItem {
-  id: string
-  type: ChartType
-  title: string
-  description: string
-  icon: React.ElementType
-  device?: string
-}
+import { ChartItem } from '@/types/chart-types'
+import { GpuMemoryUtilization, GpuUtilization } from '@/types/gpu-types'
 
 export function SystemMonitorSidebar({
   ...props
