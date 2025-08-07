@@ -223,6 +223,14 @@ export const metadata: MetadataStructure = {
             },
           },
         },
+        'text-to-speech': {
+          model: {
+            'microsoft/speecht5_tts': {
+              devicesFiltered: ['NPU', 'GPU'],
+              allowMultipleDevices: false,
+            },
+          },
+        },
       },
     },
   },

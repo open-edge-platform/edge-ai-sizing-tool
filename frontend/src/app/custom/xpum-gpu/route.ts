@@ -4,11 +4,7 @@
 import { NextResponse } from 'next/server'
 import os from 'os'
 import { spawn } from 'child_process'
-
-interface GpuData {
-  device: string
-  busaddr: string | null
-}
+import { GpuData } from '@/types/gpu-types'
 
 const isWindows = os.platform() === 'win32'
 

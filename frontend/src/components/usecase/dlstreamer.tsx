@@ -11,14 +11,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart'
-import { Workload } from '@/payload-types'
 import { WorkloadProfile } from '../workload-profile'
 import useGetStreamMetricInterval from '@/hooks/useStream'
 import { Loader } from 'lucide-react'
+import { DlStreamerProps } from '@/types/dlstreamer-types'
 
-interface DlStreamerProps {
-  workload: Workload
-}
 // A simple hash function to dynamically generate a color for each stream id for the chart.
 function getColorForKey(key: string): string {
   let hash = 0

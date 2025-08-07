@@ -6,13 +6,9 @@ import { promisify } from 'util'
 import { ChildProcessWithoutNullStreams, spawn, exec } from 'child_process'
 import si from 'systeminformation'
 import os from 'os'
+import { GpuData } from '@/types/gpu-types'
 
 const isWindows = os.platform() === 'win32'
-
-interface GpuData {
-  device: string
-  busaddr: string | null
-}
 
 const deviceCache = {
   clinfo: null as Array<{

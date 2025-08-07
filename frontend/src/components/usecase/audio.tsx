@@ -18,7 +18,6 @@ import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from 'sonner'
-import { Workload } from '@/payload-types'
 import { useInfer } from '@/hooks/use-infer'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -30,23 +29,8 @@ import {
 } from '../ui/select'
 import { WorkloadProfile } from '@/components/workload-profile'
 import { PerformanceMetrics } from '@/components/performance-metrics'
-import { cn } from '@/lib/utils'
-
-export interface AudioMessage {
-  port: number
-  file: string
-  task: string
-  language: string
-}
-
-interface AudioResult {
-  generation_time_s: number
-  text: string
-}
-
-interface AudioProps {
-  workload: Workload
-}
+import { cn, formatFileSize } from '@/lib/utils'
+import { AudioMessage, AudioResult, AudioProps } from '@/types/audio-types'
 
 const LANGUAGES = {
   en: 'english',
@@ -301,12 +285,6 @@ export function Audio({ workload }: AudioProps) {
       toast.error('Failed to process audio file')
       console.error('Failed to process audio file:', error)
     }
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' bytes'
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
-    else return (bytes / 1048576).toFixed(1) + ' MB'
   }
 
   return (

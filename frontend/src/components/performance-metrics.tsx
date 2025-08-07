@@ -7,21 +7,7 @@ import React from 'react'
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from './ui/badge'
-
-interface MetricData {
-  name: string
-  value: number | string
-  unit?: string
-  previousValue?: number | string
-  trend?: 'up' | 'down' | 'neutral'
-  trendValue?: string
-  description?: string
-  context?: string
-}
-
-interface PerformanceMetricsProps {
-  metrics: MetricData[]
-}
+import { PerformanceMetricsProps } from '@/types/metrics-types'
 
 export function PerformanceMetrics({ metrics }: PerformanceMetricsProps) {
   if (!metrics || metrics.length === 0) return null

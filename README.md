@@ -44,18 +44,19 @@ The Edge AI Sizing Tool supports the following types of AI models:
 
 A curated set of popular models for common AI tasks:
 
-| Model Name                                   | Task Type                    | Source / License Information                                               |
-|----------------------------------------------|------------------------------|----------------------------------------------------------------------------|
-| YOLOv8                                       | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                          |
-| YOLOv11                                      | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                          |
-| dreamlike-art/dreamlike-anime-1.0            | Text-To-Image                | [Hugging Face](https://huggingface.co/dreamlike-art/dreamlike-anime-1.0)   |
-| stabilityai/stable-diffusion-2               | Text-To-Image                | [Hugging Face](https://huggingface.co/stabilityai/stable-diffusion-2)      |
-| TinyLlama/TinyLlama-1.1B-Chat-v1.0           | Text Generation              | [Hugging Face](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)  |
-| Qwen/Qwen1.5-7B-Chat                         | Text Generation              | [Hugging Face](https://huggingface.co/Qwen/Qwen1.5-7B-Chat)                |
+| Model Name                                   | Task Type                    | Source / License Information                                                     |
+|----------------------------------------------|------------------------------|----------------------------------------------------------------------------------|
+| YOLOv8                                       | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                                |
+| YOLOv11                                      | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                                |
+| dreamlike-art/dreamlike-anime-1.0            | Text-To-Image                | [Hugging Face](https://huggingface.co/dreamlike-art/dreamlike-anime-1.0)         |
+| stabilityai/stable-diffusion-2               | Text-To-Image                | [Hugging Face](https://huggingface.co/stabilityai/stable-diffusion-2)            |
+| TinyLlama/TinyLlama-1.1B-Chat-v1.0           | Text Generation              | [Hugging Face](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)        |
+| Qwen/Qwen1.5-7B-Chat                         | Text Generation              | [Hugging Face](https://huggingface.co/Qwen/Qwen1.5-7B-Chat)                      |
 | OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov    | Text Generation              | [Hugging Face](https://huggingface.co/OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov) |
 | OpenVINO/Phi-3-mini-4k-instruct-int4-ov      | Text Generation              | [Hugging Face](https://huggingface.co/OpenVINO/Phi-3-mini-4k-instruct-int4-ov)   |
-| openai/whisper-tiny                          | Automatic Speech Recognition | [Hugging Face](https://huggingface.co/openai/whisper-tiny)                 |
-| openai/whisper-base                          | Automatic Speech Recognition | [Hugging Face](https://huggingface.co/openai/whisper-base)                 |
+| openai/whisper-tiny                          | Automatic Speech Recognition | [Hugging Face](https://huggingface.co/openai/whisper-tiny)                       |
+| openai/whisper-base                          | Automatic Speech Recognition | [Hugging Face](https://huggingface.co/openai/whisper-base)                       |
+| microsoft/speecht5_tts                       | Text-To-Speech               | [Hugging Face](https://huggingface.co/microsoft/speecht5_tts)                    |
 
 > **Disclaimer:** Before setting up and starting the application, review the license terms for each model above. By proceeding, you acknowledge and agree to comply with the respective model licenses.
 

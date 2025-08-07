@@ -13,6 +13,10 @@ custom_model/
 │   └── my-asr-model/
 │       ├── asr-model.xml
 │       └── asr-model.bin
+├── text-to-speech/
+│   └── my-text2speech-model/
+│       ├── text2speech-model.xml
+│       └── text2speech-model.bin
 ├── text-generation/
 │   └── my-textgen-model/
 │       ├── textgen-model.xml
@@ -31,6 +35,7 @@ custom_model/
 
 - Supported use case folders include:
   - `automatic-speech-recognition`
+  - `text-to-speech`
   - `text-generation`
   - `text-to-image`
   - `object-detection-(DLStreamer)`

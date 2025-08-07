@@ -1,22 +1,22 @@
 # Copyright (C) 2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-import io
 import os
+import io
 import sys
 import time
 import base64
 import logging
-import uvicorn
 import zipfile
+import uvicorn
 import requests
-import platform
 import argparse
+import platform
 import subprocess
 import urllib.parse
 import openvino_genai
 
-from PIL import Image
+import soundfile as sf
 from typing import Dict
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -25,13 +25,14 @@ from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 MODELS_DIR = "models"
-CUSTOM_MODEL_DIR = "../custom_models/text-to-image"
+CUSTOM_MODEL_DIR = "../custom_models/text-to-speech"
 PIPE = None
 
 
@@ -158,7 +159,8 @@ def setup_model(args: argparse.Namespace, env: Dict[str, str]):
     # download model if it doesn't exist
     if not os.path.exists(model):
         logging.info(f"Model {model} not found. Downloading...")
-        optimum_cli(args, model, env)
+        additional_args = {"model-kwargs": '{"vocoder":"microsoft/speecht5_hifigan"}'}
+        optimum_cli(args, model, env, additional_args)
 
     if os.path.realpath(model) != os.path.abspath(
         model
@@ -170,7 +172,7 @@ def setup_model(args: argparse.Namespace, env: Dict[str, str]):
         sys.exit(1)
 
     try:
-        PIPE = openvino_genai.Text2ImagePipeline(model, args.device)
+        PIPE = openvino_genai.Text2SpeechPipeline(model, args.device)
         update_payload_status(args.id, status="active", port=args.port)
     except Exception as e:
         logging.error(f"Error loading model: {e}")
@@ -179,27 +181,24 @@ def setup_model(args: argparse.Namespace, env: Dict[str, str]):
 
 
 class Request(BaseModel):
-    prompt: str
-    inference_step: int = 1
-    image_width: int = 256
-    image_height: int = 256
+    text: str  # Input text for which to generate speech
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="FastAPI server for OpenVINO text-to-image model"
+        description="FastAPI server for OpenVINO text-to-speech model"
     )
     parser.add_argument(
         "--model-name",
         type=str,
         required=True,
-        help="Name of the OpenVINO model (.xml file)",
+        help="Path to the model directory",
     )
     parser.add_argument(
         "--device",
         type=str,
         default="CPU",
-        help="Device to run the model on (e.g., CPU, GPU, MYRIAD)",
+        help="Device to run the model on (default: CPU)",
     )
     parser.add_argument(
         "--port", type=int, default=5997, help="Port to run the FastAPI server on"
@@ -228,35 +227,35 @@ def create_app(args: argparse.Namespace, env: Dict[str, str]):
     )
 
     @app.post("/infer")
-    async def generate_image(request: Request):
+    async def generate_speech(request: Request):
         global PIPE
         try:
             start_time = time.perf_counter()
-            image_tensor = PIPE.generate(
-                request.prompt,
-                width=request.image_width,
-                height=request.image_height,
-                num_inference_steps=request.inference_step,
-                num_images_per_prompt=1,
-            )
-
+            result = PIPE.generate(request.text)
             inference_time = time.perf_counter() - start_time
-            image = Image.fromarray(image_tensor.data[0])
-            image_byte_arr = io.BytesIO()  # in-memory storage
-            image.save(image_byte_arr, format="PNG")
-            image_byte_arr.seek(0)
-            image_base64 = base64.b64encode(image_byte_arr.read()).decode("utf-8")
+
+            assert (
+                len(result.speeches) == 1
+            ), "Expected only one waveform for the requested input text"
+            speech = result.speeches[0]
+            audio_byte_arr = io.BytesIO()
+            sf.write(audio_byte_arr, speech.data[0], samplerate=16000, format="WAV")
+            audio_byte_arr.seek(0)
+            audio_base64 = base64.b64encode(audio_byte_arr.read()).decode("utf-8")
+
+            generation_time_s = round(inference_time, 1)
 
             return {
-                "generation_time_s": round(inference_time, 1),
-                "image": image_base64,
+                "generation_time_s": generation_time_s,
+                "audio": audio_base64,
             }
+
         except Exception as e:
-            logging.error(f"Error generating image: {e}")
+            logging.error(f"Error generating the speech: {e}")
             return JSONResponse(
                 {
                     "status": False,
-                    "message": "An error occurred while generating the image",
+                    "message": "An error occurred while generating the speech",
                 }
             )
 

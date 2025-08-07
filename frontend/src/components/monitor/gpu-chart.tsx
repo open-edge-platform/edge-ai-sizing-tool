@@ -17,12 +17,7 @@ import { Button } from '@/components/ui/button'
 import { CartesianGrid, XAxis, Area, AreaChart } from 'recharts'
 import { Badge } from '../ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
-
-export interface GpuUtilization {
-  uuid: string | null
-  device: string
-  value: number | null
-}
+import { GpuChartProps } from '@/types/gpu-types'
 
 const chartConfig = {
   gpuUsage: {
@@ -30,17 +25,6 @@ const chartConfig = {
     color: '#0071C5',
   },
 } satisfies ChartConfig
-
-interface GpuChartProps {
-  className?: string
-  compact?: boolean
-  device: string
-  value: number
-  isLoading?: boolean
-  error?: Error | null
-  refetch?: () => void
-  isRefetching?: boolean
-}
 
 export function GpuChart({
   className,

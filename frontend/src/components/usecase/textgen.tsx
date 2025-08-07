@@ -12,36 +12,17 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { Workload } from '@/payload-types'
 import { useInfer } from '@/hooks/use-infer'
 import { WorkloadProfile } from '@/components/workload-profile'
 import { PerformanceMetrics } from '@/components/performance-metrics'
-import { cn } from '@/lib/utils'
+import { cn, sanitizeText } from '@/lib/utils'
 import { toast } from 'sonner'
-
-export interface TextGenerationMessage {
-  port: number
-  prompt: string
-  max_tokens: number
-}
-
-interface TextGenerationResult {
-  generation_time_s: number
-  load_time_s: number
-  text: string
-  throughput_s: number
-  time_to_token_s: number
-}
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
-}
-
-interface TextGenProps {
-  workload: Workload
-}
+import {
+  TextGenerationMessage,
+  TextGenerationResult,
+  Message,
+  TextGenProps,
+} from '@/types/textgen-types'
 
 export function TextGen({ workload }: TextGenProps) {
   const { inferResponse, isInferencing } = useInfer()
@@ -361,9 +342,7 @@ export function TextGen({ workload }: TextGenProps) {
                     value={inputValue}
                     onChange={(e) => {
                       // Allow only letters, numbers, spaces, commas, periods, and basic punctuation, max 300 chars
-                      const sanitized = e.target.value
-                        .replace(/[^a-zA-Z0-9\s.,\-!?]/g, '')
-                        .slice(0, 300)
+                      const sanitized = sanitizeText(e.target.value)
                       setInputValue(sanitized)
                     }}
                     onKeyDown={(e) => {
