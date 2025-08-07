@@ -17,11 +17,7 @@ import { Button } from '@/components/ui/button'
 import { CartesianGrid, XAxis, Area, AreaChart } from 'recharts'
 import { Badge } from '../ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
-
-export interface NpuUtilization {
-  device: string
-  value: number | null
-}
+import { NpuChartProps } from '@/types/npu-types'
 
 const chartConfig = {
   npuUsage: {
@@ -29,17 +25,6 @@ const chartConfig = {
     color: '#0071C5',
   },
 } satisfies ChartConfig
-
-interface NpuChartProps {
-  className?: string
-  compact?: boolean
-  device: string
-  value: number
-  isLoading?: boolean
-  error?: Error | null
-  refetch?: () => void
-  isRefetching?: boolean
-}
 
 export function NpuChart({
   className,

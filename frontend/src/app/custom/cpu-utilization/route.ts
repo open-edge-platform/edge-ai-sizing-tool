@@ -3,19 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import os from 'os'
-
-interface CpuTimes {
-  user: number
-  nice: number
-  sys: number
-  idle: number
-  irq: number
-}
-
-interface CpuUsage {
-  idle: number
-  total: number
-}
+import { CpuTimes, CpuUsage } from '@/types/cpu-types'
 
 function calculateCpuUsage(): CpuUsage {
   const cpus = os.cpus()

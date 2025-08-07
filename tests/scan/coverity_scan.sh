@@ -28,9 +28,9 @@ REPORTS_DIR="${SCRIPT_DIR}/reports"
 LOG_FILE="${LOGS_DIR}/coverity.log"
 TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
 REPORT_DIR="${REPORTS_DIR}/coverity_${TIMESTAMP}"
-COV_VERSION="2024.6.1"
-COV_INSTALLER_URL="https://af-amr01.devtools.intel.com/artifactory/coverity-or-local/Enterprise/cov-analysis-linux64-2024.6.1.sh"
-COV_LICENSE_URL="https://af-amr01.devtools.intel.com/artifactory/coverity-or-local/Legacy/license.dat"
+COV_VERSION="2025.3.0"
+COV_INSTALLER_URL="https://af-amr01.devtools.intel.com/artifactory/coverity-or-local/Enterprise/cov-analysis-linux64-2025.3.0.sh"
+COV_LICENSE_URL="https://af-amr01.devtools.intel.com/artifactory/coverity-or-local/Enterprise/license.dat"
 
 # Enhanced logging function with command logging support
 log() {
@@ -359,8 +359,6 @@ license_status=$?
 if [ $license_status -eq 1 ]; then
   log "ERROR: Fatal license file issues detected. Cannot continue."
   exit 1
-elif [ $license_status -eq 2 ]; then
-  log "WARNING: Potential license file issues detected. Analysis may fail."
 else
   log "License file verification passed."
 fi
@@ -389,18 +387,18 @@ for lang in "${LANG_ARRAY[@]}"; do
 done
 
 # Run Coverity build (capture)
-log "Running Coverity build/capture..."
-mkdir -p "$COV_CAPTURE_DIR"
+log "Running Coverity capture..."
 
 # Build the full command
-BUILD_CMD="${COV_BIN_DIR}/cov-build --config ${COV_CONFIG_FILE} --dir ${COV_CAPTURE_DIR} --fs-capture-search ${PACKAGE_DIR} --no-command"
+LANG_ARGS=$(printf -- '--language %s ' "${LANGUAGES//,/ }")
+BUILD_CMD="${COV_BIN_DIR}/coverity capture --dir ${COV_CAPTURE_DIR} ${LANG_ARGS}--project-dir ${PACKAGE_DIR}"
 
 # Log the command with description
-log_cmd "Running Coverity build/capture" "$BUILD_CMD"
+log_cmd "Running Coverity capture" "$BUILD_CMD"
 
 # Execute the command
 if ! eval "$BUILD_CMD" >> "$LOG_FILE" 2>&1; then
-  log "ERROR: Failed to run Coverity build/capture"
+  log "ERROR: Failed to run Coverity capture"
   log "  - Check log file for detailed error messages: $LOG_FILE"
   log "  - Verify that the package directory exists: $PACKAGE_DIR"
   log "  - Ensure proper permissions for the capture directory: $COV_CAPTURE_DIR"
@@ -446,7 +444,7 @@ log "License environment variables updated:"
 log "  - COVERITY_LICENSE_FILE=$COVERITY_LICENSE_FILE"
 
 # Build the full command with all options
-ANALYZE_CMD="${COV_BIN_DIR}/cov-analyze --dir ${COV_CAPTURE_DIR} --strip-path $(realpath "${PACKAGE_DIR}") \
+ANALYZE_CMD="${COV_BIN_DIR}/cov-analyze --dir ${COV_CAPTURE_DIR} --strip-path \"$(realpath "${PACKAGE_DIR}")\" \
   --enable-default --security --webapp-security --enable-audit-checkers \
   --enable-audit-mode --webapp-security --checker-option DOM_XSS:distrust_all:true"
 
@@ -489,7 +487,8 @@ log_cmd "Generating HTML report" "$HTML_CMD"
 # Execute the command
 eval "$HTML_CMD" >> "$LOG_FILE" 2>&1
 
-if ! eval "$HTML_CMD" >> "$LOG_FILE" 2>&1; then
+HTML_CMD_EXIT_CODE=$?
+if [ $HTML_CMD_EXIT_CODE -ne 0 ]; then
   log "ERROR: Failed to generate HTML report."
   log "  - Check log file for detailed error messages: $LOG_FILE"
   log "  - Verify that the analysis has been completed successfully"
@@ -519,9 +518,24 @@ fi
 
 log "Text report generated successfully at ${REPORT_DIR}/coverity_findings.txt"
 
-# Count defects
-DEFECT_COUNT=$(grep -c "^Error:" "$REPORT_DIR/coverity_findings.txt" 2>/dev/null || echo "0")
-log "Coverity scan complete. Found $DEFECT_COUNT potential issues."
+# Count defects from XML summary
+DEFECT_COUNT=0
+if [ -f "$REPORT_DIR/html/summary.xml" ]; then
+  # Extract total defect count from XML summary
+  # Look for the Total checker entry and extract the num value
+  DEFECT_COUNT=$(grep -A3 "<checker>Total</checker>" "$REPORT_DIR/html/summary.xml" | grep "<num>" | sed 's/<[^>]*>//g' | tr -d ' \t\n\r' 2>/dev/null || echo "0")
+  
+  # Ensure DEFECT_COUNT is a valid integer
+  if ! [[ "$DEFECT_COUNT" =~ ^[0-9]+$ ]]; then
+    log "WARNING: Could not parse defect count from XML, defaulting to 0"
+    DEFECT_COUNT=0
+  fi
+  
+  log "Coverity scan complete. Found $DEFECT_COUNT potential issues (from XML summary)."
+else
+  log "WARNING: XML summary file not found at $REPORT_DIR/html/summary.xml"
+  log "Coverity scan complete. Defect count unavailable."
+fi
 log "Reports available in: $REPORT_DIR"
 
 # Create summary file
@@ -538,22 +552,55 @@ SUMMARY_FILE="$REPORT_DIR/summary.txt"
   echo "RESULTS:"
   echo "Total defects found: $DEFECT_COUNT"
   echo ""
-  echo "Top categories:"
-  grep "^Category:" "$REPORT_DIR/coverity_findings.txt" 2>/dev/null | sort | uniq -c | sort -nr | head -10 || echo "No categories found"
-  echo ""
   
-  # Include severity counts if defects were found
-  if [ "$DEFECT_COUNT" -gt 0 ]; then
-    echo "Severity breakdown:"
-    echo "  - High: $(grep -ci "Severity: High" "$REPORT_DIR/coverity_findings.txt" 2>/dev/null)"
-    echo "  - Medium: $(grep -ci "Severity: Medium" "$REPORT_DIR/coverity_findings.txt" 2>/dev/null)"
-    echo "  - Low: $(grep -ci "Severity: Low" "$REPORT_DIR/coverity_findings.txt" 2>/dev/null)"
+  # Extract defect categories from XML summary if available
+  if [ -f "$REPORT_DIR/html/summary.xml" ] && [ "$DEFECT_COUNT" -gt 0 ]; then
+    echo "Defect categories:"
+    # Parse XML to show checker types and counts (excluding Total)
+    # Use awk to properly parse the XML structure
+    # Alternative simpler approach if awk fails
+    if ! awk '
+    /<checker>/ && !/<checker>Total<\/checker>/ {
+      getline; getline; getline; 
+      if (/<num>/) {
+        checker_line = $0
+        gsub(/<[^>]*>/, "", checker_line)
+        getline
+        if (/<num>/) {
+          num_line = $0
+          gsub(/<[^>]*>/, "", num_line)
+          gsub(/[ \t\n\r]/, "", checker_line)
+          gsub(/[ \t\n\r]/, "", num_line)
+          if (length(checker_line) > 0 && length(num_line) > 0) {
+            print "  - " checker_line ": " num_line
+          }
+        }
+      }
+    }' "$REPORT_DIR/html/summary.xml" 2>/dev/null; then
+      # Extract each checker block manually
+      grep -B1 -A3 "<checker>" "$REPORT_DIR/html/summary.xml" | grep -v "Total" | \
+      sed -n 's/<checker>\(.*\)<\/checker>/\1/p' | while read -r checker; do
+        if [ -n "$checker" ]; then
+          # Find the corresponding num for this checker
+          count=$(grep -A3 "<checker>$checker</checker>" "$REPORT_DIR/html/summary.xml" | grep "<num>" | sed 's/<[^>]*>//g' | tr -d ' \t\n\r')
+          if [[ "$count" =~ ^[0-9]+$ ]]; then
+            echo "  - $checker: $count"
+          fi
+        fi
+      done
+    fi
+    echo ""
+  else
+    echo "No defect categories available"
     echo ""
   fi
   
   echo "Detailed reports:"
   echo "  - HTML: $REPORT_DIR/html/index.html"
-  echo "  - Text: $REPORT_DIR/coverity_findings.txt"
+  echo "  - XML Summary: $REPORT_DIR/html/summary.xml"
+  if [ -f "$REPORT_DIR/coverity_findings.txt" ]; then
+    echo "  - Text: $REPORT_DIR/coverity_findings.txt"
+  fi
   echo "  - Log file: $LOG_FILE"
   echo "========================================================"
 } > "$SUMMARY_FILE"

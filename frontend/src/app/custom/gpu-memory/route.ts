@@ -5,17 +5,7 @@ import { NextResponse } from 'next/server'
 import os from 'os'
 import si from 'systeminformation'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
-
-interface GpuData {
-  device: string
-  busaddr: string | null
-}
-
-interface DeviceLevelMetric {
-  metrics_type: string
-  avg?: number
-  value?: number
-}
+import { GpuData, DeviceLevelMetric } from '@/types/gpu-types'
 
 const isWindows = os.platform() === 'win32'
 

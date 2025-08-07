@@ -15,10 +15,7 @@ import {
 } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { AreaChart, CartesianGrid, XAxis, Area } from 'recharts'
-
-export interface CpuUtilizationData {
-  cpuUsage: number
-}
+import { CpuChartProps } from '@/types/cpu-types'
 
 const chartConfig = {
   cpuUsage: {
@@ -27,15 +24,6 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-interface CpuChartProps {
-  className?: string
-  compact?: boolean
-  data?: CpuUtilizationData | null
-  isLoading?: boolean
-  error?: Error | null
-  refetch?: () => void
-  isRefetching?: boolean
-}
 export function CpuChart({
   className,
   data,

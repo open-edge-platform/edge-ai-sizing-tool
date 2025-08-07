@@ -12,17 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import {
-  Cpu,
-  HardDrive,
-  Image,
-  MessageSquare,
-  Mic,
-  Server,
-  Zap,
-  Video,
-  MemoryStick,
-} from 'lucide-react'
+import { Cpu, HardDrive, Server, Zap, MemoryStick } from 'lucide-react'
 import { useWorkloads } from '@/hooks/useWorkload'
 import { Workload } from '@/payload-types'
 import { useSystemInfo } from '@/hooks/useSystemInformation'
@@ -36,20 +26,7 @@ import {
   useGPUXpum,
   useGpuMemory,
 } from '@/hooks/useSystemMonitoring'
-
-// Helper function to get icon based on usecase
-const getUsecaseIcon = (usecase: string) => {
-  switch (usecase) {
-    case 'text-to-image':
-      return Image
-    case 'text-generation':
-      return MessageSquare
-    case 'automatic-speech-recognition':
-      return Mic
-    default:
-      return Video
-  }
-}
+import { getUsecaseIcon } from '@/lib/utils'
 
 export default function DashboardPage() {
   const { data } = useGetGPUs()

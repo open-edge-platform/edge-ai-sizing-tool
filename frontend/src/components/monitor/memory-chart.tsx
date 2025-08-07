@@ -15,11 +15,7 @@ import {
 } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
-
-export interface MemoryUtilizationData {
-  usedPercentage: number
-  total: number
-}
+import { MemoryChartProps } from '@/types/memory-types'
 
 const chartConfig = {
   memoryUsage: {
@@ -27,16 +23,6 @@ const chartConfig = {
     color: '#0071C5',
   },
 } satisfies ChartConfig
-
-interface MemoryChartProps {
-  className?: string
-  compact?: boolean
-  data?: MemoryUtilizationData | null
-  isLoading?: boolean
-  error?: Error | null
-  refetch?: () => void
-  isRefetching?: boolean
-}
 
 export function MemoryChart({
   className,

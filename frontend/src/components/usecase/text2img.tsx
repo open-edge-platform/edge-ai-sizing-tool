@@ -18,30 +18,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Workload } from '@/payload-types'
 import { useInfer } from '@/hooks/use-infer'
 import { WorkloadProfile } from '@/components/workload-profile'
 import { PerformanceMetrics } from '@/components/performance-metrics'
-import { cn } from '@/lib/utils'
+import { cn, sanitizeText } from '@/lib/utils'
 import Image from 'next/image'
 import { toast } from 'sonner'
-
-export interface TextToImageMessage {
-  port: number
-  prompt: string
-  inference_step: number
-  image_width: number
-  image_height: number
-}
-
-interface TextToImageResult {
-  generation_time_s: number
-  image: string
-}
-
-interface Text2ImgProps {
-  workload: Workload
-}
+import {
+  TextToImageMessage,
+  TextToImageResult,
+  Text2ImgProps,
+} from '@/types/text2img-types'
 
 function calculateThroughput(
   imageSize: string,
@@ -263,9 +250,7 @@ export function Text2Img({ workload }: Text2ImgProps) {
                       value={textPrompt}
                       onChange={(e) => {
                         // Allow only letters, numbers, spaces, commas, periods, and basic punctuation, max 300 chars
-                        const sanitized = e.target.value
-                          .replace(/[^a-zA-Z0-9\s.,\-!?]/g, '')
-                          .slice(0, 300)
+                        const sanitized = sanitizeText(e.target.value)
                         setTextPrompt(sanitized)
                       }}
                       className="min-h-[120px] resize-none"
@@ -333,7 +318,7 @@ export function Text2Img({ workload }: Text2ImgProps) {
               </div>
 
               {/* Right column - Generated image */}
-              <div className="bg-muted/40 max-w-[512px]justify-center relative flex min-h-[500px] flex-col items-center p-6">
+              <div className="bg-muted/40 relative flex min-h-[500px] flex-col items-center justify-center p-6">
                 {result ? (
                   <div className="flex w-full flex-col items-center">
                     <div className="relative aspect-square w-full max-w-[480px] overflow-hidden rounded-md shadow-lg">
