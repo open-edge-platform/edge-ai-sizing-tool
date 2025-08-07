@@ -160,6 +160,21 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       } else {
         setModelSelectionType('predefined')
       }
+
+      if (
+        workload.task &&
+        workload.usecase &&
+        Object.keys(
+          metadata.tasks[workload.task]?.usecase[workload.usecase]?.model || {},
+        ).length > 0
+      ) {
+        setAvailableModels(
+          Object.keys(
+            metadata.tasks[workload.task]?.usecase[workload.usecase]?.model,
+          ),
+        )
+      }
+
       setAvailableDevices(() => {
         const modelConfig =
           metadata.tasks[workload.task]?.usecase[workload.usecase]?.model[
@@ -864,16 +879,18 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                   | 'upload'
                                   | 'directory',
                               )
-                              setAddWorkload((prev) => ({
-                                ...prev,
-                                model: '',
-                                metadata: {
-                                  ...(isMetadataObject(prev.metadata)
-                                    ? prev.metadata
-                                    : {}),
-                                  customModel: undefined,
-                                },
-                              }))
+                              setAddWorkload((prev) => {
+                                return {
+                                  ...prev,
+                                  model: '',
+                                  metadata: {
+                                    ...(isMetadataObject(prev.metadata)
+                                      ? prev.metadata
+                                      : {}),
+                                    customModel: undefined,
+                                  },
+                                }
+                              })
                             }}
                             className="h-4 w-4"
                           />
@@ -899,16 +916,26 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                   | 'upload'
                                   | 'directory',
                               )
-                              setAddWorkload((prev) => ({
-                                ...prev,
-                                model: '',
-                                metadata: {
-                                  ...(isMetadataObject(prev.metadata)
-                                    ? prev.metadata
-                                    : {}),
-                                  customModel: undefined,
-                                },
-                              }))
+                              setAddWorkload((prev) => {
+                                if (prev.task && prev.usecase) {
+                                  const models = Object.keys(
+                                    metadata.tasks[prev.task]?.usecase[
+                                      prev.usecase
+                                    ]?.model || {},
+                                  )
+                                  setAvailableModels(models)
+                                }
+                                return {
+                                  ...prev,
+                                  model: '',
+                                  metadata: {
+                                    ...(isMetadataObject(prev.metadata)
+                                      ? prev.metadata
+                                      : {}),
+                                    customModel: undefined,
+                                  },
+                                }
+                              })
                             }}
                             className="h-4 w-4"
                           />
@@ -931,20 +958,30 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                   | 'upload'
                                   | 'directory',
                               )
-                              setAddWorkload((prev) => ({
-                                ...prev,
-                                model: 'custom_model',
-                                metadata: {
-                                  ...(isMetadataObject(prev.metadata)
-                                    ? prev.metadata
-                                    : {}),
-                                  customModel: {
-                                    name: '',
-                                    size: null,
-                                    type: '',
+                              setAddWorkload((prev) => {
+                                if (prev.task && prev.usecase) {
+                                  const models = Object.keys(
+                                    metadata.tasks[prev.task]?.usecase[
+                                      prev.usecase
+                                    ]?.model || {},
+                                  )
+                                  setAvailableModels(models)
+                                }
+                                return {
+                                  ...prev,
+                                  model: 'custom_model',
+                                  metadata: {
+                                    ...(isMetadataObject(prev.metadata)
+                                      ? prev.metadata
+                                      : {}),
+                                    customModel: {
+                                      name: '',
+                                      size: null,
+                                      type: '',
+                                    },
                                   },
-                                },
-                              }))
+                                }
+                              })
                               handleModelChange('custom_model')
                             }}
                             className="h-4 w-4"
@@ -968,16 +1005,26 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                   | 'upload'
                                   | 'directory',
                               )
-                              setAddWorkload((prev) => ({
-                                ...prev,
-                                model: '',
-                                metadata: {
-                                  ...(isMetadataObject(prev.metadata)
-                                    ? prev.metadata
-                                    : {}),
-                                  customModel: undefined,
-                                },
-                              }))
+                              setAddWorkload((prev) => {
+                                if (prev.task && prev.usecase) {
+                                  const models = Object.keys(
+                                    metadata.tasks[prev.task]?.usecase[
+                                      prev.usecase
+                                    ]?.model || {},
+                                  )
+                                  setAvailableModels(models)
+                                }
+                                return {
+                                  ...prev,
+                                  model: '',
+                                  metadata: {
+                                    ...(isMetadataObject(prev.metadata)
+                                      ? prev.metadata
+                                      : {}),
+                                    customModel: undefined,
+                                  },
+                                }
+                              })
                             }}
                             className="h-4 w-4"
                           />
