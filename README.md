@@ -207,17 +207,17 @@ This command will adjust the kernel parameter for the current session. Note that
 
 To permanently enable perf_events for non-root users, you need to modify the system configuration file. Follow these steps:
 
-#### 1. Open the /etc/sysctl.conf file in a text editor with root privileges. You can use nano, vim, or any other editor of your choice:
+#### 1. **Open the /etc/sysctl.conf file in a text editor with root privileges. You can use nano, vim, or any other editor of your choice:**
 
 ```bash
 sudo nano /etc/sysctl.conf
 ```
 
-#### 2. Add the following line to the file:
+#### 2. **Add the following line to the file:**
 
 `kernel.perf_event_paranoid=0`
 
-#### 3. Save the changes and exit the editor.
+#### 3. **Save the changes and exit the editor.**
 
 Apply the changes by running:
 
@@ -228,7 +228,8 @@ sudo sysctl -p
 This will ensure that the perf_events functionality remains enabled across system reboots.
 
 ### 2. Tool Crashes or Stops Unexpectedly
-If you experience frequent crashes or the tool stops working unexpectedly, try enabling Resizable BAR first under BIOS setting. Add commentMore actions
+
+If you experience frequent crashes or the tool stops working unexpectedly, try enabling Resizable BAR first under BIOS setting. 
 
 #### Enable Resizable BAR
 
@@ -241,6 +242,29 @@ Look for settings related to "Resizable BAR" or "Re-Size BAR Support". These set
 #### 3. **Save and Exit**:
 Save your changes and exit BIOS. Your system will restart with Resizable BAR enabled.
 
+### 3. Installation Script Dependency Issues
+
+If the installation script encounters dependency conflicts during Intel® XPU Manager installation and returns an `apt --fix-broken install` error, follow the steps below:
+
+> **Note:** Only relevant for Linux systems.
+
+#### 1. **Resolve Package Dependencies**
+   
+Execute the following command to address broken package dependencies:
+
+```bash
+sudo apt --fix-broken install
+```
+
+#### 2. **Retry Installation Process**
+   
+After successfully resolving the dependency issues, re-execute the installation script:
+
+```bash
+./install.sh
+```
+
+This procedure addresses common package dependency conflicts encountered on Ubuntu systems, particularly during Intel® XPU Manager installation.
 
 ## Limitations
 

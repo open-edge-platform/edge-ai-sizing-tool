@@ -2,226 +2,52 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { NextResponse } from 'next/server'
-import { promisify } from 'util'
-import { ChildProcessWithoutNullStreams, spawn, exec } from 'child_process'
-import si from 'systeminformation'
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import os from 'os'
-import { GpuData } from '@/types/gpu-types'
+import { GpuData, DeviceLevelMetric } from '@/types/gpu-types'
+import { isValidBusAddress } from '@/lib/utils'
 
 const isWindows = os.platform() === 'win32'
 
-const deviceCache = {
-  clinfo: null as Array<{
-    device: string
-    uuid: string
-    busaddr: string
-  }> | null,
-  mappings: new Map<string, { device: string; uuid: string | null }>(),
-}
-
-let clinfoPromise: Promise<
-  Array<{ device: string; uuid: string; busaddr: string }>
-> | null = null
-
-async function getDeviceInfoFromClinfo(): Promise<
-  Array<{ device: string; uuid: string; busaddr: string }>
-> {
-  if (deviceCache.clinfo) {
-    return deviceCache.clinfo
-  }
-
-  if (!clinfoPromise) {
-    const execAsync = promisify(exec)
-    clinfoPromise = execAsync('clinfo')
-      .then(({ stdout }) => {
-        const allGPUDevices = []
-        const deviceRgx =
-          /Device Name\s+(.+?)[\r\n]+(?:[\s\S]*?)Device UUID\s+([0-9a-fA-F-]+)(?:[\s\S]*?)Device PCI bus info \(KHR\)\s+PCI-E,\s+(0000:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9])/gi
-
-        let match
-        while ((match = deviceRgx.exec(stdout)) !== null) {
-          const deviceName = match[1]?.trim() || 'Unknown Device'
-          const uuid = match[2]?.replace(/[^a-fA-F0-9]/g, '') || ''
-          const busAddr = match[3]
-
-          allGPUDevices.push({ uuid, device: deviceName, busaddr: busAddr })
-        }
-
-        deviceCache.clinfo = allGPUDevices
-        return allGPUDevices
-      })
-      .catch((err) => {
-        console.log('Error getting clinfo data', err)
-        clinfoPromise = null
-        return []
-      })
-  }
-
-  return clinfoPromise
-}
-
-async function mapGPUDeviceName(
-  gpuModel: string,
-  busAddr?: string | null,
-): Promise<{ device: string; uuid: string | null }> {
-  const cacheKey = `${gpuModel}:${busAddr || 'null'}`
-
-  if (deviceCache.mappings.has(cacheKey)) {
-    return deviceCache.mappings.get(cacheKey)!
-  }
-
-  let result: { device: string; uuid: string | null }
-
-  if (busAddr) {
-    const formattedBusAddr = busAddr.includes('0000:')
-      ? busAddr
-      : `0000:${busAddr}`
-    const clinfoDevices = await getDeviceInfoFromClinfo()
-    const matchByBusAddr = clinfoDevices.find(
-      (device) =>
-        device.busaddr.toLowerCase() === formattedBusAddr.toLowerCase(),
-    )
-    if (matchByBusAddr) {
-      result = {
-        device: matchByBusAddr.device,
-        uuid: matchByBusAddr.uuid,
-      }
-    } else {
-      result = { device: gpuModel, uuid: null }
-    }
-  } else {
-    result = { device: gpuModel, uuid: null }
-  }
-  deviceCache.mappings.set(cacheKey, result)
-  return result
-}
-
-function isValidBusAddress(busaddr: string | null): boolean {
-  if (!busaddr || typeof busaddr !== 'string') return false
-  // Typical PCI bus address: '00:02.0', '3e:00.0', etc.
-  return /^([0-9a-fA-F]{2}):([0-9a-fA-F]{2})\.[0-9]$/.test(busaddr)
-}
-
 export async function POST(req: Request) {
-  const res = await req.json()
   try {
-    if (isWindows) {
-      let gpuData: GpuData[] = []
-      let resolved = false
+    const res = await req.json()
 
-      const command = `(Get-Counter "\\GPU Engine(*Compute)\\Utilization Percentage").CounterSamples | Where-Object { $_.CookedValue -ne $null } | Group-Object { $_.InstanceName.Split("_")[4] } | ForEach-Object { [PSCustomObject]@{ LUID = $_.Name; Utilization = ($_.Group | Measure-Object -Property CookedValue -Sum).Sum } } | ConvertTo-Json`
-
-      await new Promise((resolve, reject) => {
-        const process = spawn('powershell.exe', [command])
-
-        process.stderr.on('data', () => {
-          if (!resolved) {
-            resolved = true
-            resolve(0)
-            process.kill()
-          }
-        })
-
-        process.stdout.on('data', (data) => {
-          if (resolved) return
-          try {
-            const parsedData = JSON.parse(data)
-            const gpuArray = Array.isArray(parsedData)
-              ? parsedData
-              : [parsedData]
-            gpuData = gpuArray.map((gpu) => ({
-              device: gpu.LUID,
-              busaddr: null,
-              value: Math.min(gpu.Utilization, 100),
-            }))
-            resolved = true
-            resolve(gpuData)
-            process.kill()
-          } catch (error) {
-            if (!resolved) {
-              resolved = true
-              console.error('Failed to get gpu utilization:', error)
-              reject(error)
-              process.kill()
-            }
-          }
-        })
-
-        process.on('error', (error) => {
-          if (!resolved) {
-            resolved = true
-            console.error('Failed to get gpu utilization:', error)
-            reject(error)
-            process.kill()
-          }
-        })
-
-        process.on('close', () => {
-          if (!resolved) {
-            resolved = true
-            resolve(0)
-          }
-        })
-      })
-      return NextResponse.json({ gpuUtilizations: gpuData })
-    } else {
-      await getDeviceInfoFromClinfo()
-      let gpuData: GpuData[] = []
-      if (res.gpus && Array.isArray(res.gpus)) {
-        gpuData = res.gpus
-      } else {
-        const graphicsData = await si.graphics()
-        gpuData = graphicsData.controllers.map((controller) => ({
-          device: controller.model,
-          busaddr: controller.busAddress || null,
-        }))
-      }
-
-      const deviceMappingPromises = gpuData.map((gpu) =>
-        mapGPUDeviceName(gpu.device, gpu.busaddr),
-      )
-      const mappedDevices = await Promise.all(deviceMappingPromises)
-      const deviceMap = new Map()
-      gpuData.forEach((gpu, idx) => {
-        const key = `${gpu.device}:${gpu.busaddr || 'null'}`
-        deviceMap.set(key, mappedDevices[idx])
-      })
-
-      const osInfo = await si.osInfo()
-      const osVersion = osInfo.release.split(' ')[0]
-
-      const values = await Promise.all(
-        gpuData.map(async (gpu) => {
-          const key = `${gpu.device}:${gpu.busaddr || 'null'}`
-          const mappedDevice = deviceMap.get(key)
-          if (gpu.busaddr && isValidBusAddress(gpu.busaddr)) {
-            const formattedBusAddress = `pci:slot=0000:${gpu.busaddr}`
-            const commandArgs = osVersion.startsWith('24.04')
-              ? ['-J', '-p', '-d', formattedBusAddress]
-              : ['-J', '-d', formattedBusAddress]
-
-            const process = spawn('intel_gpu_top', commandArgs)
-            return getGpuUtilizationLinux(process, osVersion).then(
-              (result) => ({
-                device: mappedDevice.device,
-                uuid: mappedDevice.uuid,
-                value: result,
-              }),
-            )
-          } else {
-            return Promise.resolve({
-              device: mappedDevice.device,
-              uuid: mappedDevice.uuid,
-              value: 0,
-              error: 'Invalid or missing bus address',
-            })
-          }
-        }),
-      )
-      return NextResponse.json({
-        gpuUtilizations: values.filter((v) => v !== null),
-      })
+    let gpuData: GpuData[] = []
+    if (res.gpus && Array.isArray(res.gpus)) {
+      gpuData = res.gpus
     }
+
+    const values = await Promise.all(
+      gpuData.map(async (gpu) => {
+        if (gpu.busaddr && isValidBusAddress(gpu.busaddr)) {
+          const xpusmiCommand = isWindows
+            ? 'C:\\EAST\\Tools\\xpu-smi\\xpu-smi.exe'
+            : 'xpumcli'
+          const process = spawn(xpusmiCommand, [
+            'stats',
+            '-d',
+            gpu.busaddr,
+            '-j',
+          ])
+          return getGpuUtilization(process).then((value) => ({
+            device: gpu.device,
+            busaddr: gpu.busaddr,
+            compute_usage: value,
+          }))
+        } else {
+          return Promise.resolve({
+            device: gpu.device,
+            busaddr: gpu.busaddr,
+            compute_usage: 0,
+            error: 'Invalid or missing bus address',
+          })
+        }
+      }),
+    )
+    return NextResponse.json({
+      gpuUtilizations: values.filter((v) => v.compute_usage !== null),
+    })
   } catch (error) {
     const errorMessage =
       error instanceof Error
@@ -231,75 +57,50 @@ export async function POST(req: Request) {
   }
 }
 
-function getGpuUtilizationLinux(
+function getGpuUtilization(
   process: ChildProcessWithoutNullStreams,
-  osVersion: string,
-): Promise<number> {
+): Promise<number | null> {
   return new Promise((resolve, reject) => {
-    let resolved = false
-
     process.stderr.on('data', () => {
-      if (!resolved) {
-        resolved = true
-        resolve(0)
-        process.kill()
-      }
+      resolve(0)
+      process.kill()
     })
 
     process.stdout.on('data', (data) => {
-      if (resolved) return
       try {
-        // Try to find the first '{' and parse from there
-        const str = data.toString()
-        const jsonStart = str.indexOf('{')
-        if (jsonStart === -1) throw new Error('No JSON found')
-        const jsonData = JSON.parse(str.slice(jsonStart))
-        let utilization = 0
+        const jsonData = JSON.parse(data.toString())
+        let gpu_usage: number | null = null
 
-        if (osVersion.startsWith('22.04')) {
-          utilization =
-            jsonData.engines['[unknown]/0']?.busy ??
-            jsonData.engines['Compute/0']?.busy ??
-            jsonData.engines['Render/3D/0']?.busy ??
-            0
-        } else {
-          utilization =
-            jsonData.engines['Compute/0']?.busy ??
-            jsonData.engines['Render/3D/0']?.busy ??
-            0
+        if (jsonData.device_level && Array.isArray(jsonData.device_level)) {
+          const computeUtilMetric = jsonData.device_level.find(
+            (metric: DeviceLevelMetric) =>
+              metric.metrics_type ===
+              'XPUM_STATS_ENGINE_GROUP_COMPUTE_ALL_UTILIZATION',
+          )
+          if (computeUtilMetric) {
+            gpu_usage = isWindows
+              ? computeUtilMetric.value
+              : computeUtilMetric.avg
+          } else {
+            gpu_usage = null
+          }
         }
 
-        resolved = true
-        resolve(utilization)
+        resolve(gpu_usage)
         process.kill()
       } catch (error) {
-        if (!resolved) {
-          resolved = true
-          reject(error)
-          process.kill()
-        }
-      }
-    })
-
-    process.on('error', (error) => {
-      if (!resolved) {
-        resolved = true
         reject(error)
         process.kill()
       }
     })
 
+    process.on('error', (error) => {
+      reject(error)
+      process.kill()
+    })
+
     process.on('close', () => {
-      if (!resolved) {
-        resolved = true
-        resolve(0)
-      }
+      resolve(0)
     })
   })
-}
-
-if (!isWindows) {
-  getDeviceInfoFromClinfo().catch((err) =>
-    console.error('Error pre-loading device cache:', err),
-  )
 }

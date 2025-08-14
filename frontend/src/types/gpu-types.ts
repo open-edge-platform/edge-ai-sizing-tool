@@ -13,9 +13,9 @@ export interface DeviceLevelMetric {
 }
 
 export interface GpuUtilization {
-  uuid: string | null
   device: string
-  value: number | null
+  busaddr: string | null
+  compute_usage: number | null
 }
 
 export interface GpuChartProps {
