@@ -52,3 +52,10 @@ export function getUsecaseIcon(usecase: string) {
 export function sanitizeText(text: string, maxLength: number = 300): string {
   return text.replace(/[^a-zA-Z0-9\s.,\-!?]/g, '').slice(0, maxLength)
 }
+
+export function isValidBusAddress(busaddr: string | null): boolean {
+  if (!busaddr || typeof busaddr !== 'string') return false
+  return /^([0-9a-fA-F]{4}):([0-9a-fA-F]{2}):([0-9a-fA-F]{2})\.[0-9]$/.test(
+    busaddr,
+  )
+}

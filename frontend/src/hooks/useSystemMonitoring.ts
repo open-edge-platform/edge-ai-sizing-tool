@@ -59,8 +59,8 @@ export const useGpuUtilization = (
     queryFn: async (): Promise<{
       gpuUtilizations: {
         device: string
-        uuid: string | null
-        value: number | null
+        busaddr: string | null
+        compute_usage: number | null
       }[]
     }> => {
       const controller = new AbortController()

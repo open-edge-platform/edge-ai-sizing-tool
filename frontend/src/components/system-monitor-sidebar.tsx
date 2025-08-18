@@ -39,7 +39,6 @@ import { NpuChart } from '@/components/monitor/npu-chart'
 import { NOT_AVAILABLE } from '@/lib/constants'
 import {
   useCpuUtilization,
-  useGetGPUs,
   useGpuUtilization,
   useMemoryUtilization,
   useNpuUtilization,
@@ -55,13 +54,11 @@ export function SystemMonitorSidebar({
   const [searchTerm, setSearchTerm] = React.useState('')
   const { setOpen } = useSidebar()
 
-  // Fetch data using custom hooks
-  const { data } = useGetGPUs()
   const { data: XpumData } = useGPUXpum()
 
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
-  const gpuData = useGpuUtilization(data?.gpus || [])
+  const gpuData = useGpuUtilization(XpumData?.gpus || [])
   const npuData = useNpuUtilization()
   const gpuMemoryData = useGpuMemory(XpumData?.gpus || [])
 
@@ -107,9 +104,9 @@ export function SystemMonitorSidebar({
       gpuData.data.gpuUtilizations.forEach((gpu: GpuUtilization) => {
         const gpuDisplayName =
           gpu.device.split('[')[1]?.replace(']', '') || gpu.device
-        if (gpu.value !== null) {
+        if (gpu.compute_usage !== null) {
           items.push({
-            id: gpu.uuid || `gpu ${gpu.device}`,
+            id: gpu.busaddr ? `gpu-${gpu.busaddr}` : `gpu ${gpu.device}`,
             type: 'gpu',
             title: `GPU: ${gpuDisplayName}`,
             description: 'Graphics processor utilization',
@@ -118,7 +115,7 @@ export function SystemMonitorSidebar({
           })
         } else {
           items.push({
-            id: gpu.uuid || `gpu ${gpu.device}`,
+            id: gpu.busaddr ? `gpu-${gpu.busaddr}` : `gpu ${gpu.device}`,
             type: 'n/a',
             title: `GPU: ${gpuDisplayName}`,
             description: 'Currently Not Supported',
@@ -152,7 +149,7 @@ export function SystemMonitorSidebar({
         const gpuDisplayName =
           gpu.device.split('[')[1]?.replace(']', '') || gpu.device
         items.push({
-          id: gpu.busaddr || `gpu ${gpu.device}`,
+          id: gpu.busaddr ? `gpu-memory-${gpu.busaddr}` : `gpu ${gpu.device}`,
           type: 'gpu-memory',
           title: `GPU: ${gpuDisplayName}`,
           description: 'Graphics processor memory utilization',
@@ -271,8 +268,9 @@ export function SystemMonitorSidebar({
                     gpuData.isLoading
                       ? 0
                       : (gpuData.data?.gpuUtilizations.find(
-                          (gpu: GpuUtilization) => gpu.uuid === chart.id,
-                        )?.value ?? 0)
+                          (gpu: GpuUtilization) =>
+                            `gpu-${gpu.busaddr}` === chart.id,
+                        )?.compute_usage ?? 0)
                   }
                   isLoading={gpuData.isLoading}
                   error={chart.id === 'gpu-error' ? gpuData.error : undefined}
@@ -290,7 +288,7 @@ export function SystemMonitorSidebar({
                       ? 0
                       : (gpuMemoryData.data?.gpuMemory.find(
                           (gpu: GpuMemoryUtilization) =>
-                            gpu.busaddr === chart.id,
+                            `gpu-memory-${gpu.busaddr}` === chart.id,
                         )?.vram_usage ?? 0)
                   }
                   isLoading={gpuMemoryData.isLoading}

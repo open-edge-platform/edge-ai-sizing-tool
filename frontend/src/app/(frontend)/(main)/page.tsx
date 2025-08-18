@@ -19,7 +19,6 @@ import { useSystemInfo } from '@/hooks/useSystemInformation'
 import { NOT_AVAILABLE } from '@/lib/constants'
 import {
   useCpuUtilization,
-  useGetGPUs,
   useGpuUtilization,
   useMemoryUtilization,
   useNpuUtilization,
@@ -29,12 +28,11 @@ import {
 import { getUsecaseIcon } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const { data } = useGetGPUs()
   const { data: XpumData } = useGPUXpum()
 
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
-  const gpuData = useGpuUtilization(data?.gpus || [])
+  const gpuData = useGpuUtilization(XpumData?.gpus || [])
   const npuData = useNpuUtilization()
   const gpuMemoryData = useGpuMemory(XpumData?.gpus || [])
   const workloadsData = useWorkloads()
@@ -76,7 +74,7 @@ export default function DashboardPage() {
 
                 {gpuData.data?.gpuUtilizations.map((gpu) => (
                   <div
-                    key={`${gpu.uuid ?? gpu.device ?? 'unknown'}`}
+                    key={`${gpu.busaddr ?? gpu.device ?? 'unknown'}`}
                     className="space-y-2"
                   >
                     <div className="flex justify-between text-sm">
@@ -84,12 +82,12 @@ export default function DashboardPage() {
                         <Zap className="h-4 w-4" /> {gpu.device} Usage
                       </span>
                       <span>
-                        {gpu.value !== null
-                          ? `${gpu.value.toFixed(1)}%`
+                        {gpu.compute_usage !== null
+                          ? `${gpu.compute_usage.toFixed(1)}%`
                           : 'Currently not available'}
                       </span>
                     </div>
-                    <Progress value={gpu.value ?? 0} />
+                    <Progress value={gpu.compute_usage ?? 0} />
                   </div>
                 ))}
 

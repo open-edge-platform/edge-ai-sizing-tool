@@ -3,9 +3,9 @@
 
 import { NextResponse } from 'next/server'
 import os from 'os'
-import si from 'systeminformation'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { GpuData, DeviceLevelMetric } from '@/types/gpu-types'
+import { isValidBusAddress } from '@/lib/utils'
 
 const isWindows = os.platform() === 'win32'
 
@@ -16,12 +16,6 @@ export async function POST(req: Request) {
     let gpuData: GpuData[] = []
     if (res.gpus && Array.isArray(res.gpus)) {
       gpuData = res.gpus
-    } else {
-      const graphicsData = await si.graphics()
-      gpuData = graphicsData.controllers.map((controller) => ({
-        device: controller.model,
-        busaddr: `0000:${controller.busAddress}` || null,
-      }))
     }
 
     const values = await Promise.all(
@@ -61,13 +55,6 @@ export async function POST(req: Request) {
         : 'Failed to retrieve GPU data using XPU Manager.'
     return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
-}
-
-function isValidBusAddress(busaddr: string | null): boolean {
-  if (!busaddr || typeof busaddr !== 'string') return false
-  return /^([0-9a-fA-F]{4}:)?([0-9a-fA-F]{2}):([0-9a-fA-F]{2})\.[0-9]$/.test(
-    busaddr,
-  )
 }
 
 function getMemoryUtilization(
