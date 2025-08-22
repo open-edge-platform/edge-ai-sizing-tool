@@ -164,8 +164,10 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       if (
         workload.task &&
         workload.usecase &&
+        metadata.tasks[workload.task] &&
+        metadata.tasks[workload.task].usecase[workload.usecase] &&
         Object.keys(
-          metadata.tasks[workload.task]?.usecase[workload.usecase]?.model || {},
+          metadata.tasks[workload.task].usecase[workload.usecase].model || {},
         ).length > 0
       ) {
         setAvailableModels(

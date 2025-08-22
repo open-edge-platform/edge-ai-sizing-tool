@@ -2,6 +2,8 @@
 
 The Edge AI Sizing Tool showcases the scalability and performance of AI use cases on Intel-based edge devices. With zero-code configuration, users can effortlessly set up AI applications by selecting inputs, accelerators, performance modes, and AI models. The tool provides real-time monitoring of system performance metrics, such as CPU and GPU usage, memory consumption, and inference speed, enabling users to optimize AI workflows and make informed decisions.
 
+![demo](./docs/demo.gif)
+
 > **Disclaimer:** This software is designed to run exclusively in a trusted, single-machine environment. It is **not designed, tested, or supported for use in production systems**. Deploying or running this software in production or untrusted environments may lead to unexpected behavior, security vulnerabilities, or performance issues. Use outside of controlled, secure settings is strongly discouraged.
 
 ## Requirements
