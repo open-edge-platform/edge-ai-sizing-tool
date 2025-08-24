@@ -77,12 +77,24 @@ function getGpuUtilization(
               metric.metrics_type ===
               'XPUM_STATS_ENGINE_GROUP_COMPUTE_ALL_UTILIZATION',
           )
+
           if (computeUtilMetric) {
             gpu_usage = isWindows
               ? computeUtilMetric.value
               : computeUtilMetric.avg
           } else {
-            gpu_usage = null
+            const renderUtilMetric = jsonData.device_level.find(
+              (metric: DeviceLevelMetric) =>
+                metric.metrics_type ===
+                'XPUM_STATS_ENGINE_GROUP_RENDER_ALL_UTILIZATION',
+            )
+            if (renderUtilMetric) {
+              gpu_usage = isWindows
+                ? renderUtilMetric.value
+                : renderUtilMetric.avg
+            } else {
+              gpu_usage = null
+            }
           }
         }
 
