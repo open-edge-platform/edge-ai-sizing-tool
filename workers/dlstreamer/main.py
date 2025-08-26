@@ -34,15 +34,15 @@ logging.basicConfig(
 # Set environment variables to enable dlstreamer
 os.environ["LIBVA_DRIVER_NAME"] = "iHD"
 os.environ["GST_PLUGIN_PATH"] = (
-    "/opt/intel/dlstreamer/build/intel64/Release/lib:/opt/intel/dlstreamer/gstreamer/lib/gstreamer-1.0:/opt/intel/dlstreamer/gstreamer/lib/"
+    "/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/gstreamer/lib/gstreamer-1.0:/opt/intel/dlstreamer/streamer/lib/"
 )
 os.environ["LD_LIBRARY_PATH"] = (
-    "/opt/intel/dlstreamer/gstreamer/lib:/opt/intel/dlstreamer/build/intel64/Release/lib:/opt/intel/dlstreamer/lib/gstreamer-1.0:/usr/lib:/opt/intel/dlstreamer/build/intel64/Release/lib:/opt/opencv:/opt/openh264:/opt/rdkafka:/opt/ffmpeg:/usr/local/lib/gstreamer-1.0:/usr/local/lib"
+    "/opt/intel/dlstreamer/gstreamer/lib:/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/lib/gstreamer-1.0:/sr/lib:/opt/intel/dlstreamer/lib:/usr/local/lib/gstreamer-1.0:/usr/local/lib"
 )
 os.environ["LIBVA_DRIVERS_PATH"] = "/usr/lib/x86_64-linux-gnu/dri"
 os.environ["GST_VA_ALL_DRIVERS"] = "1"
 os.environ["PATH"] = (
-    f"/opt/intel/dlstreamer/gstreamer/bin:/opt/intel/dlstreamer/build/intel64/Release/bin:{os.environ['PATH']}"
+    f"/opt/intel/dlstreamer/gstreamer/bin:/opt/intel/dlstreamer/bin:{os.environ['PATH']}"
 )
 
 env = os.environ.copy()
