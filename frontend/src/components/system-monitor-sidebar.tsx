@@ -210,14 +210,19 @@ export function SystemMonitorSidebar({
   }, [chartItems, searchTerm])
 
   return (
-    <Sidebar collapsible="none" className="flex-1" {...props}>
-      <SidebarHeader className="gap-3.5 border-b p-4">
+    <Sidebar
+      collapsible="none"
+      data-sidebar="system-monitor"
+      className="flex-1"
+      {...props}
+    >
+      <SidebarHeader className="header gap-3.5 border-b p-4">
         <div className="flex w-full items-center justify-between">
           <div className="text-foreground text-base font-medium">
             System Monitor
           </div>
         </div>
-        <div className="relative">
+        <div className="search-bar relative">
           <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
           <SidebarInput
             placeholder="Search system monitor"
@@ -227,7 +232,7 @@ export function SystemMonitorSidebar({
           />
         </div>
       </SidebarHeader>
-      <SidebarContent className="py-3">
+      <SidebarContent className="system-utilization-charts py-3">
         <SidebarMenu className="hide-scrollbar gap-2 overflow-auto">
           {filteredCharts.map((chart) => (
             <SidebarMenuItem
@@ -239,8 +244,9 @@ export function SystemMonitorSidebar({
             >
               {chart.type === 'cpu' && (
                 <CpuChart
-                  className="w-full"
+                  className="chart w-full"
                   compact
+                  data-chart-type="cpu"
                   data={cpuData.data}
                   isLoading={cpuData.isLoading}
                   error={cpuData.error}
@@ -250,8 +256,9 @@ export function SystemMonitorSidebar({
               )}
               {chart.type === 'memory' && (
                 <MemoryChart
-                  className="w-full"
+                  className="chart w-full"
                   compact
+                  data-chart-type="memory"
                   data={memoryData.data}
                   isLoading={memoryData.isLoading}
                   error={memoryData.error}
@@ -261,7 +268,7 @@ export function SystemMonitorSidebar({
               )}
               {chart.type === 'gpu' && chart.device && (
                 <GpuChart
-                  className="w-full"
+                  className="chart w-full"
                   compact
                   device={chart.device}
                   value={
@@ -280,7 +287,7 @@ export function SystemMonitorSidebar({
               )}
               {chart.type === 'gpu-memory' && chart.device && (
                 <GpuMemoryChart
-                  className="w-full"
+                  className="chart w-full"
                   compact
                   device={chart.device}
                   value={
@@ -303,7 +310,7 @@ export function SystemMonitorSidebar({
               )}
               {chart.type === 'npu' && npuData.data && (
                 <NpuChart
-                  className="w-full"
+                  className="chart w-full"
                   compact
                   device={npuData.data.name}
                   value={npuData.data.value}
