@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
@@ -13,9 +14,8 @@ import { Text2Speech } from '@/components/usecase/text2speech'
 import React, { useRef, useState } from 'react'
 import { useWorkload } from '@/hooks/useWorkload'
 import { DlStreamer } from '@/components/usecase/dlstreamer'
-import html2canvas from 'html2canvas-pro'
-import jsPDF from 'jspdf'
-import SystemInformationPage from '@/app/(frontend)/(main)/system/information/page'
+import { exportWorkloadToPDF } from '@/lib/handleExportSnapshot'
+import { Loader2 } from 'lucide-react'
 
 // Workload type definition
 
@@ -29,45 +29,24 @@ export default function WorkloadPage({
   const workloadId = Number.parseInt(unwrappedParams.id)
   const { isLoading, data: workload } = useWorkload(Number(workloadId))
   const workloadRef = useRef<HTMLDivElement>(null)
-  const systemInfoRef = useRef<HTMLDivElement>(null)
-  const [showSystemInfo, setShowSystemInfo] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const handleExportPDF = async () => {
-    setShowSystemInfo(true)
-    await new Promise<void>((resolve) => setTimeout(() => resolve(), 1000))
-    const workloadCanvas = await html2canvas(workloadRef.current!, {
-      useCORS: true,
-      scale: 3,
-    })
-    const workloadImg = workloadCanvas.toDataURL('image/jpeg')
+    if (isExporting || !workload) return
 
-    const sysInfoCanvas = await html2canvas(systemInfoRef.current!, {
-      useCORS: true,
-      scale: 3,
-    })
-    const sysInfoImg = sysInfoCanvas.toDataURL('image/jpeg')
-
-    setShowSystemInfo(false)
-
-    const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'px',
-      format: 'a4',
-    })
-
-    const pdfWidth = pdf.internal.pageSize.getWidth()
-    let imgProps = pdf.getImageProperties(workloadImg)
-    let imgHeight = (imgProps.height * pdfWidth) / imgProps.width
-    pdf.addImage(workloadImg, 'JPEG', 0, 0, pdfWidth, imgHeight)
-
-    pdf.addPage()
-
-    imgProps = pdf.getImageProperties(sysInfoImg)
-    imgHeight = (imgProps.height * pdfWidth) / imgProps.width
-    pdf.addImage(sysInfoImg, 'JPEG', 0, 0, pdfWidth, imgHeight)
-    pdf.save(
-      `workload-ID(${workloadId})-${new Date().toISOString().slice(0, 10)}.pdf`,
-    )
+    try {
+      setIsExporting(true)
+      await exportWorkloadToPDF({
+        workloadId,
+        workloadRef,
+        router,
+      })
+    } catch (error) {
+      console.error('Export failed:', error)
+      setIsExporting(false)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   // Render the appropriate usecase component
@@ -166,20 +145,12 @@ export default function WorkloadPage({
     )
   }
 
+
   return (
     <div
       ref={workloadRef}
       className="container mx-auto flex h-full w-full flex-col px-6"
     >
-      {showSystemInfo && (
-        <div
-          ref={systemInfoRef}
-          className="absolute top-0 left-[-9999px] w-[1122px]"
-          aria-hidden="true"
-        >
-          <SystemInformationPage />
-        </div>
-      )}
       {/* Scrollable Content Area */}
       <div className="hide-scrollbar flex-1 overflow-auto">
         <div className="my-4 flex items-center justify-between">
@@ -188,7 +159,16 @@ export default function WorkloadPage({
               {workload.usecase.replace(/-/g, ' ')}
             </h1>
           </div>
-          <Button onClick={handleExportPDF}>Export as PDF</Button>
+          <Button onClick={handleExportPDF} disabled={isExporting} className="exportBtn">
+            {isExporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              'Export as PDF'
+            )}
+          </Button>
         </div>
 
         <div className="container">
