@@ -1,0 +1,10 @@
+ultralytics==8.3.61
+opencv-python==4.10.0.84
+openvino-dev[onnx,pytorch,tensorflow]==2024.6.0
+nncf==2.14.0
+uvicorn==0.34.0
+fastapi==0.115.11
+numpy==1.26.4
+tqdm==4.67.1
+setuptools==78.1.1
+requests>=2.25.0

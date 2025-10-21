@@ -171,6 +171,58 @@ export const metadata: MetadataStructure = {
             },
           },
         },
+        'instance segmentation (DLStreamer)': {
+          model: {
+            'yolov8s-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolov8n-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolov8m-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolov8l-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolov8x-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolo11s-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolo11n-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolo11m-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolo11l-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            'yolo11x-seg': {
+              devicesFiltered: [],
+              allowMultipleDevices: false,
+            },
+            mask_rcnn_resnet50_atrous_coco: {
+              devicesFiltered: ['NPU'],
+              allowMultipleDevices: false,
+            },
+            mask_rcnn_inception_resnet_v2_atrous_coco: {
+              devicesFiltered: ['NPU'],
+              allowMultipleDevices: false,
+            },
+          },
+        },
         'text-to-image': {
           model: {
             'dreamlike-art/dreamlike-anime-1.0': {

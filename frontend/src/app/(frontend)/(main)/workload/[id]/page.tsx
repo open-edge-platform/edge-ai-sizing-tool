@@ -61,6 +61,8 @@ export default function WorkloadPage({
         return <Audio workload={workload} />
       case 'object detection (DLStreamer)':
         return <DlStreamer workload={workload} />
+      case 'instance segmentation (DLStreamer)':
+        return <DlStreamer workload={workload} />
       case 'text-to-speech':
         return <Text2Speech workload={workload} />
       default:
