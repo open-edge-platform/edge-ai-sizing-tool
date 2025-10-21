@@ -131,6 +131,9 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
       delete metadata.tasks['computer vision'].usecase[
         'object detection (DLStreamer)'
       ]
+      delete metadata.tasks['computer vision'].usecase[
+        'instance segmentation (DLStreamer)'
+      ]
     }
     if (workload) {
       setAvailableUsecases(

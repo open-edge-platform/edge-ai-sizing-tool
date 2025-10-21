@@ -89,7 +89,12 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
       ' --id ' +
       doc.id
     if (doc.usecase.includes('(DLStreamer') && doc.source && doc.source.name) {
-      usecaseName = 'dlstreamer'
+      if (doc.usecase === 'instance segmentation (DLStreamer)') {
+        usecaseName = 'instance-segmentation'
+      } else {
+        usecaseName = 'dlstreamer'
+      }
+
       if (doc.port) params += ' --tcp_port ' + (doc.port + 1000)
       if (doc.source.type !== 'cam') {
         params += ' --input ' + path.join(ASSETS_PATH, doc.source.name)

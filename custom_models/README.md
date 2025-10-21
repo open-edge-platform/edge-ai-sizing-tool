@@ -30,6 +30,12 @@ custom_model/
 │       ├── objdet-model.xml
 │       ├── objdet-model.bin
 │       └── labels.txt (optional)
+├── instance-segmentation-(DLStreamer)/
+│   └── my-instseg-model/
+│       ├── seg-model.xml
+│       ├── seg-model.bin
+│       ├── model_proc.json (optional)        
+│       └── labels.txt (optional)
 └── ...
 ```
 
@@ -39,8 +45,12 @@ custom_model/
   - `text-generation`
   - `text-to-image`
   - `object-detection-(DLStreamer)`
+  - `instance-segmentation-(DLStreamer)`
 
 - For the object detection use case, you may optionally include a `labels.txt` file within your model directory to provide class labels for detected objects.
+
+- For the instance segmentation use case, you may optionally include a `model_proc.json` and/or a `labels.txt` file within your model directory to provide class labels or custom processing configuration for detected objects.
+
 
 ## Notes
 

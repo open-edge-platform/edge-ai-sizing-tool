@@ -74,16 +74,14 @@ export function WorkloadsSidebar({
   }, [workloadsData.data?.docs, searchTerm])
 
   // Handle workload deletion
-  const handleDeleteWorkload = async (id: number, usecase: string) => {
+  const handleDeleteWorkload = async (id: number) => {
     try {
       const response = await deleteWorkload.mutateAsync(id)
       if (!response) {
         toast.error('Failed to delete workload')
         return
       }
-      toast.success(
-        `Workload ${usecase.replace(/[()\s]+/g, '-').toLowerCase()}-${id} deleted successfully`,
-      )
+      toast.success(`Workload deleted successfully`)
       if (
         pathname.split('/')[1] === 'workload' &&
         currentPageID === id.toString()
@@ -303,12 +301,7 @@ export function WorkloadsSidebar({
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-destructive/90 text-destructive-foreground hover:bg-destructive"
-                              onClick={() =>
-                                handleDeleteWorkload(
-                                  workload.id,
-                                  workload.usecase,
-                                )
-                              }
+                              onClick={() => handleDeleteWorkload(workload.id)}
                             >
                               Delete
                             </AlertDialogAction>

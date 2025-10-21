@@ -85,6 +85,7 @@ Specify a Hugging Face model repository ID to download and use models directly f
 Upload your own custom model as a ZIP file.
 
 - The ZIP must contain all necessary model files in OpenVINO IR format (e.g., `.xml`, `.bin`, and optionally `labels.txt` for object detection).
+- If your model requires custom processing (e.g., instance segmentation), you may optionally include a `model_proc.json` file with the appropriate configuration.
 
   ```
   my-model.zip
@@ -103,7 +104,7 @@ Upload your own custom model as a ZIP file.
 
 Place your custom model files in the `./custom_models/` directory as described in [custom_models/README.md](./custom_models/README.md):
 
-- Each model should be in its own subdirectory under `custom_models/`, containing all required files in OpenVINO IR format (e.g., `.xml`, `.bin`, and optionally `labels.txt`).
+- Each model should be placed in its own subdirectory under custom_models, containing all required files in OpenVINO IR format (e.g., `.xml`, `.bin`). Optionally, include `labels.txt` for object detection and `model_proc.json` for instance segmentation that require custom processing.
 - The application will automatically detect and list models found in this directory.
 - For details, refer to [custom_models/README.md](./custom_models/README.md).
 

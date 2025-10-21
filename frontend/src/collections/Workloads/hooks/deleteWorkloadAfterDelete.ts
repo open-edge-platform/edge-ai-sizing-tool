@@ -82,6 +82,7 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
       path.join(basePath, rawName.replace(/\.zip$/i, '')),
     ) // Extracted file path
 
+    console.log(candidateExtractedPath)
     // Check if candidatePath and candidateExtractedPath are within our trusted directory
     if (
       !candidatePath.startsWith(basePath) ||
@@ -116,7 +117,7 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
       }
       const sanitizedCandidatePath = isWindows
         ? path.join(...parts)
-        : path.resolve(basePath, ...parts)
+        : path.join(path.sep, ...parts)
       fs.rmSync(sanitizedCandidatePath)
     }
 
@@ -136,7 +137,7 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
       }
       const sanitizedExtractedPath = isWindows
         ? path.join(...parts)
-        : path.resolve(basePath, ...parts)
+        : path.join(path.sep, ...parts)
       fs.rmSync(sanitizedExtractedPath, { recursive: true, force: true })
     }
   }
