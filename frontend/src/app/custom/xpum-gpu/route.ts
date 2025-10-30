@@ -3,7 +3,8 @@
 
 import { NextResponse } from 'next/server'
 import os from 'os'
-import { spawn } from 'child_process'
+import path from 'path'
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import { GpuData } from '@/types/gpu-types'
 
 const isWindows = os.platform() === 'win32'
@@ -14,16 +15,19 @@ export async function GET() {
   try {
     await new Promise((resolve, reject) => {
       const xpusmiCommand = isWindows
-        ? 'C:\\EAST\\Tools\\xpu-smi\\xpu-smi.exe'
+        ? path.join(process.cwd(), '..', 'thirdparty', 'xpu-smi', 'xpu-smi.exe')
         : 'xpumcli'
-      const process = spawn(xpusmiCommand, ['discovery', '-j'])
+      const childProcess: ChildProcessWithoutNullStreams = spawn(
+        xpusmiCommand,
+        ['discovery', '-j'],
+      )
 
-      process.stderr.on('data', () => {
+      childProcess.stderr.on('data', () => {
         resolve([])
-        process.kill()
+        childProcess.kill()
       })
 
-      process.stdout.on('data', (data) => {
+      childProcess.stdout.on('data', (data: Buffer) => {
         if (data) {
           const jsonData = JSON.parse(data.toString())
           gpuData = jsonData.device_list.map(
@@ -33,14 +37,14 @@ export async function GET() {
             }),
           )
           resolve(gpuData)
-          process.kill()
+          childProcess.kill()
         }
       })
 
-      process.on('error', (error) => {
+      childProcess.on('error', (error: Error) => {
         console.error('Error executing gpu_memory script:', error)
         reject(error)
-        process.kill()
+        childProcess.kill()
       })
     })
     return NextResponse.json({ gpus: gpuData })

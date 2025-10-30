@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import os from 'os'
+import path from 'path'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { GpuData, DeviceLevelMetric } from '@/types/gpu-types'
 import { isValidBusAddress } from '@/lib/utils'
@@ -21,16 +22,23 @@ export async function POST(req: Request) {
     const values = await Promise.all(
       gpuData.map(async (gpu) => {
         if (gpu.busaddr && isValidBusAddress(gpu.busaddr)) {
-          const xpusmiCommand = isWindows
-            ? 'C:\\EAST\\Tools\\xpu-smi\\xpu-smi.exe'
+          // Resolve xpu-smi.exe relative to the repo root for Windows
+          const xpusmiCommand: string = isWindows
+            ? path.join(
+                process.cwd(),
+                '..',
+                'thirdparty',
+                'xpu-smi',
+                'xpu-smi.exe',
+              )
             : 'xpumcli'
-          const process = spawn(xpusmiCommand, [
+          const spawnedProcess = spawn(xpusmiCommand, [
             'stats',
             '-d',
             gpu.busaddr,
             '-j',
           ])
-          return getMemoryUtilization(process).then((value) => ({
+          return getMemoryUtilization(spawnedProcess).then((value) => ({
             device: gpu.device,
             busaddr: gpu.busaddr,
             vram_usage: value,
