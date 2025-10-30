@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import os from 'os'
+import path from 'path'
 import { GpuData, DeviceLevelMetric } from '@/types/gpu-types'
 import { isValidBusAddress } from '@/lib/utils'
 
@@ -22,15 +23,21 @@ export async function POST(req: Request) {
       gpuData.map(async (gpu) => {
         if (gpu.busaddr && isValidBusAddress(gpu.busaddr)) {
           const xpusmiCommand = isWindows
-            ? 'C:\\EAST\\Tools\\xpu-smi\\xpu-smi.exe'
+            ? path.join(
+                process.cwd(),
+                '..',
+                'thirdparty',
+                'xpu-smi',
+                'xpu-smi.exe',
+              )
             : 'xpumcli'
-          const process = spawn(xpusmiCommand, [
+          const spawnedProcess = spawn(xpusmiCommand, [
             'stats',
             '-d',
             gpu.busaddr,
             '-j',
           ])
-          return getGpuUtilization(process).then((value) => ({
+          return getGpuUtilization(spawnedProcess).then((value) => ({
             device: gpu.device,
             busaddr: gpu.busaddr,
             compute_usage: value,
@@ -58,15 +65,15 @@ export async function POST(req: Request) {
 }
 
 function getGpuUtilization(
-  process: ChildProcessWithoutNullStreams,
+  spawnedProcess: ChildProcessWithoutNullStreams,
 ): Promise<number | null> {
   return new Promise((resolve, reject) => {
-    process.stderr.on('data', () => {
+    spawnedProcess.stderr.on('data', () => {
       resolve(0)
-      process.kill()
+      spawnedProcess.kill()
     })
 
-    process.stdout.on('data', (data) => {
+    spawnedProcess.stdout.on('data', (data) => {
       try {
         const jsonData = JSON.parse(data.toString())
         let gpu_usage: number | null = null
@@ -99,19 +106,19 @@ function getGpuUtilization(
         }
 
         resolve(gpu_usage)
-        process.kill()
+        spawnedProcess.kill()
       } catch (error) {
         reject(error)
-        process.kill()
+        spawnedProcess.kill()
       }
     })
 
-    process.on('error', (error) => {
+    spawnedProcess.on('error', (error) => {
       reject(error)
-      process.kill()
+      spawnedProcess.kill()
     })
 
-    process.on('close', () => {
+    spawnedProcess.on('close', () => {
       resolve(0)
     })
   })

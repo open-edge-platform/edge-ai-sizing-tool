@@ -13,3 +13,4 @@ dist
 
 /custom_models/*
 !/custom_models/README.md
+/thirdparty/

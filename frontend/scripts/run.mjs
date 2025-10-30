@@ -1,5 +1,5 @@
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { spawn, execSync } from 'child_process'
 import fs from 'fs'
@@ -11,10 +11,12 @@ const isWindows = os.platform() === 'win32'
 
 const getNpmPathWindows = () => {
   try {
-    return execSync('where npm.cmd', { 
+    return execSync('where npm.cmd', {
       encoding: 'utf8',
-      shell: true 
-    }).trim().split('\n')[0]
+      shell: true,
+    })
+      .trim()
+      .split('\n')[0]
   } catch (error) {
     return 'npm.cmd'
   }
@@ -22,10 +24,12 @@ const getNpmPathWindows = () => {
 
 const getPm2PathWindows = () => {
   try {
-    return execSync('where pm2.cmd', { 
+    return execSync('where pm2.cmd', {
       encoding: 'utf8',
-      shell: true 
-    }).trim().split('\n')[0]
+      shell: true,
+    })
+      .trim()
+      .split('\n')[0]
   } catch (error) {
     return 'pm2.cmd'
   }
@@ -35,7 +39,7 @@ const getNpmPathUnix = () => {
   try {
     const { execFileSync } = require('child_process')
     return execFileSync('/usr/bin/which', ['npm'], {
-      encoding: 'utf8'
+      encoding: 'utf8',
     }).trim()
   } catch (error) {
     return 'npm'
@@ -46,7 +50,7 @@ const getPm2PathUnix = () => {
   try {
     const { execFileSync } = require('child_process')
     return execFileSync('/usr/bin/which', ['pm2'], {
-      encoding: 'utf8'
+      encoding: 'utf8',
     }).trim()
   } catch (error) {
     return 'pm2'
@@ -54,9 +58,9 @@ const getPm2PathUnix = () => {
 }
 
 const ALLOWED_COMMANDS = {
-  'npm': process.platform === 'win32' ? getNpmPathWindows() : getNpmPathUnix(),
-  'node': process.execPath,
-  'pm2': process.platform === 'win32' ? getPm2PathWindows() : getPm2PathUnix(),
+  npm: process.platform === 'win32' ? getNpmPathWindows() : getNpmPathUnix(),
+  node: process.execPath,
+  pm2: process.platform === 'win32' ? getPm2PathWindows() : getPm2PathUnix(),
 }
 
 const sanitizeArg = (arg) => {
@@ -69,22 +73,22 @@ const runCommand = (command) => {
     try {
       const [cmdName, ...rawArgs] = command.split(' ')
       if (isWindows && rawArgs[1] === 'npm') {
-        rawArgs[1] = "%NPM_CLI_JS%"
+        rawArgs[1] = '%NPM_CLI_JS%'
       }
 
       if (!Object.keys(ALLOWED_COMMANDS).includes(cmdName)) {
         return reject(new Error(`Command not allowed: ${cmdName}`))
       }
 
-      const cmd = ALLOWED_COMMANDS[cmdName]  
+      const cmd = ALLOWED_COMMANDS[cmdName]
       const args = rawArgs.map(sanitizeArg)
 
-      const process = spawn(cmd, args, {
+      const childProcess = spawn(cmd, args, {
         stdio: 'inherit',
         shell: isWindows ? true : false,
       })
 
-      process.on('close', (code) => {
+      childProcess.on('close', (code) => {
         if (code === 0) {
           resolve()
         } else {
@@ -92,7 +96,7 @@ const runCommand = (command) => {
         }
       })
 
-      process.on('error', (err) => {
+      childProcess.on('error', (err) => {
         reject(`Process error: ${err.message}`)
       })
     } catch (err) {
@@ -102,10 +106,12 @@ const runCommand = (command) => {
 }
 
 // Check if node_modules exists (for npm install)
-const checkNodeModules = () => fs.existsSync(path.join(process.cwd(), 'node_modules'))
+const checkNodeModules = () =>
+  fs.existsSync(path.join(process.cwd(), 'node_modules'))
 
 // Check if the build directory exists (for npm run build)
-const checkBuildDirectory = () => fs.existsSync(path.join(process.cwd(), '.next'))
+const checkBuildDirectory = () =>
+  fs.existsSync(path.join(process.cwd(), '.next'))
 
 // Main function to run the commands sequentially
 const runInstallBuildStart = async () => {
@@ -151,7 +157,9 @@ const runInstallBuildStart = async () => {
     }
 
     const workersDir = path.resolve(process.cwd(), '..', 'workers')
-    const entries = await fs.promises.readdir(workersDir, { withFileTypes: true })
+    const entries = await fs.promises.readdir(workersDir, {
+      withFileTypes: true,
+    })
     const workerFolders = entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => path.join(workersDir, entry.name))
@@ -178,9 +186,9 @@ const runInstallBuildStart = async () => {
     const checkPm2App = () => {
       return new Promise((resolve) => {
         const pm2Path = ALLOWED_COMMANDS['pm2']
-        const pm2Process = spawn(pm2Path, ['list'], { 
+        const pm2Process = spawn(pm2Path, ['list'], {
           shell: isWindows ? true : false,
-          stdio: ['ignore', 'pipe', 'ignore'] 
+          stdio: ['ignore', 'pipe', 'ignore'],
         })
         let output = ''
 
