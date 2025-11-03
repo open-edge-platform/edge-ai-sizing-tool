@@ -16,14 +16,12 @@ import requests
 import argparse 
 import threading 
 import urllib.parse
-import urllib.request
 import numpy as np 
 import subprocess as sp 
 from segmentation_models_download import SEGMENTATION_MODELS, export_model
 from pathlib import Path 
 from fastapi import FastAPI 
 from contextlib import asynccontextmanager
-# from yolo_download import export_yolo_model
 from fastapi.middleware.cors import CORSMiddleware 
 from fastapi.responses import StreamingResponse, JSONResponse
 

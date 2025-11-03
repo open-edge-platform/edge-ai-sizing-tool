@@ -82,7 +82,6 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
       path.join(basePath, rawName.replace(/\.zip$/i, '')),
     ) // Extracted file path
 
-    console.log(candidateExtractedPath)
     // Check if candidatePath and candidateExtractedPath are within our trusted directory
     if (
       !candidatePath.startsWith(basePath) ||
