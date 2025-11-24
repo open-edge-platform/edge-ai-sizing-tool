@@ -54,13 +54,13 @@ export function SystemMonitorSidebar({
   const [searchTerm, setSearchTerm] = React.useState('')
   const { setOpen } = useSidebar()
 
-  const { data: XpumData } = useGPUXpum()
+  const { data: xpumData } = useGPUXpum()
 
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
-  const gpuData = useGpuUtilization(XpumData?.gpus || [])
+  const gpuData = useGpuUtilization(xpumData?.gpus || [])
   const npuData = useNpuUtilization()
-  const gpuMemoryData = useGpuMemory(XpumData?.gpus || [])
+  const gpuMemoryData = useGpuMemory(xpumData?.gpus || [])
 
   // Create chart items based on available data
   const chartItems = React.useMemo(() => {
