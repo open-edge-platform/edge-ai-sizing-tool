@@ -28,13 +28,13 @@ import {
 import { getUsecaseIcon } from '@/lib/utils'
 
 export default function DashboardPage() {
-  const { data: XpumData } = useGPUXpum()
+  const { data: xpumData } = useGPUXpum()
 
   const cpuData = useCpuUtilization()
   const memoryData = useMemoryUtilization()
-  const gpuData = useGpuUtilization(XpumData?.gpus || [])
+  const gpuData = useGpuUtilization(xpumData?.gpus || [])
   const npuData = useNpuUtilization()
-  const gpuMemoryData = useGpuMemory(XpumData?.gpus || [])
+  const gpuMemoryData = useGpuMemory(xpumData?.gpus || [])
   const workloadsData = useWorkloads()
   const systemInfo = useSystemInfo()
 

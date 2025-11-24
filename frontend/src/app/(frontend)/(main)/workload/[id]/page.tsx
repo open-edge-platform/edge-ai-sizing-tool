@@ -16,6 +16,7 @@ import { useWorkload } from '@/hooks/useWorkload'
 import { DlStreamer } from '@/components/usecase/dlstreamer'
 import { exportWorkloadToPDF } from '@/lib/handleExportSnapshot'
 import { Loader2 } from 'lucide-react'
+import { useChartErrors } from '@/hooks/useChartErrors'
 
 // Workload type definition
 
@@ -30,6 +31,8 @@ export default function WorkloadPage({
   const { isLoading, data: workload } = useWorkload(Number(workloadId))
   const workloadRef = useRef<HTMLDivElement>(null)
   const [isExporting, setIsExporting] = useState(false)
+
+  const { hasErrors, isLoading: chartsLoading } = useChartErrors()
 
   const handleExportPDF = async () => {
     if (isExporting || !workload) return
@@ -147,6 +150,8 @@ export default function WorkloadPage({
     )
   }
 
+  // determine if export button needs to be shown
+  const showExportButtonCheck = !hasErrors && !chartsLoading
 
   return (
     <div
@@ -161,16 +166,18 @@ export default function WorkloadPage({
               {workload.usecase.replace(/-/g, ' ')}
             </h1>
           </div>
-          <Button onClick={handleExportPDF} disabled={isExporting} className="exportBtn">
-            {isExporting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              'Export as PDF'
-            )}
-          </Button>
+          {showExportButtonCheck && (
+            <Button onClick={handleExportPDF} disabled={isExporting} className="exportBtn">
+              {isExporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                'Export as PDF'
+              )}
+            </Button>
+          )}
         </div>
 
         <div className="container">
