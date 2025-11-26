@@ -24,6 +24,7 @@ import {
   useNpuUtilization,
   useGPUXpum,
   useGpuMemory,
+  usePackagePower,
 } from '@/hooks/useSystemMonitoring'
 import { getUsecaseIcon } from '@/lib/utils'
 
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const gpuMemoryData = useGpuMemory(xpumData?.gpus || [])
   const workloadsData = useWorkloads()
   const systemInfo = useSystemInfo()
+  const powerData = usePackagePower()
 
   return (
     <>
@@ -123,6 +125,35 @@ export default function DashboardPage() {
                     <Progress value={npuData.data.value ?? 0} />
                   </div>
                 )}
+
+                {powerData.data &&
+                  (() => {
+                    const powerWatts =
+                      powerData.data.joulesConsumed !== null &&
+                      powerData.data.intervalUs !== null
+                        ? Math.round(
+                            (powerData.data.joulesConsumed /
+                              (powerData.data.intervalUs / 1_000_000)) *
+                              100,
+                          ) / 100
+                        : null
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="flex items-center gap-1">
+                            <Zap className="h-4 w-4" /> Power Consumption
+                          </span>
+                          <span>
+                            {powerWatts !== null && !isNaN(powerWatts)
+                              ? `${powerWatts} W`
+                              : 'Currently not available'}
+                          </span>
+                        </div>
+                        <Progress value={powerWatts ?? 0} />
+                      </div>
+                    )
+                  })()}
               </div>
             </CardContent>
           </Card>

@@ -36,6 +36,7 @@ import { MemoryChart } from '@/components/monitor/memory-chart'
 import { GpuChart } from '@/components/monitor/gpu-chart'
 import { GpuMemoryChart } from './monitor/gpu-memory-chart'
 import { NpuChart } from '@/components/monitor/npu-chart'
+import { PowerChart } from '@/components/monitor/power-chart'
 import { NOT_AVAILABLE } from '@/lib/constants'
 import {
   useCpuUtilization,
@@ -44,6 +45,7 @@ import {
   useNpuUtilization,
   useGpuMemory,
   useGPUXpum,
+  usePackagePower,
 } from '@/hooks/useSystemMonitoring'
 import { ChartItem } from '@/types/chart-types'
 import { GpuMemoryUtilization, GpuUtilization } from '@/types/gpu-types'
@@ -61,6 +63,7 @@ export function SystemMonitorSidebar({
   const gpuData = useGpuUtilization(xpumData?.gpus || [])
   const npuData = useNpuUtilization()
   const gpuMemoryData = useGpuMemory(xpumData?.gpus || [])
+  const powerData = usePackagePower()
 
   // Create chart items based on available data
   const chartItems = React.useMemo(() => {
@@ -187,6 +190,39 @@ export function SystemMonitorSidebar({
         device: npuData.data.name,
       })
     }
+
+    if (powerData.isLoading) {
+      items.push({
+        id: 'power-loading',
+        type: 'power',
+        title: 'Power Consumption: Loading',
+        description: 'Fetching power data...',
+        icon: RefreshCw,
+        device: 'loading-device',
+      })
+    } else if (powerData.error) {
+      items.push({
+        id: 'power-error',
+        type: 'power',
+        title: 'Power Consumption: Error',
+        description: 'Failed to fetch Power data',
+        icon: Zap,
+        device: 'error-device',
+      })
+    } else if (powerData.data) {
+      items.push({
+        id: 'power',
+        type:
+          powerData.data.joulesConsumed !== null &&
+          !isNaN(powerData.data.joulesConsumed)
+            ? 'power'
+            : 'n/a',
+        title: 'Power Consumption',
+        description: 'Power consumption',
+        icon: Zap,
+        device: 'power-device',
+      })
+    }
     return items
   }, [
     gpuData.data,
@@ -198,6 +234,9 @@ export function SystemMonitorSidebar({
     npuData.data,
     npuData.error,
     npuData.isLoading,
+    powerData.data,
+    powerData.error,
+    powerData.isLoading,
   ])
 
   // Filter charts based on search term
@@ -318,6 +357,23 @@ export function SystemMonitorSidebar({
                   error={chart.id === 'npu-error' ? npuData.error : undefined}
                   refetch={npuData.refetch}
                   isRefetching={npuData.isRefetching}
+                />
+              )}
+              {chart.type === 'power' && powerData.data && (
+                <PowerChart
+                  className="chart w-full"
+                  compact
+                  data={{
+                    powerConsumption:
+                      powerData.data.joulesConsumed /
+                      (powerData.data.intervalUs / 1_000_000),
+                  }}
+                  isLoading={powerData.isLoading}
+                  error={
+                    chart.id === 'power-error' ? powerData.error : undefined
+                  }
+                  refetch={powerData.refetch}
+                  isRefetching={powerData.isRefetching}
                 />
               )}
               {chart.type === 'n/a' && (

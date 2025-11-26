@@ -3,6 +3,23 @@
 
 import { useQuery } from '@tanstack/react-query'
 
+export const usePackagePower = () => {
+  return useQuery({
+    queryKey: ['packagePower'],
+    queryFn: async () => {
+      const response = await fetch('/custom/package-power')
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      }
+      return response.json()
+    },
+    refetchInterval: (query) => {
+      return query.state.status === 'success' ? 3000 : false
+    },
+    retry: (failureCount: number): boolean => failureCount < 3,
+  })
+}
+
 export const useGetGPUs = () => {
   return useQuery({
     queryKey: ['gpus'],

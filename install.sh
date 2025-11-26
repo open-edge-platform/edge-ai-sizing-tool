@@ -150,6 +150,9 @@ main() {
         "intel-gsc"
         "wget"
         "gpg"
+        "git"
+        "cmake"
+        "build-essential"
     )
     
     for package in "${packages[@]}"; do
@@ -170,6 +173,9 @@ main() {
     apt update
     install_package "intel-dlstreamer"
     install_package "gstreamer1.0-plugins-ugly"
+
+    # Install Intel PCM
+    install_intel_pcm
     
     # Install Node.js
     install_nodejs
@@ -246,6 +252,29 @@ setup_intel_dlstreamer() {
     echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/openvino/2025 $ubuntu_version main" | tee /etc/apt/sources.list.d/intel-openvino-2025.list
     
     log_success "Intel repositories configured successfully."
+}
+
+install_intel_pcm() {
+    log_info "Installing Intel® Performance Counter Monitor (Intel® PCM)..."
+    
+    # Get project root directory
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Check if pcm directory already exists and remove it
+    if [ -d "./pcm/" ]; then
+        rm -rf ./pcm/
+    fi
+
+    # Git clone and build Intel PCM
+    git clone --recursive https://github.com/intel/pcm
+    cd pcm || { echo "Failed to change directory to pcm"; exit 1; }
+    mkdir -p build
+    cd build || { echo "Failed to change directory to build"; exit 1; }
+    cmake ..
+    cmake --build . --parallel
+
+    # Navigate to project root directory
+    cd "$SCRIPT_DIR" || { echo "Failed to change directory to project root"; exit 1; }
 }
 
 install_nodejs() {
