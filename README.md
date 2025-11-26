@@ -21,7 +21,6 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 
 - Operating system:
   - Linux: Ubuntu\* 24.04 LTS Desktop
-  - Linux: Ubuntu\* 22.04 LTS Desktop
   - Windows: Windows\* 11
 - Python version: 3.10+
 - Node.js version: 22+
@@ -132,8 +131,10 @@ This installs all required packages, sets up Python and Node.js environments.
 
 #### 3. Run the Application
 
+- Run `./start.sh` to start services either from a fresh state or restore their previous states if a PM2 process dump exists.
+
 > **Note:** When you execute `start.sh`, the setup process will automatically generate a random secret key for the `PAYLOAD_SECRET` variable in the `.env` file. By running this script, you acknowledge and accept the use of this automatically generated secret.  
->  
+>
 > If you prefer to specify your own secret key, manually copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value in the `.env` file before running this script.
 
 ```bash
@@ -166,7 +167,7 @@ This installs all required packages, sets up Python and Node.js environments.
 
 #### 3. Run the Application
 
-Double-click the `start.bat` shortcut on your Desktop.
+- Double-click the `start.bat` shortcut on your Desktop to start services either from a fresh state or restore their previous states.
 
 Once started, open http://localhost:8080 in your browser.
 

@@ -64,4 +64,13 @@ pm2 logs
 
 # stream specific process id
 pm2 logs [id|name|namespace]
+
+# Stop all the processes
+pm2 stop all
+
+# Save the current list and state of all PM2-managed processes to a dump file for later restoration
+pm2 save
+
+# Resurrect all the processes 
+pm2 resurrect
 ```
