@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
@@ -7,6 +8,7 @@ import path from 'path'
 import os from 'os'
 import crypto from 'crypto'
 
+const PM2_DUMP = path.join(os.homedir(), '.pm2', 'dump.pm2')
 const isWindows = os.platform() === 'win32'
 
 const getNpmPathWindows = () => {
@@ -206,16 +208,87 @@ const runInstallBuildStart = async () => {
       })
     }
 
+    if (fs.existsSync(PM2_DUMP)) {
+      await runCommand('pm2 resurrect')
+      console.log('PM2 processes restored from dump.')
+
+      // Check for saved online processes state
+      // Coverity fix: break taint chain by copying allowed characters
+      const rawHomeDir = os.homedir()
+      if (!rawHomeDir || typeof rawHomeDir !== 'string') {
+        throw new Error('Invalid home directory')
+      }
+
+      // Character-by-character allow-list copy to break taint chain
+      const sanitizePathSegment = (input) => {
+        const allowedRe = /[A-Za-z0-9_/:\\\-\.]/
+        let out = ''
+        for (let i = 0; i < input.length; i++) {
+          const ch = input.charAt(i)
+          if (allowedRe.test(ch)) {
+            out += ch
+          }
+        }
+        return out
+      }
+
+      const homeDir = sanitizePathSegment(rawHomeDir)
+
+      // Basic checks to reject traversal or empty values
+      if (!homeDir || homeDir.includes('..') || homeDir.indexOf('\0') !== -1) {
+        throw new Error('Invalid home directory after sanitization')
+      }
+
+      // Ensure resulting path is absolute
+      if (!path.isAbsolute(homeDir)) {
+        throw new Error('Home directory must be an absolute path')
+      }
+
+      const pm2Dir = path.resolve(homeDir, '.pm2')
+      const stateFile = path.resolve(pm2Dir, 'online-processes.json')
+
+      // Ensure the resolved stateFile path is strictly within the expected PM2 directory
+      const normalizedPm2Dir = path.resolve(pm2Dir) + path.sep
+      const normalizedStateFile = path.resolve(stateFile)
+      if (
+        !normalizedStateFile.startsWith(normalizedPm2Dir) &&
+        normalizedStateFile !== normalizedPm2Dir
+      ) {
+        throw new Error('Invalid state file path')
+      }
+
+      if (fs.existsSync(stateFile)) {
+        try {
+          const onlineProcesses = JSON.parse(fs.readFileSync(stateFile, 'utf-8'))
+          console.log('Restoring previously online processes...')
+          for (const processName of onlineProcesses) {
+            try {
+              await runCommand(`pm2 start ${processName}`)
+            } catch (err) {
+              console.log(`Could not start ${processName}: ${err}`)
+            }
+          }
+          // Remove the state file after restoring
+          fs.unlinkSync(stateFile)
+        } catch (err) {
+          console.log('Could not restore online processes state:', err)
+        }
+      }
+    } else {
+      console.log('No PM2 dump file found. Skipping resurrection.')
+    }
+
+    console.log('Checking EAST application status...')
     const eastAppExists = await checkPm2App()
 
     if (eastAppExists) {
-      console.log('EAST application found in PM2, resurrecting...')
-      await runCommand('pm2 resurrect')
-      await runCommand('pm2 start all')
+      console.log('EAST application is already running.')
+      await runCommand('pm2 start "EAST"')
     } else {
-      console.log('Starting EAST application with PM2...')
+      console.log('EAST application not found. Starting EAST...')
       await runCommand('pm2 start npm --name "EAST" -- start')
     }
+    await runCommand('pm2 save')
   } catch (error) {
     console.error('An error occurred:', error)
   }

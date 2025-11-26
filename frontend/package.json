@@ -17,7 +17,7 @@
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start -p 8080 --hostname 127.0.0.1",
     "demo": "node scripts/run.mjs",
-    "stop": "pm2 save && pm2 stop all"
+    "stop": "node scripts/stop.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

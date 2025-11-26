@@ -75,6 +75,8 @@ export function WorkloadsSidebar({
 
   // Handle workload deletion
   const handleDeleteWorkload = async (id: number) => {
+    const isCurrentWorkload =
+      pathname.split('/')[1] === 'workload' && currentPageID === id.toString()
     try {
       const response = await deleteWorkload.mutateAsync(id)
       if (!response) {
@@ -82,11 +84,9 @@ export function WorkloadsSidebar({
         return
       }
       toast.success(`Workload deleted successfully`)
-      if (
-        pathname.split('/')[1] === 'workload' &&
-        currentPageID === id.toString()
-      ) {
-        router.push(`/`)
+
+      if (isCurrentWorkload) {
+        router.push('/')
       }
     } catch (error) {
       toast.error('Failed to delete workload')
