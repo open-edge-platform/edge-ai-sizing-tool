@@ -9,4 +9,10 @@ if [ "$EUID" -eq 0 ]; then
   exit 1
 fi
 
+# Stop Intel PCM sensor server that is running in the background
+PID=$(pgrep -f pcm-sensor-server)
+if [ -n "$PID" ]; then
+  sudo kill -9 "$PID"
+fi
+
 cd frontend && npm run stop
