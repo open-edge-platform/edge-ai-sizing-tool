@@ -49,6 +49,10 @@ A curated set of popular models for common AI tasks:
 |----------------------------------------------|------------------------------|----------------------------------------------------------------------------------|
 | YOLOv8                                       | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                                |
 | YOLOv11                                      | Object Detection             | [Ultralytics Docs](https://docs.ultralytics.com/)                                |
+| YOLOv8-seg                                   | Instance Segmentation        | [Ultralytics Docs](https://docs.ultralytics.com/)                                |
+| YOLOv11-seg                                  | Instance Segmentation        | [Ultralytics Docs](https://docs.ultralytics.com/)                                | 
+| mask_rcnn_resnet50_atrous_coco               | Instance Segmentation        | [Open Model Zoo](https://github.com/openvinotoolkit/open_model_zoo/tree/master/models/public/mask_rcnn_resnet50_atrous_coco)
+| mask_rcnn_inception_resnet_v2_atrous_coco    | Instance Segmentation        | [Open Model Zoo](https://github.com/openvinotoolkit/open_model_zoo/tree/master/models/public/faster_rcnn_inception_resnet_v2_atrous_coco)
 | dreamlike-art/dreamlike-anime-1.0            | Text-To-Image                | [Hugging Face](https://huggingface.co/dreamlike-art/dreamlike-anime-1.0)         |
 | stabilityai/stable-diffusion-2               | Text-To-Image                | [Hugging Face](https://huggingface.co/stabilityai/stable-diffusion-2)            |
 | TinyLlama/TinyLlama-1.1B-Chat-v1.0           | Text Generation              | [Hugging Face](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)        |
@@ -272,15 +276,15 @@ This procedure addresses common package dependency conflicts encountered on Ubun
 
 ## Limitations
 
-1. The Ubuntu intel-gpu-tools package does not support Intel Arc B-Series Graphics Cards, resulting in the inability to display GPU utilization metrics.
+1. iGPU utilization and device name may not be displayed on Intel® Core™ Ultra 9 288V processors.
 
-2. iGPU utilization and device name may not be displayed on Intel® Core™ Ultra 9 288V processors.
+2. Object Detection Inferencing Windows may not show results after running for extended periods.
 
-3. Object Detection Inferencing Windows may not show results after running for extended periods.
+3. System Overview and System Monitor may only show the PCI ID (e.g., e20b) for certain GPU models instead of the actual descriptive name.
 
-4. System Overview and System Monitor may only show the PCI ID (e.g., e20b) for certain GPU models instead of the actual descriptive name.
+4. Text generation may produce gibberish and illogical output for some LLM models when using Intel® Arc™ Ultra 7 Processor 155H iGPUs.
 
-5. Text generation may produce gibberish and illogical output for some LLM models when using Intel® Arc™ Ultra 7 Processor 155H iGPUs.
+5. Speech-to-text workloads using Whisper models currently fail to run on NPU accelerators.
 
 ## Disclaimer
 GStreamer* is an open source framework licensed under LGPL. See https://gstreamer.freedesktop.org/documentation/frequently-asked-questions/licensing.html. You are solely responsible for determining if your use of GStreamer requires any additional licenses.  Intel is not responsible for obtaining any such licenses, nor liable for any licensing fees due, in connection with your use of GStreamer.
