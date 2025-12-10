@@ -18,3 +18,7 @@ export interface AudioResult {
 export interface AudioProps {
   workload: Workload
 }
+
+export interface AudioPerformanceMetrics {
+  generation_time_s: number
+}
