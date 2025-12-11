@@ -14,7 +14,10 @@ import {
 import { WorkloadProfile } from '../workload-profile'
 import useGetStreamMetricInterval from '@/hooks/useStream'
 import { Loader } from 'lucide-react'
-import { DlStreamerProps } from '@/types/dlstreamer-types'
+import {
+  DlStreamerProps,
+  DlStreamerPerformanceMetrics,
+} from '@/types/dlstreamer-types'
 
 // A simple hash function to dynamically generate a color for each stream id for the chart.
 function getColorForKey(key: string): string {
@@ -27,7 +30,12 @@ function getColorForKey(key: string): string {
   return `hsl(${hue}, 70%, 50%)`
 }
 
-export function DlStreamer({ workload }: DlStreamerProps) {
+export function DlStreamer({
+  workload,
+  setPerformanceMetrics,
+}: DlStreamerProps & {
+  setPerformanceMetrics: React.Dispatch<DlStreamerPerformanceMetrics>
+}) {
   const [streamFpsData, setStreamFpsData] = useState<
     Array<Record<string, number>>
   >([])
@@ -60,6 +68,11 @@ export function DlStreamer({ workload }: DlStreamerProps) {
               : updated
           })
         }
+        const newMetrics = {
+          total_fps: data?.data.total_fps,
+          average_fps_per_stream: data?.data.average_fps_per_stream,
+        }
+        setPerformanceMetrics(newMetrics)
       } catch (err) {
         console.error('Failed to parse stream metrics:', err)
       }

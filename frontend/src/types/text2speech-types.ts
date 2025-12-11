@@ -16,3 +16,7 @@ export interface TtsResult {
 export interface TtsProps {
   workload: Workload
 }
+
+export interface TtsPerformanceMetrics {
+  generation_time_s: number
+}
