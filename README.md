@@ -8,7 +8,7 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 
 ## Requirements
 
-### Validated Hardware
+### Hardware Prerequisites
 
 - CPU: Intel® Core™ Ultra Processor (Products formerly Meteor Lake-UH) and above
 - GPU:
@@ -17,7 +17,7 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 - RAM: 64GB
 - DISK: 256GB+
 
-### Validated Software
+### Software Prerequisites
 
 - Operating system:
   - Linux: Ubuntu\* 24.04 LTS Desktop
@@ -27,6 +27,7 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 - Intel GPU drivers version: 25.09.32961.5
 - Intel NPU drivers version: v1.13.0
 - Ubuntu intel-gpu-tools package version: 1.28-1ubuntu2
+
 
 ### Application Ports
 
@@ -128,10 +129,12 @@ Follow the [Edge Developer Kit Reference Scripts](https://github.com/intel/edge-
 #### 2. Install Dependencies
 
 ```bash
-./install.sh
+sudo ./install.sh
 ```
 
 This installs all required packages, sets up Python and Node.js environments.
+
+> **Note:** The first time you run the installation script, the process may take several minutes to complete. Installation time depends on your system configuration and internet speed.
 
 #### 3. Run the Application
 
@@ -161,13 +164,16 @@ This script ensures that all services are properly shut down, including backgrou
 
 #### 1. Setup Platform
 
-Depending on your system configuration, you may install [GPU drivers](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html) and [NPU drivers](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html).
+If your system has a GPU, install the [GPU driver](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html).  
+If your system has an NPU, install the [NPU driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html).
 
 #### 2. Install Dependencies
 
-Double-click the `install.bat`.
+Right-click the `install.bat` file and click "Run as administrator".
 
 This installs all required packages, sets up Python and Node.js environments.
+
+> **Note:** The first time you run the installation script, the process may take several minutes to complete. Installation time depends on your system configuration and internet speed.
 
 #### 3. Run the Application
 
@@ -278,13 +284,18 @@ This procedure addresses common package dependency conflicts encountered on Ubun
 
 1. iGPU utilization and device name may not be displayed on Intel® Core™ Ultra 9 288V processors.
 
-2. Object Detection Inferencing Windows may not show results after running for extended periods.
+2.  On Ubuntu, the Object Detection inferencing stream window may stop displaying results after running for extended periods.
 
 3. System Overview and System Monitor may only show the PCI ID (e.g., e20b) for certain GPU models instead of the actual descriptive name.
 
 4. Text generation may produce gibberish and illogical output for some LLM models when using Intel® Arc™ Ultra 7 Processor 155H iGPUs.
 
 5. Speech-to-text workloads using Whisper models currently fail to run on NPU accelerators.
+
+6. Power consumption metrics are not available on Windows for now.
+
+7. DLStreamer is not supported on Windows. Hence, the Object Detection and Instance Segmentation use cases for Computer Vision task are currently unavailable on Windows.
+
 
 ## Disclaimer
 GStreamer* is an open source framework licensed under LGPL. See https://gstreamer.freedesktop.org/documentation/frequently-asked-questions/licensing.html. You are solely responsible for determining if your use of GStreamer requires any additional licenses.  Intel is not responsible for obtaining any such licenses, nor liable for any licensing fees due, in connection with your use of GStreamer.

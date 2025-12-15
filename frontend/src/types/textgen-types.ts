@@ -26,3 +26,10 @@ export interface Message {
 export interface TextGenProps {
   workload: Workload
 }
+
+export interface TextGenerationPerformanceMetrics {
+  generation_time_s: number
+  load_time_s: number
+  time_to_token_s: number
+  throughput_s: number
+}

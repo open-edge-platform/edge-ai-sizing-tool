@@ -15,7 +15,14 @@ import React, { useRef, useState } from 'react'
 import { useWorkload } from '@/hooks/useWorkload'
 import { DlStreamer } from '@/components/usecase/dlstreamer'
 import { exportWorkloadToPDF } from '@/lib/handleExportSnapshot'
+import { useTrimmedUtilization, useProcessedSystemInfo, exportToExcel } from '@/lib/handleExportExcel'
+import { normalizeUseCase } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { TextToImagePerformanceMetrics } from '@/types/text2img-types'
+import { TextGenerationPerformanceMetrics } from '@/types/textgen-types'
+import { AudioPerformanceMetrics } from '@/types/audio-types'
+import { DlStreamerPerformanceMetrics } from '@/types/dlstreamer-types'
+import { TtsPerformanceMetrics } from '@/types/text2speech-types'
 import { useChartErrors } from '@/hooks/useChartErrors'
 
 // Workload type definition
@@ -30,15 +37,19 @@ export default function WorkloadPage({
   const workloadId = Number.parseInt(unwrappedParams.id)
   const { isLoading, data: workload } = useWorkload(Number(workloadId))
   const workloadRef = useRef<HTMLDivElement>(null)
-  const [isExporting, setIsExporting] = useState(false)
+  const [isExportingPDF, setIsExportingPDF] = useState(false)
+  const [isExportingExcel, setIsExportingExcel] = useState(false)
+  const { utilizationInfo } = useTrimmedUtilization()
+  const { sysInfo } = useProcessedSystemInfo()
+  const [performanceMetrics, setPerformanceMetrics] = useState<TextToImagePerformanceMetrics | TextGenerationPerformanceMetrics | AudioPerformanceMetrics | DlStreamerPerformanceMetrics | TtsPerformanceMetrics | null>(null)
 
   const { hasErrors, isLoading: chartsLoading } = useChartErrors()
 
   const handleExportPDF = async () => {
-    if (isExporting || !workload) return
+    if (isExportingPDF || !workload) return
 
     try {
-      setIsExporting(true)
+      setIsExportingPDF(true)
       await exportWorkloadToPDF({
         workloadId,
         workloadRef,
@@ -46,9 +57,38 @@ export default function WorkloadPage({
       })
     } catch (error) {
       console.error('Export failed:', error)
-      setIsExporting(false)
+      setIsExportingPDF(false)
     } finally {
-      setIsExporting(false)
+      setIsExportingPDF(false)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (isExportingExcel || !workload) return
+
+    try {
+      setIsExportingExcel(true)
+
+      const workloadInfo = {
+        id: Number(workload.id),
+        name: normalizeUseCase(workload.usecase) + '-' + workload.id,
+        model: workload.model.split('/').length > 1
+        ? workload.model.split('/')[1]
+        : workload.model,
+        devices: workload.devices,
+        performanceMetrics: performanceMetrics,
+      }
+
+      if (sysInfo && utilizationInfo && workloadInfo) {
+        exportToExcel(sysInfo, utilizationInfo, workloadInfo)
+      } else {
+        console.error('System Info is not available for export.')
+      }
+    } catch (error) {
+      console.error('Export failed:', error)
+      setIsExportingExcel(false)
+    } finally {
+      setIsExportingExcel(false)
     }
   }
 
@@ -57,17 +97,17 @@ export default function WorkloadPage({
     if (!workload) return null
     switch (workload.usecase) {
       case 'text-to-image':
-        return <Text2Img workload={workload} />
+        return <Text2Img workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
       case 'text generation':
-        return <TextGen workload={workload} />
+        return <TextGen workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
       case 'automatic speech recognition':
-        return <Audio workload={workload} />
+        return <Audio workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
       case 'object detection (DLStreamer)':
-        return <DlStreamer workload={workload} />
+        return <DlStreamer workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
       case 'instance segmentation (DLStreamer)':
-        return <DlStreamer workload={workload} />
+        return <DlStreamer workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
       case 'text-to-speech':
-        return <Text2Speech workload={workload} />
+        return <Text2Speech workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
       default:
         return (
           <div className="container py-10 text-center">
@@ -167,16 +207,28 @@ export default function WorkloadPage({
             </h1>
           </div>
           {showExportButtonCheck && (
-            <Button onClick={handleExportPDF} disabled={isExporting} className="exportBtn">
-              {isExporting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                'Export as PDF'
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleExportExcel} disabled={isExportingExcel} className="exportBtn">
+                  {isExportingExcel ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    'Export as Excel'
+                  )}
+              </Button>
+              <Button onClick={handleExportPDF} disabled={isExportingPDF} className="exportBtn">
+                {isExportingPDF ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  'Export as PDF'
+                )}
+              </Button>
+            </div>
           )}
         </div>
 

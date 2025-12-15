@@ -15,9 +15,19 @@ import { Volume2, Download, Loader2, Pause, Play, Trash2 } from 'lucide-react'
 import { useInfer } from '@/hooks/use-infer'
 import { PerformanceMetrics } from '@/components/performance-metrics'
 import { WorkloadProfile } from '@/components/workload-profile'
-import { TtsMessage, TtsResult, TtsProps } from '@/types/text2speech-types'
+import {
+  TtsMessage,
+  TtsResult,
+  TtsProps,
+  TtsPerformanceMetrics,
+} from '@/types/text2speech-types'
 
-export function Text2Speech({ workload }: TtsProps) {
+export function Text2Speech({
+  workload,
+  setPerformanceMetrics,
+}: TtsProps & {
+  setPerformanceMetrics: React.Dispatch<TtsPerformanceMetrics>
+}) {
   const [inputText, setInputText] = useState<string>('')
   const [result, setResult] = useState<TtsResult | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -56,9 +66,11 @@ export function Text2Speech({ workload }: TtsProps) {
       setResult(result)
 
       setPreviousMetrics(metrics)
-      setMetrics({
+      const newMetrics = {
         generation_time_s: result.generation_time_s || 0,
-      })
+      }
+      setMetrics(newMetrics)
+      setPerformanceMetrics(newMetrics)
     } catch (error) {
       toast.error('There was an error generating the speech.')
       console.error('Failed to generate speech:', error)
