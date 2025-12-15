@@ -22,9 +22,15 @@ import {
   TextGenerationResult,
   Message,
   TextGenProps,
+  TextGenerationPerformanceMetrics,
 } from '@/types/textgen-types'
 
-export function TextGen({ workload }: TextGenProps) {
+export function TextGen({
+  workload,
+  setPerformanceMetrics,
+}: TextGenProps & {
+  setPerformanceMetrics: React.Dispatch<TextGenerationPerformanceMetrics>
+}) {
   const { inferResponse, isInferencing } = useInfer()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -98,12 +104,14 @@ export function TextGen({ workload }: TextGenProps) {
       setResult(result)
       // Update previous metrics before setting new metrics
       setPreviousMetrics(metrics)
-      setMetrics({
+      const newMetrics = {
         generation_time_s: result.generation_time_s || 0,
         load_time_s: result.load_time_s || 0,
         time_to_token_s: result.time_to_token_s || 0,
         throughput_s: result.throughput_s || 0,
-      })
+      }
+      setMetrics(newMetrics)
+      setPerformanceMetrics(newMetrics)
     } catch (error) {
       toast.error('Failed to generate text.')
       console.error('Failed to generate text:', error)

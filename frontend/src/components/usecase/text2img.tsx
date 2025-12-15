@@ -28,6 +28,7 @@ import {
   TextToImageMessage,
   TextToImageResult,
   Text2ImgProps,
+  TextToImagePerformanceMetrics,
 } from '@/types/text2img-types'
 
 function calculateThroughput(
@@ -49,7 +50,12 @@ function calculateThroughput(
   return totalPixels / generationTime // Pixels per second
 }
 
-export function Text2Img({ workload }: Text2ImgProps) {
+export function Text2Img({
+  workload,
+  setPerformanceMetrics,
+}: Text2ImgProps & {
+  setPerformanceMetrics: React.Dispatch<TextToImagePerformanceMetrics>
+}) {
   const { inferResponse, isInferencing } = useInfer()
   const [textPrompt, setTextPrompt] = useState<string>(
     'masterpiece, high quality, a street, flowers, trees, anime',
@@ -101,13 +107,15 @@ export function Text2Img({ workload }: Text2ImgProps) {
 
       // Update previous metrics before setting new metrics
       setPreviousMetrics(metrics)
-      setMetrics({
+      const newMetrics = {
         generation_time_s: result.generation_time_s || 0,
         throughput_s: calculateThroughput(
           imageSize,
           result.generation_time_s || 0,
         ),
-      })
+      }
+      setMetrics(newMetrics)
+      setPerformanceMetrics(newMetrics)
     } catch (error) {
       toast.error('Failed to generate image.')
       console.error('Failed to generate image:', error)

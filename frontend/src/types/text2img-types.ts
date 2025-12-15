@@ -19,3 +19,8 @@ export interface TextToImageResult {
 export interface Text2ImgProps {
   workload: Workload
 }
+
+export interface TextToImagePerformanceMetrics {
+  generation_time_s: number
+  throughput_s: number
+}

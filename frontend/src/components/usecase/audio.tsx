@@ -30,7 +30,12 @@ import {
 import { WorkloadProfile } from '@/components/workload-profile'
 import { PerformanceMetrics } from '@/components/performance-metrics'
 import { cn, formatFileSize } from '@/lib/utils'
-import { AudioMessage, AudioResult, AudioProps } from '@/types/audio-types'
+import {
+  AudioMessage,
+  AudioResult,
+  AudioProps,
+  AudioPerformanceMetrics,
+} from '@/types/audio-types'
 
 const LANGUAGES = {
   en: 'english',
@@ -134,7 +139,12 @@ const LANGUAGES = {
   su: 'sundanese',
 }
 
-export function Audio({ workload }: AudioProps) {
+export function Audio({
+  workload,
+  setPerformanceMetrics,
+}: AudioProps & {
+  setPerformanceMetrics: React.Dispatch<AudioPerformanceMetrics>
+}) {
   const [task, setTask] = useState<'transcribe' | 'translate'>('transcribe')
   const [language, setLanguage] = useState('en')
   const [result, setResult] = useState<AudioResult | null>(null)
@@ -278,9 +288,11 @@ export function Audio({ workload }: AudioProps) {
       setResult(result)
       // Update previous metrics before setting new metrics
       setPreviousMetrics(metrics)
-      setMetrics({
+      const newMetrics = {
         generation_time_s: result.generation_time_s || 0,
-      })
+      }
+      setMetrics(newMetrics)
+      setPerformanceMetrics(newMetrics)
     } catch (error) {
       toast.error('Failed to process audio file')
       console.error('Failed to process audio file:', error)
