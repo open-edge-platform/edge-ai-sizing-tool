@@ -8,7 +8,9 @@ import path from 'path'
 import os from 'os'
 import crypto from 'crypto'
 
-const PM2_DUMP = path.join(os.homedir(), '.pm2', 'dump.pm2')
+// Use PM2_HOME environment variable if set, otherwise fall back to user home directory
+const PM2_HOME = process.env.PM2_HOME || path.join(os.homedir(), '.pm2')
+const PM2_DUMP = path.join(PM2_HOME, 'dump.pm2')
 const isWindows = os.platform() === 'win32'
 
 const getNpmPathWindows = () => {
@@ -25,6 +27,12 @@ const getNpmPathWindows = () => {
 }
 
 const getPm2PathWindows = () => {
+  // Check local node_modules first
+  const localPm2 = path.join(process.cwd(), 'node_modules', '.bin', 'pm2.cmd')
+  if (fs.existsSync(localPm2)) {
+    return localPm2
+  }
+  
   try {
     return execSync('where pm2.cmd', {
       encoding: 'utf8',
@@ -263,9 +271,9 @@ const runInstallBuildStart = async () => {
           console.log('Restoring previously online processes...')
           for (const processName of onlineProcesses) {
             try {
-              await runCommand(`pm2 start ${processName}`)
+              await runCommand(`pm2 restart ${processName}`)
             } catch (err) {
-              console.log(`Could not start ${processName}: ${err}`)
+              console.log(`Could not restart ${processName}: ${err}`)
             }
           }
           // Remove the state file after restoring
@@ -282,8 +290,8 @@ const runInstallBuildStart = async () => {
     const eastAppExists = await checkPm2App()
 
     if (eastAppExists) {
-      console.log('EAST application is already running.')
-      await runCommand('pm2 start "EAST"')
+      console.log('EAST application already exists. Restarting...')
+      await runCommand('pm2 restart "EAST"')
     } else {
       console.log('EAST application not found. Starting EAST...')
       await runCommand('pm2 start npm --name "EAST" -- start')

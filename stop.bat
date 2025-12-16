@@ -19,6 +19,28 @@ REM Set explicit paths to npm and pm2 in thirdparty
 set "NPM=%REPO_ROOT%\thirdparty\nodejs\npm.cmd"
 set "NODE=%REPO_ROOT%\thirdparty\nodejs\node.exe"
 
+REM Stop PCM sensor server
+echo Stopping PCM sensor server on port 9738...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :9738 ^| findstr LISTENING') do (
+    set "PCM_PID=%%a"
+)
+
+if defined PCM_PID (
+    echo Found PCM sensor server with PID: %PCM_PID%
+    taskkill /F /PID %PCM_PID% >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo PCM sensor server stopped successfully.
+    ) else (
+        echo WARNING: Failed to stop PCM sensor server. It may require administrator privileges.
+        echo You can manually close the "PCM Sensor Server" window.
+    )
+) else (
+    echo PCM sensor server is not running on port 9738.
+)
+
+REM Small delay to ensure port is released
+timeout /t 3 /nobreak >nul
+
 REM Navigate to the frontend directory in the repo
 cd /d "%REPO_ROOT%\frontend"
 if %errorlevel% neq 0 (
