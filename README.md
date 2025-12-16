@@ -290,11 +290,7 @@ This procedure addresses common package dependency conflicts encountered on Ubun
 
 4. Text generation may produce gibberish and illogical output for some LLM models when using Intel® Arc™ Ultra 7 Processor 155H iGPUs.
 
-5. Speech-to-text workloads using Whisper models currently fail to run on NPU accelerators.
-
-6. Power consumption metrics are not available on Windows for now.
-
-7. DLStreamer is not supported on Windows. Hence, the Object Detection and Instance Segmentation use cases for Computer Vision task are currently unavailable on Windows.
+5. DLStreamer is not supported on Windows. Hence, the Object Detection and Instance Segmentation use cases for Computer Vision task are currently unavailable on Windows.
 
 
 ## Disclaimer

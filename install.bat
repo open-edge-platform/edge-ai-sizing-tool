@@ -1,4 +1,8 @@
 @echo off
+
+REM Copyright (C) 2025 Intel Corporation
+REM SPDX-License-Identifier: Apache-2.0
+
 setlocal
 
 REM Check for administrative privileges
@@ -10,7 +14,6 @@ if %errorlevel% neq 0 (
     pause
     exit /b
 )
-
 
 REM Get the directory of this script (repo root)
 set "REPO_ROOT=%~dp0"
@@ -66,6 +69,9 @@ if %errorlevel% equ 0 (
         exit /b
     )
 )
+
+REM Setup Intel PCM
+call "%REPO_ROOT%\scripts\setup_pcm.bat" "%REPO_ROOT%" "%THIRDPARTY%"
 
 REM Check if Node.js is already installed in thirdparty
 echo Checking if Node.js is installed in thirdparty...
@@ -143,5 +149,13 @@ if %errorlevel%==0 (
 )
 
 echo Installation complete.
+
+REM Enable test signing for the MSR driver
+echo Enabling test signing for driver installation...
+bcdedit /set testsigning on
+echo NOTE: System will need to be rebooted for test signing to take effect.
+echo Rebooting system in 10 seconds...
+
 timeout /t 10
+shutdown /r /t 0
 endlocal

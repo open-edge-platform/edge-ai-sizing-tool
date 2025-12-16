@@ -1,6 +1,19 @@
 @echo off
+
+REM Copyright (C) 2025 Intel Corporation
+REM SPDX-License-Identifier: Apache-2.0
+
 setlocal
 
+REM Check for administrative privileges
+echo Checking for administrative privileges
+:checkPrivileges
+NET SESSION >nul 2>&1
+if %errorlevel% neq 0 (
+    echo This script requires administrative privileges. Please run as administrator.
+    pause
+    exit /b
+)
 
 REM Get the directory of this script (repo root)
 set "REPO_ROOT=%~dp0"
@@ -16,6 +29,33 @@ set "PM2_HOME=%REPO_ROOT%\.pm2"
 REM Set explicit paths to npm and pm2 in thirdparty
 set "NPM=%REPO_ROOT%\thirdparty\nodejs\npm.cmd"
 set "NODE=%REPO_ROOT%\thirdparty\nodejs\node.exe"
+
+REM Set path to PCM sensor server
+set "PCM_SERVER=%REPO_ROOT%\thirdparty\pcm\pcm-sensor-server.exe"
+
+REM Check if pcm-sensor-server.exe exists
+if not exist "%PCM_SERVER%" (
+    echo WARNING: pcm-sensor-server.exe not found at %PCM_SERVER%
+    echo Continuing without power monitoring...
+    timeout /t 3 /nobreak >nul
+    goto :skipPCM
+)
+
+REM Start PCM sensor server in background
+echo Starting PCM sensor server...
+start /B "" "%PCM_SERVER%" -r >nul 2>&1
+if %errorlevel% neq 0 (
+    echo WARNING: Failed to start pcm-sensor-server.exe
+    echo This requires administrator privileges.
+    echo Continuing without power monitoring...
+    timeout /t 3 /nobreak >nul
+) else (
+    echo PCM sensor server started successfully.
+    REM Wait a moment for server to initialize
+    timeout /t 3 /nobreak >nul
+)
+
+:skipPCM
 
 REM Navigate to the frontend directory in the repo
 cd /d "%REPO_ROOT%\frontend"

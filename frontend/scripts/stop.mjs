@@ -11,6 +11,12 @@ import os from 'os'
 const isWindows = os.platform() === 'win32'
 
 const getPm2PathWindows = () => {
+  // Check local node_modules first
+  const localPm2 = path.join(process.cwd(), 'node_modules', '.bin', 'pm2.cmd')
+  if (fs.existsSync(localPm2)) {
+    return localPm2
+  }
+  
   try {
     return execSync('where pm2.cmd', {
       encoding: 'utf8',
