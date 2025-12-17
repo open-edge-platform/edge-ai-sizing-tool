@@ -1,23 +1,14 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-import os from 'os'
 import axios from 'axios'
 
-const isWindows = os.platform() === 'win32'
-
 export async function GET() {
-  if (isWindows) {
-    return Response.json({
-      intervalUs: null,
-      joulesConsumed: null,
-    })
-  }
-
   const apiURL = 'http://localhost:9738/persecond'
 
   try {
     const response = await axios.get(apiURL, {
+      proxy: false,
       headers: {
         Accept: 'application/json',
       },

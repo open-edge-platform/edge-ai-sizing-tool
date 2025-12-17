@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+properties:
+  resources:
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: vsPackage
+      directives:
+        description: Install Visual Studio 2022 Build Tools
+        allowPrerelease: true
+      settings:
+        id: Microsoft.VisualStudio.2022.BuildTools
+        source: winget
+        useLatest: true
+    - resource: Microsoft.VisualStudio.DSC/VSComponents
+      id: vsComponents
+      dependsOn:
+        - vsPackage
+      directives:
+        description: Install required VS workloads and components for PCM compilation
+      settings:
+        productId: Microsoft.VisualStudio.Product.BuildTools
+        channelId: VisualStudio.17.Release
+        includeRecommended: true
+        components:
+          # Desktop development with C++
+          - Microsoft.VisualStudio.Workload.VCTools
+          # .NET desktop development
+          - Microsoft.VisualStudio.Workload.ManagedDesktopBuildTools
+          # C++ CMake tools for Windows
+          - Microsoft.VisualStudio.Component.VC.CMake.Project
+          # MSVC v143 - VS 2022 C++ x64/x86 build tools
+          - Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+          # C++ Spectre-mitigated libs (x64/x86)
+          - Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre
+          # Windows Driver Kit Build Tools
+          - Component.Microsoft.Windows.DriverKit.BuildTools
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: sdkPackage
+      directives:
+        description: Install Windows SDK version 26100
+        allowPrerelease: true
+      settings:
+        id: Microsoft.WindowsSDK.10.0.26100
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: wdkPackage
+      dependsOn:
+        - sdkPackage
+      directives:
+        description: Install Windows Driver Kit version 26100
+        allowPrerelease: true
+      settings:
+        id: Microsoft.WindowsWDK.10.0.26100
+        source: winget
+        useLatest: true
+  configurationVersion: 0.2.1
