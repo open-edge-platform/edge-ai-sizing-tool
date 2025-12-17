@@ -189,6 +189,15 @@ export function SystemMonitorSidebar({
         icon: Zap,
         device: npuData.data.name,
       })
+    } else if (npuData.data && npuData.data.name == NOT_AVAILABLE) {
+      items.push({
+        id: 'npu',
+        type: 'n/a',
+        title: `NPU: ${npuData.data.name}`,
+        description: 'Neural processing unit utilization',
+        icon: Zap,
+        device: npuData.data.name,
+      })
     }
 
     if (powerData.isLoading) {
