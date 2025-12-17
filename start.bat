@@ -1,6 +1,19 @@
 @echo off
+
+REM Copyright (C) 2025 Intel Corporation
+REM SPDX-License-Identifier: Apache-2.0
+
 setlocal
 
+REM Check for administrative privileges
+echo Checking for administrative privileges
+:checkPrivileges
+NET SESSION >nul 2>&1
+if %errorlevel% neq 0 (
+    echo This script requires administrative privileges. Please run as administrator.
+    pause
+    exit /b
+)
 
 REM Get the directory of this script (repo root)
 set "REPO_ROOT=%~dp0"

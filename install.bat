@@ -1,4 +1,8 @@
 @echo off
+
+REM Copyright (C) 2025 Intel Corporation
+REM SPDX-License-Identifier: Apache-2.0
+
 setlocal
 
 REM Check for administrative privileges

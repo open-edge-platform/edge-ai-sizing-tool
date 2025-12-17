@@ -1,8 +1,8 @@
-openvino_genai==2025.3.0.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+optimum-intel[nncf]==1.26.0
+openvino_genai==2025.4.0.0
 soundfile==0.13.1
-optimum-intel==1.26.0
 sentencepiece==0.2.0
 fastapi==0.115.11
-huggingface_hub[cli]==0.36.0
 uvicorn==0.34.0
-torch==2.9.0
+huggingface_hub[cli]==0.36.0
