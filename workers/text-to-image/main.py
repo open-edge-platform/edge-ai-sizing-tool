@@ -20,6 +20,7 @@ from PIL import Image
 from typing import Dict
 from fastapi import FastAPI
 from pydantic import BaseModel
+import huggingface_hub as hf_hub
 from huggingface_hub import whoami
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
@@ -158,7 +159,10 @@ def setup_model(args: argparse.Namespace, env: Dict[str, str]):
     # download model if it doesn't exist
     if not os.path.exists(model):
         logging.info(f"Model {model} not found. Downloading...")
-        optimum_cli(args, model, env)
+        if any(keyword in args.model_name for keyword in ["OpenVINO/", "ov", "openvino"]):
+            hf_hub.snapshot_download(args.model_name, local_dir=model)
+        else:
+            optimum_cli(args, model, env)
 
     if os.path.realpath(model) != os.path.abspath(
         model

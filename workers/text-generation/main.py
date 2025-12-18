@@ -155,7 +155,7 @@ def setup_model(args: argparse.Namespace, env: Dict[str, str]):
     # download model if it doesn't exist
     if not os.path.exists(model):
         logging.info(f"Model {model} not found. Downloading...")
-        if args.model_name.startswith("OpenVINO/"):
+        if any(keyword in args.model_name for keyword in ["OpenVINO/", "ov", "openvino"]):
             hf_hub.snapshot_download(args.model_name, local_dir=model)
         else:
             additional_args = {
