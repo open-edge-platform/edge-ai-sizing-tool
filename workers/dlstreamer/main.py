@@ -37,12 +37,18 @@ os.environ["GST_PLUGIN_PATH"] = (
     "/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/gstreamer/lib/gstreamer-1.0:/opt/intel/dlstreamer/streamer/lib/"
 )
 os.environ["LD_LIBRARY_PATH"] = (
-    "/opt/intel/dlstreamer/gstreamer/lib:/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/lib/gstreamer-1.0:/sr/lib:/opt/intel/dlstreamer/lib:/usr/local/lib/gstreamer-1.0:/usr/local/lib"
+    "/opt/intel/dlstreamer/gstreamer/lib:/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/lib/gstreamer-1.0:/sr/lib:/opt/intel/dlstreamer/lib:/usr/local/lib/gstreamer-1.0:/usr/local/lib:/opt/opencv:/opt/rdkafka"
 )
 os.environ["LIBVA_DRIVERS_PATH"] = "/usr/lib/x86_64-linux-gnu/dri"
 os.environ["GST_VA_ALL_DRIVERS"] = "1"
 os.environ["PATH"] = (
     f"/opt/intel/dlstreamer/gstreamer/bin:/opt/intel/dlstreamer/bin:{os.environ['PATH']}"
+)
+os.environ["GST_PLUGIN_FEATURE_RANK"] = (
+    os.environ.get("GST_PLUGIN_FEATURE_RANK", "") + ",ximagesink:MAX"
+)
+os.environ["GI_TYPELIB_PATH"] = (
+    "/opt/intel/dlstreamer/gstreamer/lib/girepository-1.0:/usr/lib/x86_64-linux-gnu/girepository-1.0"
 )
 
 env = os.environ.copy()
