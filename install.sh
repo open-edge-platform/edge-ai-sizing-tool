@@ -171,7 +171,7 @@ main() {
     # Install Intel DLStreamer and additional plugins
     log_info "Installing Intel DLStreamer..."
     apt update
-    install_package "intel-dlstreamer"
+    install_package "intel-dlstreamer=2025.2.0"
     install_package "gstreamer1.0-plugins-ugly"
 
     # Install Intel PCM
@@ -234,22 +234,20 @@ setup_intel_dlstreamer() {
     log_info "Setting up Intel repositories..."
     
     # Add Intel GPG keys
-    if ! wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null; then
-        log_error "Failed to add Intel OneAPI GPG key."
+    if ! wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/intel-gpg-archive-keyring.gpg > /dev/null; then
+        log_error "Failed to add Intel GPG key."
         exit 1
     fi
     
-    if ! wget -O- https://eci.intel.com/sed-repos/gpg-keys/GPG-PUB-KEY-INTEL-SED.gpg | tee /usr/share/keyrings/sed-archive-keyring.gpg > /dev/null; then
-        log_error "Failed to add Intel SED GPG key."
+    if ! wget -O- https://apt.repos.intel.com/edgeai/dlstreamer/GPG-PUB-KEY-INTEL-DLS.gpg | tee /usr/share/keyrings/dls-archive-keyring.gpg > /dev/null; then
+        log_error "Failed to add Intel DLS GPG key."
         exit 1
     fi
     
     # Add repositories
-    echo "deb [signed-by=/usr/share/keyrings/sed-archive-keyring.gpg] https://eci.intel.com/sed-repos/$(source /etc/os-release && echo "$VERSION_CODENAME") sed main" | tee /etc/apt/sources.list.d/sed.list
+    echo "deb [signed-by=/usr/share/keyrings/dls-archive-keyring.gpg] https://apt.repos.intel.com/edgeai/dlstreamer/$ubuntu_version $ubuntu_version main" | tee /etc/apt/sources.list.d/intel-dlstreamer.list
     
-    echo -e "Package: *\nPin: origin eci.intel.com\nPin-Priority: 1000" > /etc/apt/preferences.d/sed
-    
-    echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/openvino/2025 $ubuntu_version main" | tee /etc/apt/sources.list.d/intel-openvino-2025.list
+    echo "deb [signed-by=/usr/share/keyrings/intel-gpg-archive-keyring.gpg] https://apt.repos.intel.com/openvino/2025 $ubuntu_version main" | tee /etc/apt/sources.list.d/intel-openvino-2025.list
     
     log_success "Intel repositories configured successfully."
 }
