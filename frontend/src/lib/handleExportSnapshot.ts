@@ -353,17 +353,97 @@ async function captureSystemInfo(
     ;(el as HTMLElement).style.paddingBottom = '100px'
   })
 
-  const gpuCard = clone.querySelectorAll('[data-gpu], .gpu-card, .gpu-info')
-  gpuCard.forEach((card) => {
-    ;(card as HTMLElement).style.height = 'auto'
-    ;(card as HTMLElement).style.maxHeight = 'none'
-    ;(card as HTMLElement).style.overflow = 'visible'
-  })
-  const npuCard = clone.querySelectorAll('[data-npu], .npu-card, .npu-info')
-  npuCard.forEach((card) => {
-    ;(card as HTMLElement).style.height = 'auto'
-    ;(card as HTMLElement).style.maxHeight = 'none'
-    ;(card as HTMLElement).style.overflow = 'visible'
+  // Function to count GPUs
+  const gpuCard = clone.querySelector('#gpu-container')
+  const totalGPUs = 0
+
+  const countGPUs = (): number => {
+    if (!gpuCard) return 0
+    const gpuItems = Array.from(
+      gpuCard.querySelectorAll('[id^="gpu-item-"]'),
+    ).filter(
+      (item) =>
+        item.textContent?.includes('Model:') &&
+        item.textContent?.includes('Device:'),
+    )
+    return gpuItems.length
+  }
+
+  if (gpuCard) {
+    const totalGPUs = countGPUs()
+    const gpuCardElement = gpuCard as HTMLElement
+
+    // adding page break before the GPU card
+    const pageBreak = document.createElement('div')
+    pageBreak.style.height = '250px'
+    pageBreak.style.breakBefore = 'page'
+    pageBreak.style.visibility = 'hidden'
+
+    gpuCard.parentNode?.insertBefore(pageBreak, gpuCard)
+
+    gpuCardElement.style.breakBefore = 'page'
+    gpuCardElement.style.breakInside = 'avoid'
+    gpuCardElement.style.marginTop = '20px'
+
+    if (totalGPUs > 8) {
+      const calculatedMargin = Math.max(50, 290 - totalGPUs * 10)
+      gpuCardElement.style.marginBottom = `${calculatedMargin}px`
+    } else {
+      gpuCardElement.style.marginBottom = '2px'
+    }
+  }
+
+  // Handle NPU Containers by moving to a new page
+  const npuContainer = clone.querySelector('#npu-container')
+  if (npuContainer) {
+    const npuElement = npuContainer as HTMLElement
+
+    if (totalGPUs > 8) {
+      // Move NPU to new page
+      const npuPageBreak = document.createElement('div')
+      npuPageBreak.style.height = '50px'
+      npuPageBreak.style.breakBefore = 'page'
+      npuPageBreak.style.visibility = 'hidden'
+      npuContainer.parentNode?.insertBefore(npuPageBreak, npuContainer)
+
+      Object.assign(npuElement.style, {
+        breakBefore: 'page',
+        pageBreakBefore: 'always',
+        breakInside: 'avoid',
+        pageBreakInside: 'avoid',
+        marginTop: '20px',
+        height: 'auto',
+        maxHeight: 'none',
+        overflow: 'visible',
+      })
+    } else {
+      // Keep NPU on same page
+      Object.assign(npuElement.style, {
+        height: 'auto',
+        maxHeight: 'none',
+        overflow: 'visible',
+        marginTop: '30px',
+        marginBottom: '10px',
+      })
+    }
+  }
+
+  // handle other containers normally
+  const allCards = clone.querySelectorAll('div[class*="card"], .card')
+  allCards.forEach((card, index) => {
+    const element = card as HTMLElement
+    if (card.id === 'gpu-container' || card.id === 'npu-container') {
+      return
+    }
+
+    element.style.height = 'auto'
+    element.style.maxHeight = 'none'
+    element.style.overflow = 'visible'
+    element.style.marginBottom = '15px'
+
+    if (index > 0) {
+      element.style.marginTop = '25px'
+    }
   })
 
   tempContainer.appendChild(clone)

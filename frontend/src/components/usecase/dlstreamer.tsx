@@ -77,7 +77,7 @@ export function DlStreamer({
         console.error('Failed to parse stream metrics:', err)
       }
     }
-  }, [data])
+  }, [data, setPerformanceMetrics])
 
   const chartConfig: Record<string, { label: string; color: string }> = {
     fps: {
