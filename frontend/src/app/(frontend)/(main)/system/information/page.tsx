@@ -233,14 +233,14 @@ export default function SystemInformationPage() {
             </Card>
 
             {/* GPU Cards */}
-            <Card className="gpu-card">
+            <Card className="gpu-card" id="gpu-container">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Layers className="mr-2 h-5 w-5" />
                   GPU Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="gpu-info">
+              <CardContent className="gpu-info" id="gpu-content">
                 {data.gpuInfo && data.gpuInfo.length > 0 ? (
                   <div className="space-y-4">
                     {data.gpuInfo.map(
@@ -248,7 +248,11 @@ export default function SystemInformationPage() {
                         gpu: { name: string; device: string },
                         index: number,
                       ) => (
-                        <div key={index} className="space-y-2">
+                        <div
+                          key={index}
+                          className="space-y-2"
+                          id={`gpu-item-${index}`}
+                        >
                           <div className="grid grid-cols-2 gap-1">
                             <div className="text-muted-foreground text-sm">
                               Model:
@@ -288,7 +292,7 @@ export default function SystemInformationPage() {
 
             {/* NPU Card */}
             {data.npu && data.npu !== NOT_AVAILABLE && (
-              <Card className="npu-card">
+              <Card className="npu-card" id="npu-container">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Cpu className="mr-2 h-5 w-5" />
