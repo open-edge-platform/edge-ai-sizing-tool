@@ -1,0 +1,13 @@
+diff --git a/node_modules/pm2/lib/God/ForkMode.js b/node_modules/pm2/lib/God/ForkMode.js
+index 8d0c1fb..8688367 100644
+--- a/node_modules/pm2/lib/God/ForkMode.js
++++ b/node_modules/pm2/lib/God/ForkMode.js
+@@ -95,7 +95,7 @@ module.exports = function ForkMode(God) {
+       try {
+         var options = {
+           env      : pm2_env,
+-          detached : true,
++          detached : false,
+           cwd      : pm2_env.pm_cwd || process.cwd(),
+           stdio    : ['pipe', 'pipe', 'pipe', 'ipc'] //Same as fork() in node core
+         }
