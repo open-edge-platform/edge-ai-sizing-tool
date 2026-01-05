@@ -93,8 +93,8 @@ check_system_requirements() {
     log_info "Checking system requirements..."
     
     # Check if running on supported Ubuntu version
-    if ! grep -qE "Ubuntu (22|24)" /etc/os-release; then
-        log_error "This script only supports Ubuntu 22 or 24."
+    if ! grep -qE "Ubuntu 24" /etc/os-release; then
+        log_error "This script only supports Ubuntu 24."
         exit 1
     fi
     
@@ -111,6 +111,166 @@ check_system_requirements() {
     fi
     
     log_success "System requirements check passed."
+}
+
+# Install Intel XPU Manager
+install_intel_xpu_manager() {
+    log_info "Installing Intel XPU Manager..."
+    local xpu_package="xpumanager_1.3.1_20250724.061629.60921e5e_u24.04_amd64.deb"
+    
+    download_with_retry "https://github.com/intel/xpumanager/releases/download/V1.3.1/$xpu_package" "$xpu_package"
+    
+    if dpkg -i "$xpu_package"; then
+        log_success "Intel XPU Manager installed successfully."
+    else
+        log_error "Failed to install Intel XPU Manager."
+        exit 1
+    fi
+    rm -f "$xpu_package"    
+}
+
+# Install Intel DLStreamer
+install_intel_dlstreamer() {    
+    log_info "Installing Intel DLStreamer..."
+    
+    # Add Intel GPG keys
+    if ! wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/intel-gpg-archive-keyring.gpg > /dev/null; then
+        log_error "Failed to add Intel GPG key."
+        exit 1
+    fi
+    
+    if ! wget -O- https://apt.repos.intel.com/edgeai/dlstreamer/GPG-PUB-KEY-INTEL-DLS.gpg | tee /usr/share/keyrings/dls-archive-keyring.gpg > /dev/null; then
+        log_error "Failed to add Intel DLS GPG key."
+        exit 1
+    fi
+    
+    # Add repositories
+    echo "deb [signed-by=/usr/share/keyrings/dls-archive-keyring.gpg] https://apt.repos.intel.com/edgeai/dlstreamer/ubuntu24 ubuntu24 main" | tee /etc/apt/sources.list.d/intel-dlstreamer.list
+    
+    echo "deb [signed-by=/usr/share/keyrings/intel-gpg-archive-keyring.gpg] https://apt.repos.intel.com/openvino/2025 ubuntu24 main" | tee /etc/apt/sources.list.d/intel-openvino-2025.list
+    
+    apt update
+    install_package "intel-dlstreamer=2025.2.0"
+    install_package "gstreamer1.0-plugins-ugly"
+
+    log_success "Intel DLStreamer installed successfully."
+}
+
+# Install Intel Performance Counter Monitor (Intel PCM)
+install_intel_pcm() {
+    log_info "Installing Intel® Performance Counter Monitor (Intel® PCM)..."
+    
+    # Get project root directory
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Check if pcm directory already exists and remove it
+    if [ -d "./pcm/" ]; then
+        rm -rf ./pcm/
+    fi
+
+    # Git clone and build Intel PCM
+    git clone --recursive https://github.com/intel/pcm
+    cd pcm || { echo "Failed to change directory to pcm"; exit 1; }
+    mkdir -p build
+    cd build || { echo "Failed to change directory to build"; exit 1; }
+    cmake ..
+    cmake --build . --parallel
+
+    # Navigate to project root directory
+    cd "$SCRIPT_DIR" || { echo "Failed to change directory to project root"; exit 1; }
+}
+
+# Install Node.js version 24
+install_nodejs() {
+    log_info "Installing Node.js (version 24)..."
+    
+    # Check if Node.js is already installed with correct version
+    if command -v node &> /dev/null; then
+        local current_version
+        current_version=$(node -v | sed 's/v//' | cut -d. -f1)
+        if [ "$current_version" = "24" ]; then
+            log_success "Node.js version 24 is already installed."
+            return 0
+        fi
+    fi
+    
+    if curl -fsSL https://deb.nodesource.com/setup_24.x | bash -; then
+        log_success "Node.js repository added successfully."
+    else
+        log_error "Failed to add Node.js repository."
+        exit 1
+    fi
+    
+    install_package "nodejs"
+    
+    # Verify Node.js installation
+    log_info "Verifying Node.js installation..."
+    if node -v; then
+        log_success "Node.js verification successful."
+    else
+        log_error "Node.js verification failed."
+        exit 1
+    fi
+}
+
+# Configure system settings
+configure_system() {
+    log_info "Configuring system settings..."
+    
+    # Enable perf_events for non-root users
+    log_info "Enabling perf_events for non-root users..."
+    if ! grep -q "kernel.perf_event_paranoid=0" /etc/sysctl.conf; then
+        echo "kernel.perf_event_paranoid=0" >> /etc/sysctl.conf
+        log_success "Added kernel.perf_event_paranoid=0 to /etc/sysctl.conf"
+    else
+        log_info "kernel.perf_event_paranoid=0 is already set in /etc/sysctl.conf"
+    fi
+    
+    # Apply the changes
+    log_info "Applying sysctl changes..."
+    if sysctl -p; then
+        log_success "Sysctl changes applied successfully."
+    else
+        log_error "Failed to apply sysctl changes."
+        exit 1
+    fi
+}
+
+# Install MediaMTX
+install_mediamtx() {
+    log_info "Installing MediaMTX..."
+    
+    if [ -f "./scripts/setup_mediamtx.sh" ]; then
+        if chmod +x "./scripts/setup_mediamtx.sh" && ./scripts/setup_mediamtx.sh; then
+            log_success "MediaMTX installed successfully."
+        else
+            log_error "Failed to install MediaMTX."
+            exit 1
+        fi
+    else
+        log_warning "MediaMTX setup script not found at ./scripts/setup_mediamtx.sh"
+    fi
+}
+
+# Configure user groups
+configure_user_groups() {
+    log_info "Configuring user groups..."
+    
+    if ! groups "$SUDO_USER" | grep -qw "video"; then 
+        if usermod -aG video "$SUDO_USER"; then
+            log_success "Added $SUDO_USER to video group"
+            echo "=============================================================="
+            echo "IMPORTANT: To apply video group changes, you must:"
+            echo "  - Log out and log back in, OR"
+            echo "  - Run: newgrp video"
+            echo "=============================================================="
+        else
+            log_error "Failed to add $SUDO_USER to video group."
+            exit 1
+        fi
+    else
+        log_info "$SUDO_USER is already in the video group."
+    fi
 }
 
 # Main installation function
@@ -159,20 +319,11 @@ main() {
         install_package "$package"
     done
     
-    # Ubuntu version specific installations
-    if grep -q "Ubuntu 22" /etc/os-release; then
-        log_info "Detected Ubuntu 22. Installing version-specific packages..."
-        install_ubuntu22_packages
-    elif grep -q "Ubuntu 24" /etc/os-release; then
-        log_info "Detected Ubuntu 24. Installing version-specific packages..."
-        install_ubuntu24_packages
-    fi
+    # Install Intel XPU Manager
+    install_intel_xpu_manager
     
     # Install Intel DLStreamer and additional plugins
-    log_info "Installing Intel DLStreamer..."
-    apt update
-    install_package "intel-dlstreamer=2025.2.0"
-    install_package "gstreamer1.0-plugins-ugly"
+    install_intel_dlstreamer
 
     # Install Intel PCM
     install_intel_pcm
@@ -190,178 +341,6 @@ main() {
     configure_user_groups
     
     log_success "Installation and configuration completed successfully!"
-}
-
-install_ubuntu22_packages() {
-    # Install Intel XPU Manager
-    log_info "Installing Intel XPU Manager for Ubuntu 22..."
-    local xpu_package="xpumanager_1.3.1_20250724.061629.60921e5e_u22.04_amd64.deb"
-    
-    download_with_retry "https://github.com/intel/xpumanager/releases/download/V1.3.1/$xpu_package" "$xpu_package"
-    
-    if dpkg -i "$xpu_package"; then
-        log_success "Intel XPU Manager installed successfully."
-    else
-        log_error "Failed to install Intel XPU Manager."
-        exit 1
-    fi
-    rm -f "$xpu_package"
-    
-    setup_intel_repos "ubuntu22"
-}
-
-install_ubuntu24_packages() {
-    # Install Intel XPU Manager
-    log_info "Installing Intel XPU Manager for Ubuntu 24..."
-    local xpu_package="xpumanager_1.3.1_20250724.061629.60921e5e_u24.04_amd64.deb"
-    
-    download_with_retry "https://github.com/intel/xpumanager/releases/download/V1.3.1/$xpu_package" "$xpu_package"
-    
-    if dpkg -i "$xpu_package"; then
-        log_success "Intel XPU Manager installed successfully."
-    else
-        log_error "Failed to install Intel XPU Manager."
-        exit 1
-    fi
-    rm -f "$xpu_package"
-    
-    setup_intel_dlstreamer "ubuntu24"
-}
-
-setup_intel_dlstreamer() {
-    local ubuntu_version="$1"
-    
-    log_info "Setting up Intel repositories..."
-    
-    # Add Intel GPG keys
-    if ! wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/intel-gpg-archive-keyring.gpg > /dev/null; then
-        log_error "Failed to add Intel GPG key."
-        exit 1
-    fi
-    
-    if ! wget -O- https://apt.repos.intel.com/edgeai/dlstreamer/GPG-PUB-KEY-INTEL-DLS.gpg | tee /usr/share/keyrings/dls-archive-keyring.gpg > /dev/null; then
-        log_error "Failed to add Intel DLS GPG key."
-        exit 1
-    fi
-    
-    # Add repositories
-    echo "deb [signed-by=/usr/share/keyrings/dls-archive-keyring.gpg] https://apt.repos.intel.com/edgeai/dlstreamer/$ubuntu_version $ubuntu_version main" | tee /etc/apt/sources.list.d/intel-dlstreamer.list
-    
-    echo "deb [signed-by=/usr/share/keyrings/intel-gpg-archive-keyring.gpg] https://apt.repos.intel.com/openvino/2025 $ubuntu_version main" | tee /etc/apt/sources.list.d/intel-openvino-2025.list
-    
-    log_success "Intel repositories configured successfully."
-}
-
-install_intel_pcm() {
-    log_info "Installing Intel® Performance Counter Monitor (Intel® PCM)..."
-    
-    # Get project root directory
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-    # Check if pcm directory already exists and remove it
-    if [ -d "./pcm/" ]; then
-        rm -rf ./pcm/
-    fi
-
-    # Git clone and build Intel PCM
-    git clone --recursive https://github.com/intel/pcm
-    cd pcm || { echo "Failed to change directory to pcm"; exit 1; }
-    mkdir -p build
-    cd build || { echo "Failed to change directory to build"; exit 1; }
-    cmake ..
-    cmake --build . --parallel
-
-    # Navigate to project root directory
-    cd "$SCRIPT_DIR" || { echo "Failed to change directory to project root"; exit 1; }
-}
-
-install_nodejs() {
-    log_info "Installing Node.js (version 22)..."
-    
-    # Check if Node.js is already installed with correct version
-    if command -v node &> /dev/null; then
-        local current_version
-        current_version=$(node -v | sed 's/v//' | cut -d. -f1)
-        if [ "$current_version" = "22" ]; then
-            log_success "Node.js version 22 is already installed."
-            return 0
-        fi
-    fi
-    
-    if curl -fsSL https://deb.nodesource.com/setup_22.x | bash -; then
-        log_success "Node.js repository added successfully."
-    else
-        log_error "Failed to add Node.js repository."
-        exit 1
-    fi
-    
-    install_package "nodejs"
-    
-    # Verify Node.js installation
-    log_info "Verifying Node.js installation..."
-    if node -v; then
-        log_success "Node.js verification successful."
-    else
-        log_error "Node.js verification failed."
-        exit 1
-    fi
-}
-
-configure_system() {
-    log_info "Configuring system settings..."
-    
-    # Enable perf_events for non-root users
-    log_info "Enabling perf_events for non-root users..."
-    if ! grep -q "kernel.perf_event_paranoid=0" /etc/sysctl.conf; then
-        echo "kernel.perf_event_paranoid=0" >> /etc/sysctl.conf
-        log_success "Added kernel.perf_event_paranoid=0 to /etc/sysctl.conf"
-    else
-        log_info "kernel.perf_event_paranoid=0 is already set in /etc/sysctl.conf"
-    fi
-    
-    # Apply the changes
-    log_info "Applying sysctl changes..."
-    if sysctl -p; then
-        log_success "Sysctl changes applied successfully."
-    else
-        log_error "Failed to apply sysctl changes."
-        exit 1
-    fi
-}
-
-install_mediamtx() {
-    log_info "Installing MediaMTX..."
-    
-    if [ -f "./scripts/setup_mediamtx.sh" ]; then
-        if chmod +x "./scripts/setup_mediamtx.sh" && ./scripts/setup_mediamtx.sh; then
-            log_success "MediaMTX installed successfully."
-        else
-            log_error "Failed to install MediaMTX."
-            exit 1
-        fi
-    else
-        log_warning "MediaMTX setup script not found at ./scripts/setup_mediamtx.sh"
-    fi
-}
-
-configure_user_groups() {
-    log_info "Configuring user groups..."
-    
-    if ! groups "$SUDO_USER" | grep -qw "video"; then 
-        if usermod -aG video "$SUDO_USER"; then
-            log_success "Added $SUDO_USER to video group"
-            echo "=============================================================="
-            echo "IMPORTANT: To apply video group changes, you must:"
-            echo "  - Log out and log back in, OR"
-            echo "  - Run: newgrp video"
-            echo "=============================================================="
-        else
-            log_error "Failed to add $SUDO_USER to video group."
-            exit 1
-        fi
-    else
-        log_info "$SUDO_USER is already in the video group."
-    fi
 }
 
 # Run main function
