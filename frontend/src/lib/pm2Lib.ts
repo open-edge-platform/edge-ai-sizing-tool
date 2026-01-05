@@ -60,7 +60,7 @@ export async function startPm2Process(
 
   // Construct the path to the Python interpreter in the virtual environment
   const virtualEnvPath = isWindows
-    ? path.join(scriptFolder, 'venv', 'Scripts', 'python.exe')
+    ? path.join(scriptFolder, 'venv', 'Scripts', 'pythonw.exe')
     : path.join(scriptFolder, 'venv', 'bin', 'python')
 
   // Construct the PM2 start command
