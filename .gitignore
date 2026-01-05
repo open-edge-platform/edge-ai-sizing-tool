@@ -9,7 +9,9 @@ dist
 !/assets/media/person-bicycle-car-detection.mp4
 
 /tests/scan/*
-!/tests/scan/coverity_scan.sh
+/tests/scripts/*
+!/tests/scripts/coverity_scan.sh
+!/tests/scripts/fuzz-test.sh
 
 /custom_models/*
 !/custom_models/README.md

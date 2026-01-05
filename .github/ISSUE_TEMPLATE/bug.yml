@@ -21,7 +21,6 @@ body:
       label: Operating System
       description: What OS are you using?
       options:
-        - Ubuntu 22.04 (LTS)
         - Ubuntu 24.04 (LTS)
         - Windows 11
     validations:
