@@ -6,6 +6,30 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 
 > **Disclaimer:** This software is designed to run exclusively in a trusted, single-machine environment. It is **not designed, tested, or supported for use in production systems**. Deploying or running this software in production or untrusted environments may lead to unexpected behavior, security vulnerabilities, or performance issues. Use outside of controlled, secure settings is strongly discouraged.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+  - [Hardware Prerequisites](#hardware-prerequisites)
+  - [Software Prerequisites](#software-prerequisites)
+  - [Application Ports](#application-ports)
+- [Supported AI Models](#supported-ai-models)
+  - [1. Predefined Models](#1-predefined-models)
+  - [2. Hugging Face Model ID](#2-hugging-face-model-id)
+  - [3. ModelScope Model ID](#3-modelscope-model-id)
+  - [4. Upload Model ZIP](#4-upload-model-zip)
+  - [5. Custom Model Directory](#5-custom-model-directory)
+- [Quick Start](#quick-start)
+  - [For Linux](#for-linux)
+  - [For Windows](#for-windows)
+- [Deployment](#deployment)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+  - [1. GPU Utilization Not Showing Up](#1-gpu-utilization-not-showing-up)
+  - [2. Tool Crashes or Stops Unexpectedly](#2-tool-crashes-or-stops-unexpectedly)
+  - [3. Installation Script Dependency Issues](#3-installation-script-dependency-issues)
+- [Limitations](#limitations)
+- [Disclaimer](#disclaimer)
+
 ## Requirements
 
 ### Hardware Prerequisites
@@ -66,25 +90,101 @@ A curated set of popular models for common AI tasks:
 
 > **Disclaimer:** Before setting up and starting the application, review the license terms for each model above. By proceeding, you acknowledge and agree to comply with the respective model licenses.
 
+> **Note:** Models will be downloaded from their respective sources (Hugging Face, Ultralytics, etc.). You can update the `HF_ENDPOINT` variable in the `.env` file to use a different Hugging Face endpoint if needed.
+
 ---
 
 #### 2. Hugging Face Model ID
 
 Specify a Hugging Face model repository ID to download and use models directly from Hugging Face.
 
-- For models requiring authentication, set your Hugging Face access token as an environment variable before starting the application:
+- For models requiring authentication, set your Hugging Face access token using one of the following methods:
 
-  ```bash
-  export HF_TOKEN='your_huggingface_token'
-  ```
+  **Method 1 (Recommended): Update the frontend/.env file**
+    
+    Add or update the `HF_TOKEN` variable in the `frontend/.env` file:
+    
+    ```
+    HF_TOKEN=your_huggingface_token
+    ```
 
-  Replace `'your_huggingface_token'` with your actual token from Hugging Face account settings.
+    **Method 2: Export as environment variable**
+    
+    Set the token as an environment variable before starting the application:
+
+    **For Linux:**
+    ```bash
+    export HF_TOKEN='your_huggingface_token'
+    ```
+
+    **For Windows:**
+    ```cmd
+    set HF_TOKEN=your_huggingface_token
+    ```
+
+    Replace `your_huggingface_token` with your actual token from Hugging Face account settings.
+
+- By default, `HF_ENDPOINT` is set to `https://huggingface.co`. You can configure a custom endpoint by updating the environment variable:
+
+  **Method 1 (Recommended): Update the frontend/.env file**
+
+    Add or update the `HF_ENDPOINT` variable in the `frontend/.env` file:
+
+    ```
+    HF_ENDPOINT=https://your-custom-endpoint.com
+    ```
+
+  **Method 2: Export as environment variable**
+
+    Set the endpoint as an environment variable before starting the application:
+
+    **For Linux:**
+    ```bash
+    export HF_ENDPOINT='https://your-custom-endpoint.com'
+    ```
+
+    **For Windows:**
+    ```cmd
+    set HF_ENDPOINT=https://your-custom-endpoint.com
+    ```
 
 > **Note:** Some models may not be supported by the libraries or accelerators used in this application.
 
 ---
 
-#### 3. Upload Model ZIP
+#### 3. ModelScope Model ID
+
+Specify a ModelScope model repository ID to download and use models directly from ModelScope.
+
+- By default, `MODELSCOPE_DOMAIN` is set to `https://modelscope.cn`. You can configure a custom endpoint by updating the environment variable:
+
+  **Method 1 (Recommended): Update the frontend/.env file**
+
+    Add or update the `MODELSCOPE_DOMAIN` variable in the `frontend/.env` file:
+
+    ```
+    MODELSCOPE_DOMAIN=https://your-custom-endpoint.com
+    ```
+
+  **Method 2: Export as environment variable**
+
+    Set the endpoint as an environment variable before starting the application:
+
+    **For Linux:**
+    ```bash
+    export MODELSCOPE_DOMAIN='https://your-custom-endpoint.com'
+    ```
+
+    **For Windows:**
+    ```cmd
+    set MODELSCOPE_DOMAIN=https://your-custom-endpoint.com
+    ```
+
+> **Note:** Some models may not be supported by the libraries or accelerators used in this application.
+
+---
+
+#### 4. Upload Model ZIP
 
 Upload your own custom model as a ZIP file.
 
@@ -100,11 +200,11 @@ Upload your own custom model as a ZIP file.
 
 - Only OpenVINO models are supported. Ensure your model is exported to OpenVINO IR format before uploading.
 
-> **Note:** Some workloads may fail if the model is not compatible with the application’s supported libraries or accelerators.
+> **Note:** Some workloads may fail if the model is not compatible with the application's supported libraries or accelerators.
 
 ---
 
-#### 4. Custom Model Directory
+#### 5. Custom Model Directory
 
 Place your custom model files in the `./custom_models/` directory as described in [custom_models/README.md](./custom_models/README.md):
 
@@ -143,6 +243,8 @@ This installs all required packages, sets up Python and Node.js environments.
 > **Note:** When you execute `start.sh`, the setup process will automatically generate a random secret key for the `PAYLOAD_SECRET` variable in the `.env` file. By running this script, you acknowledge and accept the use of this automatically generated secret.  
 >
 > If you prefer to specify your own secret key, manually copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value in the `.env` file before running this script.
+>
+> You can also update the `HF_TOKEN`, `HF_ENDPOINT`, and `MODELSCOPE_DOMAIN` variables in the `.env` file as needed for your environment.
 
 ```bash
 ./start.sh
@@ -178,6 +280,12 @@ This installs all required packages, sets up Python and Node.js environments.
 #### 3. Run the Application
 
 - Double-click the `start.bat` shortcut on your Desktop to start services either from a fresh state or restore their previous states.
+
+> **Note:** When you execute `start.bat`, the setup process will automatically generate a random secret key for the `PAYLOAD_SECRET` variable in the `.env` file. By running this script, you acknowledge and accept the use of this automatically generated secret.  
+>
+> If you prefer to specify your own secret key, manually copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value in the `.env` file before running this script.
+>
+> You can also update the `HF_TOKEN`, `HF_ENDPOINT`, and `MODELSCOPE_DOMAIN` variables in the `.env` file as needed for your environment.
 
 Once started, open http://localhost:8080 in your browser.
 
@@ -284,7 +392,7 @@ This procedure addresses common package dependency conflicts encountered on Ubun
 
 1. iGPU utilization and device name may not be displayed on Intel® Core™ Ultra 9 288V processors.
 
-2.  On Ubuntu, the Object Detection inferencing stream window may stop displaying results after running for extended periods.
+2. On Ubuntu, the Object Detection inferencing stream window may stop displaying results after running for extended periods.
 
 3. System Overview and System Monitor may only show the PCI ID (e.g., e20b) for certain GPU models instead of the actual descriptive name.
 

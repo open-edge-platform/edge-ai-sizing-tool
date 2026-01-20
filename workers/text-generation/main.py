@@ -12,33 +12,35 @@ import requests
 import subprocess
 import urllib.parse
 import openvino_genai
+import huggingface_hub
+from pathlib import Path
 
 from typing import Dict
 from fastapi import FastAPI
 from pydantic import BaseModel
-import huggingface_hub as hf_hub
-from huggingface_hub import whoami
+from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from modelscope.hub.snapshot_download import snapshot_download
+
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
-MODELS_DIR = "models"
-CUSTOM_MODEL_DIR = "../custom_models/text-generation"
+MODELS_DIR = Path("models")
+CUSTOM_MODEL_DIR = Path("../custom_models/text-generation")
+ENV_PATH = Path("../../frontend/.env")
 PIPE = None
 
 
 def setup_env():
-    hf_token = os.getenv("HF_TOKEN")
-    if hf_token:
-        whoami(token=hf_token)
+    load_dotenv(ENV_PATH)
 
     env = os.environ.copy()
-    venv_path = os.path.dirname(sys.executable)
+    venv_path = Path(sys.executable).parent
     if platform.system() == "Windows":
         env["PATH"] = f"{venv_path};{env['PATH']}"
     else:
@@ -48,13 +50,18 @@ def setup_env():
 
 def optimum_cli(
     args: argparse.Namespace,
-    output_dir: str,
+    output_dir: Path,
     env: Dict[str, str],
     additional_args: Dict[str, str] = None,
 ):
-    export_command = (
-        f"optimum-cli export openvino --model {args.model_name} {output_dir}"
-    )
+    if args.repo_source == "huggingface":
+        export_command = (
+            f"optimum-cli export openvino --model {args.model_name} {output_dir}"
+        )
+    else:
+        export_command = (
+            f"optimum-cli export openvino --model {output_dir} {output_dir}"
+        )
     if additional_args is not None:
         for arg, value in additional_args.items():
             export_command += f" --{arg}"
@@ -120,63 +127,115 @@ def update_payload_status(workload_id: int, status: str, port: int):
 def setup_model(args: argparse.Namespace, env: Dict[str, str]):
     global PIPE
     # Prepare model path and extraction if needed
-    os.makedirs(MODELS_DIR, exist_ok=True)
+    MODELS_DIR.mkdir(exist_ok=True)
 
     # handle custom model in zip format
     if args.model_name.endswith(".zip"):
-        model_zipfile_name = os.path.splitext(os.path.basename(args.model_name))[0]
-        model = os.path.join(MODELS_DIR, model_zipfile_name)
-        if not os.path.exists(model):
-            logging.info(f"Extracting {args.model_name} to {model}")
+        logging.info(f"Processing zip file: {args.model_name}")
+        model_zipfile_name = Path(args.model_name).stem
+        model_path = MODELS_DIR / model_zipfile_name
+
+        if not model_path.exists():
+            logging.info(f"Extracting {args.model_name} to {model_path}")
             try:
-                with zipfile.ZipFile(os.path.abspath(args.model_name), "r") as zip_ref:
-                    zip_ref.extractall(model)
+                with zipfile.ZipFile(Path(args.model_name).resolve(), "r") as zip_ref:
+                    zip_ref.extractall(model_path)
             except Exception as e:
                 logging.error(f"Failed to extract zip file {args.model_name}: {e}")
                 update_payload_status(args.id, status="failed", port=args.port)
                 sys.exit(1)
         else:
             logging.info(
-                f"Model directory {model} already exists and is not empty, skipping extraction."
+                f"Model directory {model_path} already exists and is not empty, skipping extraction."
             )
     else:
         # handle custom model uploaded to directory
-        model = os.path.join(CUSTOM_MODEL_DIR, args.model_name)
-        if not os.path.exists(model):
+        model_path = CUSTOM_MODEL_DIR / args.model_name
+
+        if not model_path.exists():
             # predefined model or hugging face model id
-            model = os.path.join(MODELS_DIR, args.model_name)
+            model_path = MODELS_DIR / args.model_name
             if platform.system() == "Windows":
-                current_dir = os.getcwd()
-                model = os.path.join(current_dir, model).replace("/", "\\")
-            logging.info(f"Model: {model}")
+                model_path = Path.cwd() / model_path
+            logging.info(f"Model: {model_path}")
         else:
-            logging.info(f"Custom Model: {model} exists.")
+            logging.info(f"Custom model found: {model_path}")
+            if not any(model_path.iterdir()):
+                logging.error(f"Custom model directory {model_path} is empty.")
+                update_payload_status(args.id, status="failed", port=args.port)
+                sys.exit(1)
 
     # download model if it doesn't exist
-    if not os.path.exists(model):
-        logging.info(f"Model {model} not found. Downloading...")
-        if any(keyword in args.model_name for keyword in ["OpenVINO/", "ov", "openvino"]):
-            hf_hub.snapshot_download(args.model_name, local_dir=model)
-        else:
-            additional_args = {
-                "weight-format": "int4",
-                "sym": None,
-                "ratio": 1.0,
-                "group-size": -1,
-            }
-            optimum_cli(args, model, env, additional_args)
+    if model_path.exists() and not any(model_path.iterdir()):
+        logging.info(f"Removing empty model directory: {model_path}")
+        try:
+            model_path.rmdir()
+        except OSError as e:
+            logging.warning(f"Failed to remove empty directory {model_path}: {e}")
+            update_payload_status(args.id, status="failed", port=args.port)
+            sys.exit(1)
 
-    if os.path.realpath(model) != os.path.abspath(
-        model
+    if not model_path.exists():
+        logging.info(f"Model {model_path} not found. Downloading...")
+
+        is_openvino_model = any(
+            keyword in args.model_name.lower() for keyword in ["openvino", "ov"]
+        )
+
+        try:
+            if args.repo_source == "modelscope":
+                logging.info(
+                    f"Downloading model {args.model_name} from ModelScope to {model_path}"
+                )
+                snapshot_download(
+                    repo_id=args.model_name,
+                    local_dir=str(model_path),
+                )
+
+                if not is_openvino_model:
+                    additional_args = {
+                        "task": "text-generation-with-past",
+                        "weight-format": "int4",
+                        "sym": None,
+                        "ratio": 1.0,
+                        "group-size": -1,
+                    }
+                    optimum_cli(args, model_path, env, additional_args)
+
+            else:
+                logging.info(
+                    f"Downloading model {args.model_name} from Hugging Face to {model_path}"
+                )
+
+                if is_openvino_model:
+                    huggingface_hub.snapshot_download(
+                        args.model_name, local_dir=str(model_path)
+                    )
+                else:
+                    additional_args = {
+                        "weight-format": "int4",
+                        "sym": None,
+                        "ratio": 1.0,
+                        "group-size": -1,
+                    }
+                    optimum_cli(args, model_path, env, additional_args)
+
+        except Exception as e:
+            logging.error(f"Failed to download model: {e}")
+            update_payload_status(args.id, status="failed", port=args.port)
+            sys.exit(1)
+
+    if (
+        model_path.resolve() != model_path.absolute()
     ):  # Check if the model path is a symlink
         logging.error(
-            f"Model file {model} is a symlink or contains a symlink in its path. Refusing to open for security reasons."
+            f"Model file {model_path} is a symlink or contains a symlink in its path. Refusing to open for security reasons."
         )
         update_payload_status(args.id, status="failed", port=args.port)
         sys.exit(1)
 
     try:
-        PIPE = openvino_genai.LLMPipeline(model, args.device)
+        PIPE = openvino_genai.LLMPipeline(str(model_path), args.device)
         update_payload_status(args.id, status="active", port=args.port)
     except Exception as e:
         logging.error(f"Failed to load model: {e}")
@@ -198,6 +257,12 @@ def parse_args():
         type=str,
         required=True,
         help="Name of the OpenVINO model (.xml file) or hugging face ID",
+    )
+    parser.add_argument(
+        "--repo-source",
+        type=str,
+        default="huggingface",
+        help="Source of the model (huggingface or modelscope)",
     )
     parser.add_argument(
         "--device",

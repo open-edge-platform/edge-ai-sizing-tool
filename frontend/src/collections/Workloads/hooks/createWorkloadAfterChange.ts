@@ -19,6 +19,7 @@ type WorkloadMetadata = {
     [key: string]: unknown
   }
   [key: string]: unknown
+  repoPlatform?: string
 }
 
 function isDLStreamerMetadata(metadata: unknown): metadata is WorkloadMetadata {
@@ -79,6 +80,8 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
         ? path.join(MODELS_PATH, metadata.customModel.name)
         : doc.model
 
+    const repoPlatform = metadata?.repoPlatform
+
     let params =
       '--device ' +
       devices +
@@ -88,6 +91,11 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
       doc.port +
       ' --id ' +
       doc.id
+
+    if (typeof repoPlatform === 'string' && repoPlatform === 'modelscope') {
+      params += ' --repo-source ' + repoPlatform
+    }
+
     if (doc.usecase.includes('(DLStreamer') && doc.source && doc.source.name) {
       if (doc.usecase === 'instance segmentation (DLStreamer)') {
         usecaseName = 'instance-segmentation'

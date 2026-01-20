@@ -293,11 +293,11 @@ export const useProcessedSystemInfo = () => {
       usedMemory:
         memoryData.data && memoryData.data.used !== NOT_AVAILABLE
           ? `${memoryData.data.used.toFixed(1)} GB (${memoryData.data.usedPercentage.toFixed(0)}%)`
-          : memoryData.data.used,
+          : memoryData.data?.used,
       freeMemory:
         memoryData.data && memoryData.data.free !== NOT_AVAILABLE
           ? `${memoryData.data.free.toFixed(1)} GB (${memoryData.data.freePercentage.toFixed(0)}%)`
-          : memoryData.data.free,
+          : memoryData.data?.free,
       totalDiskSize:
         data.disk && data.disk?.total !== NOT_AVAILABLE
           ? `${data.disk.total.toFixed(0)} GB`

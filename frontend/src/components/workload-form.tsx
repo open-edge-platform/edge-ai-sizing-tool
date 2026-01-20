@@ -55,6 +55,12 @@ function getNumStreams(metadata: Workload['metadata']): number | undefined {
     : undefined
 }
 
+function getRepoPlatform(metadata: Workload['metadata']): string {
+  return isMetadataObject(metadata) && typeof metadata.repoPlatform === 'string'
+    ? metadata.repoPlatform
+    : 'huggingface'
+}
+
 function isCustomModel(
   metadata: Workload['metadata'],
 ): CustomModel | undefined {
@@ -94,7 +100,11 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
     task: '' as TaskType,
     usecase: '',
     model: '',
-    metadata: { customModel: undefined, numStreams: undefined },
+    metadata: {
+      customModel: undefined,
+      numStreams: undefined,
+      repoPlatform: 'huggingface',
+    },
     devices: [],
     source: {
       name: '',
@@ -108,8 +118,11 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   const [availableUsecases, setAvailableUsecases] = useState<string[]>([])
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [modelSelectionType, setModelSelectionType] = useState<
-    'predefined' | 'huggingface' | 'upload' | 'directory'
+    'predefined' | 'modelRepo' | 'upload' | 'directory'
   >('predefined')
+  const [repoPlatform, setRepoPlatform] = useState<
+    'huggingface' | 'modelscope'
+  >('huggingface')
   const [isDisable, setIsDisable] = useState<boolean>(true)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const selectedInputFileRef = useRef<File | null>(null)
@@ -159,7 +172,12 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
           ].model,
         ).includes(workload.model)
       ) {
-        setModelSelectionType('huggingface')
+        setModelSelectionType('modelRepo')
+        setRepoPlatform(
+          (getRepoPlatform(workload.metadata) ?? 'huggingface') as
+            | 'huggingface'
+            | 'modelscope',
+        )
       } else {
         setModelSelectionType('predefined')
       }
@@ -207,6 +225,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         metadata: {
           ...(isMetadataObject(workload.metadata) ? workload.metadata : {}),
           customModel: isCustomModel(workload.metadata) ?? undefined,
+          repoPlatform: getRepoPlatform(workload.metadata) ?? 'huggingface',
           numStreams: getNumStreams(workload.metadata) ?? 1,
         },
       })
@@ -310,6 +329,9 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
         devices: transformedDevice,
         ...(isDLStreamer && {
           numStreams: getNumStreams(addWorkload.metadata),
+        }),
+        ...(getRepoPlatform(addWorkload.metadata) === 'modelscope' && {
+          repoPlatform: getRepoPlatform(addWorkload.metadata),
         }),
       })
 
@@ -601,6 +623,24 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
     }))
   }
 
+  const handleRepoPlatformChange = (platform: 'huggingface' | 'modelscope') => {
+    setRepoPlatform(platform)
+    setAddWorkload((prev) => ({
+      ...prev,
+      model: '',
+      metadata: { repoPlatform: platform },
+    }))
+  }
+
+  const handleModelIdInput = (modelId: string) => {
+    setAddWorkload((prev) => ({
+      ...prev,
+      model: modelId,
+      devices: [],
+    }))
+    setAvailableDevices(acceleratorDevices || [])
+  }
+
   return (
     <div className="h-full w-full">
       <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-6 lg:min-w-[750px] xl:min-w-[1000px]">
@@ -880,7 +920,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                               setModelSelectionType(
                                 e.target.value as
                                   | 'predefined'
-                                  | 'huggingface'
+                                  | 'modelRepo'
                                   | 'upload'
                                   | 'directory',
                               )
@@ -893,6 +933,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                       ? prev.metadata
                                       : {}),
                                     customModel: undefined,
+                                    repoPlatform: 'huggingface',
                                   },
                                 }
                               })
@@ -906,10 +947,10 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                         <div className="flex items-center space-x-2">
                           <input
                             type="radio"
-                            id="huggingface"
+                            id="modelRepo"
                             name="model-type"
-                            value="huggingface"
-                            checked={modelSelectionType === 'huggingface'}
+                            value="modelRepo"
+                            checked={modelSelectionType === 'modelRepo'}
                             disabled={addWorkload.usecase?.includes(
                               'DLStreamer',
                             )}
@@ -917,7 +958,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                               setModelSelectionType(
                                 e.target.value as
                                   | 'predefined'
-                                  | 'huggingface'
+                                  | 'modelRepo'
                                   | 'upload'
                                   | 'directory',
                               )
@@ -944,8 +985,8 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                             }}
                             className="h-4 w-4"
                           />
-                          <Label htmlFor="huggingface" className="font-normal">
-                            Hugging Face Model
+                          <Label htmlFor="modelRepo" className="font-normal">
+                            Model Repository
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -959,7 +1000,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                               setModelSelectionType(
                                 e.target.value as
                                   | 'predefined'
-                                  | 'huggingface'
+                                  | 'modelRepo'
                                   | 'upload'
                                   | 'directory',
                               )
@@ -984,6 +1025,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                       size: null,
                                       type: '',
                                     },
+                                    repoPlatform: 'huggingface',
                                   },
                                 }
                               })
@@ -1006,7 +1048,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                               setModelSelectionType(
                                 e.target.value as
                                   | 'predefined'
-                                  | 'huggingface'
+                                  | 'modelRepo'
                                   | 'upload'
                                   | 'directory',
                               )
@@ -1027,6 +1069,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                       ? prev.metadata
                                       : {}),
                                     customModel: undefined,
+                                    repoPlatform: 'huggingface',
                                   },
                                 }
                               })
@@ -1058,28 +1101,99 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                 ))}
                               </SelectContent>
                             </Select>
+                            <p className="text-muted-foreground text-primary text-xs">
+                              Model download will use the HF_ENDPOINT configured
+                              in .env file. To change it, update the HF_ENDPOINT
+                              in your .env file and restart the application.
+                            </p>
                           </div>
                         </>
                       )}
 
-                      {modelSelectionType === 'huggingface' && (
+                      {modelSelectionType === 'modelRepo' && (
                         <div className="grid gap-2 pt-2">
-                          <Label htmlFor="hf-model-id">
-                            Hugging Face Model ID
+                          <Label htmlFor="model-source">
+                            Repository Platform
                           </Label>
+                          <div className="mb-4 flex gap-4">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="huggingface"
+                                name="model-source"
+                                value="huggingface"
+                                checked={repoPlatform === 'huggingface'}
+                                onChange={(e) =>
+                                  handleRepoPlatformChange(
+                                    e.target.value as
+                                      | 'huggingface'
+                                      | 'modelscope',
+                                  )
+                                }
+                                className="h-4 w-4"
+                              />
+                              <Label
+                                htmlFor="huggingface"
+                                className="font-normal"
+                              >
+                                Hugging Face
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="modelscope"
+                                name="model-source"
+                                value="modelscope"
+                                checked={repoPlatform === 'modelscope'}
+                                onChange={(e) =>
+                                  handleRepoPlatformChange(
+                                    e.target.value as
+                                      | 'huggingface'
+                                      | 'modelscope',
+                                  )
+                                }
+                                className="h-4 w-4"
+                              />
+                              <Label
+                                htmlFor="modelscope"
+                                className="font-normal"
+                              >
+                                ModelScope
+                              </Label>
+                            </div>
+                          </div>
+
+                          <Label htmlFor="model-id">Model ID</Label>
                           <Input
-                            id="hf-model-id"
-                            placeholder="e.g., microsoft/DialoGPT-medium"
+                            id="model-id"
+                            placeholder={
+                              repoPlatform === 'huggingface'
+                                ? 'e.g., microsoft/DialoGPT-medium'
+                                : 'e.g., damo/nlp_structbert_backbone_base_std'
+                            }
                             value={addWorkload.model || ''}
-                            onChange={(e) => handleModelChange(e.target.value)}
+                            onChange={(e) => handleModelIdInput(e.target.value)}
                             className="font-normal"
                             disabled={addWorkload.usecase?.includes(
                               'DLStreamer',
                             )}
                           />
                           <p className="text-muted-foreground text-xs">
-                            Enter the model ID from Hugging Face Hub (format:
-                            organization/model-name)
+                            {repoPlatform === 'huggingface'
+                              ? 'Enter the model ID from Hugging Face Hub (format: organization/model-name)'
+                              : 'Enter the model ID from ModelScope (format: organization/model-name)'}
+                          </p>
+                          <p className="text-muted-foreground text-primary text-xs">
+                            Model download will use the{' '}
+                            {repoPlatform === 'huggingface'
+                              ? 'HF_ENDPOINT'
+                              : 'MODELSCOPE_DOMAIN'}{' '}
+                            configured in .env file. To change it, update the{' '}
+                            {repoPlatform === 'huggingface'
+                              ? 'HF_ENDPOINT'
+                              : 'MODELSCOPE_DOMAIN'}{' '}
+                            in your .env file and restart the application.
                           </p>
                         </div>
                       )}
