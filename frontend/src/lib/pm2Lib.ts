@@ -68,7 +68,7 @@ export async function startPm2Process(
 
   try {
     await runCommand(
-      `npx pm2 start ${scriptPath} --name ${pm2Name} --interpreter=${virtualEnvPath} -- ${params}`,
+      `npx pm2 start ${scriptPath} --name ${pm2Name} --interpreter=${virtualEnvPath} --no-autorestart -- ${params}`,
     )
   } catch (err) {
     throw err

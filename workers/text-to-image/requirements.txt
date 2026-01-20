@@ -6,3 +6,5 @@ uvicorn==0.34.0
 huggingface_hub[cli]==0.36.0
 Pillow==11.1.0
 diffusers==0.35.2
+python-dotenv==1.2.1
+modelscope==1.33.0

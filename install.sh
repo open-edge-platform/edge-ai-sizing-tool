@@ -301,7 +301,6 @@ main() {
     # Install necessary packages
     log_info "Installing necessary packages..."
     local packages=(
-        "intel-gpu-tools"
         "curl"
         "python3-venv"
         "v4l-utils"
