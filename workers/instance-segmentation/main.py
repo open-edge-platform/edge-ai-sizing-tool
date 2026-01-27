@@ -14,6 +14,7 @@ import uvicorn
 import zipfile
 import requests
 import argparse
+import platform
 import threading
 import urllib.parse
 import numpy as np
@@ -30,29 +31,55 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+# Detect platform
+IS_WINDOWS = sys.platform == "win32"
+
+# Windows-specific configuration to prevent console window popup for subprocesses
+if IS_WINDOWS:
+    STARTUPINFO = sp.STARTUPINFO()
+    STARTUPINFO.dwFlags |= sp.STARTF_USESHOWWINDOW
+    STARTUPINFO.wShowWindow = sp.SW_HIDE
+else:
+    STARTUPINFO = None
+
 # Set environment variables to enable dlstreamer
-os.environ["LIBVA_DRIVER_NAME"] = "iHD"
-os.environ["GST_PLUGIN_PATH"] = (
-    "/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/gstreamer/lib/gstreamer-1.0:/opt/intel/dlstreamer/streamer/lib/"
-)
-os.environ["LD_LIBRARY_PATH"] = (
-    "/opt/intel/dlstreamer/gstreamer/lib:/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/lib/gstreamer-1.0:/sr/lib:/opt/intel/dlstreamer/lib:/usr/local/lib/gstreamer-1.0:/usr/local/lib:/opt/opencv:/opt/rdkafka"
-)
-os.environ["LIBVA_DRIVERS_PATH"] = "/usr/lib/x86_64-linux-gnu/dri"
-os.environ["GST_VA_ALL_DRIVERS"] = "1"
-os.environ["PATH"] = (
-    f"/opt/intel/dlstreamer/gstreamer/bin:/opt/intel/dlstreamer/bin:{os.environ['PATH']}"
-)
-os.environ["GST_PLUGIN_FEATURE_RANK"] = (
-    os.environ.get("GST_PLUGIN_FEATURE_RANK", "") + ",ximagesink:MAX"
-)
-os.environ["GI_TYPELIB_PATH"] = (
-    "/opt/intel/dlstreamer/gstreamer/lib/girepository-1.0:/usr/lib/x86_64-linux-gnu/girepository-1.0"
-)
+if not IS_WINDOWS:
+    os.environ["LIBVA_DRIVER_NAME"] = "iHD"
+    os.environ["GST_PLUGIN_PATH"] = (
+        "/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/gstreamer/lib/gstreamer-1.0:/opt/intel/dlstreamer/streamer/lib/"
+    )
+    os.environ["LD_LIBRARY_PATH"] = (
+        "/opt/intel/dlstreamer/gstreamer/lib:/opt/intel/dlstreamer/lib:/opt/intel/dlstreamer/lib/gstreamer-1.0:/sr/lib:/opt/intel/dlstreamer/lib:/usr/local/lib/gstreamer-1.0:/usr/local/lib:/opt/opencv:/opt/rdkafka"
+    )
+    os.environ["LIBVA_DRIVERS_PATH"] = "/usr/lib/x86_64-linux-gnu/dri"
+    os.environ["GST_VA_ALL_DRIVERS"] = "1"
+    os.environ["PATH"] = (
+        f"/opt/intel/dlstreamer/gstreamer/bin:/opt/intel/dlstreamer/bin:{os.environ['PATH']}"
+    )
+    os.environ["GST_PLUGIN_FEATURE_RANK"] = (
+        os.environ.get("GST_PLUGIN_FEATURE_RANK", "") + ",ximagesink:MAX"
+    )
+    os.environ["GI_TYPELIB_PATH"] = (
+        "/opt/intel/dlstreamer/gstreamer/lib/girepository-1.0:/usr/lib/x86_64-linux-gnu/girepository-1.0"
+    )
+elif IS_WINDOWS:
+    # Windows DLStreamer environment setup
+    # Logging/verification
+    gstreamer_path = os.environ.get(
+        "GSTREAMER_1_0_ROOT_MSVC_X86_64", "C:\\gstreamer\\1.0\\msvc_x86_64"
+    )
+    openvino_path = os.environ.get("OPENVINO_DIR", "C:\\openvino")
+
+    logging.info(f"Windows DLStreamer environment:")
+    logging.info(f"  GStreamer: {gstreamer_path}")
+    logging.info(f"  OpenVINO: {openvino_path}")
+    logging.info(f"  DLStreamer plugins are installed as GStreamer plugins")
+    logging.info(f"  Relying on system PATH configured by setup_dls_env.ps1")
 
 env = os.environ.copy()
 venv_path = os.path.dirname(sys.executable)
 venv_bin = str(Path(sys.executable).parent)
+path_separator = ";" if IS_WINDOWS else ":"
 env["PATH"] = f"{venv_path}:{env['PATH']}"
 
 VIDEO_DIR = Path("../assets/media")
@@ -292,44 +319,82 @@ def build_pipeline(
         source_command = ["filesrc", f"location={input}", "loop=true"]
     elif input.startswith("rtsp://"):
         source_command = ["rtspsrc", f"location={input}", "protocols=tcp"]
-    elif input.startswith("/dev/video"):
-        if number_of_streams > 1:
-            source_command = [
-                "v4l2src",
-                f"device={input}",
-                "!",
-                "videoconvert",
-                "!",
-                "tee",
-                "name=camtee",
-                "!",
-                "multiqueue",
-                "name=camq",
-            ]
+    elif input.startswith("/dev/video") or input.isdigit():
+        if IS_WINDOWS:
+            if number_of_streams > 1:
+                source_command = [
+                    "mfvideosrc",
+                    f"device-index={input if input.isdigit() else 0}",
+                    "!",
+                    "videoconvert",
+                    "!",
+                    "tee",
+                    "name=camtee",
+                    "!",
+                    "multiqueue",
+                    "name=camq",
+                ]
+            else:
+                source_command = [
+                    "mfvideosrc",
+                    f"device-index={input if input.isdigit() else 0}",
+                ]
         else:
-            source_command = ["v4l2src", f"device={input}"]
+            if number_of_streams > 1:
+                source_command = [
+                    "v4l2src",
+                    f"device={input}",
+                    "!",
+                    "videoconvert",
+                    "!",
+                    "tee",
+                    "name=camtee",
+                    "!",
+                    "multiqueue",
+                    "name=camq",
+                ]
+            else:
+                source_command = ["v4l2src", f"device={input}"]
     else:
         logging.error(f"Unsupported input source: {input}")
         return None
 
     # Configure decode element
     if "CPU" in decode_device:
-        if input.startswith("/dev/video"):
+        if (not IS_WINDOWS and input.startswith("/dev/video")) or (
+            IS_WINDOWS and input.isdigit()
+        ):
             decode_element = [
                 "videoconvert",
             ]
-            caps_element = ["video/x-raw"]
-        else:
+            caps_element = ["video/x-raw,format=BGR"]
+        elif IS_WINDOWS:
+            # Windows - all inputs use QSV decoder for RTSP/files
             decode_element = [
                 "rtph264depay",
+                "!",
+                "h264parse",
+                "!",
+                "qsvh264dec",
+                "!",
+                "videoconvert",
+            ]
+            caps_element = ["video/x-raw,format=BGR"]
+        else:
+            # Linux - RTSP/file inputs
+            decode_element = [
+                "rtph264depay",
+                "!",
+                "h264parse",
                 "!",
                 "avdec_h264",
                 "!",
                 "videoconvert",
             ]
             caps_element = ["video/x-raw,format=BGR"]
+
     elif "GPU" in decode_device or "NPU" in decode_device:
-        if input.startswith("/dev/video"):
+        if not IS_WINDOWS and input.startswith("/dev/video"):
             decode_element = [
                 "videoconvert",
                 "!",
@@ -340,32 +405,51 @@ def build_pipeline(
             decode_element = [
                 "rtph264depay",
                 "!",
-                "avdec_h264",
+                "h264parse",
+                "!",
+                "vaapih264dec",
                 "!",
                 "vapostproc",
             ]
             caps_element = ["video/x-raw(memory:VAMemory),format=NV12"]
+
     else:
         logging.error(f"Unsupported device: {decode_device}")
         return None
 
+    # Convert Windows paths to forward slashes for GStreamer
+    # GStreamer on Windows accepts forward slashes and this avoids escaping issues
+    gst_model_path = (
+        model_full_path.replace("\\", "/") if IS_WINDOWS else model_full_path
+    )
+    gst_model_proc_path = (
+        model_proc_path.replace("\\", "/")
+        if IS_WINDOWS and model_proc_path
+        else model_proc_path
+    )
+    gst_model_label_path = (
+        model_label_path.replace("\\", "/")
+        if IS_WINDOWS and model_label_path
+        else model_label_path
+    )
+
     inference_command = [
         f"{inference_mode}",
-        f"model={model_full_path}",
+        f"model={gst_model_path}",
         f"device={device}",
     ]
 
     # if dont have model proc file then we make it use it without
     # Add model proc file if available
-    if model_proc_path is not None and os.path.exists(model_proc_path):
+    if gst_model_proc_path is not None and os.path.exists(model_proc_path):
         logging.info(f"Using model proc file: {model_proc_path}")
-        inference_command.append(f"model-proc={model_proc_path}")
+        inference_command.append(f"model-proc={gst_model_proc_path}")
     else:
         logging.warning("No model proc file found. Proceeding without one.")
 
-    if model_label_path is not None and os.path.exists(model_label_path):
+    if gst_model_label_path is not None and os.path.exists(model_label_path):
         logging.info(f"Using model label file: {model_label_path}")
-        inference_command.append(f"labels-file={model_label_path}")
+        inference_command.append(f"labels-file={gst_model_label_path}")
     else:
         logging.warning("No model label file found. Proceeding without one.")
 
@@ -382,7 +466,10 @@ def build_pipeline(
         inference_command.append("pre-process-backend=ie")
 
     # beginning of piepline
-    pipeline = ["gst-launch-1.0"]
+    gst_launch_cmd = (
+        "gst-launch-1.0.exe" if platform.system() == "Windows" else "gst-launch-1.0"
+    )
+    pipeline = [gst_launch_cmd]
 
     comp_props_str = build_compositor_props(
         args.number_of_streams,
@@ -470,7 +557,9 @@ def run_pipeline(pipeline):
     """
     logging.info("Starting GStreamer pipeline...")
     try:
-        process = sp.Popen(pipeline, stdout=sp.PIPE, stderr=sp.PIPE, text=True)
+        process = sp.Popen(
+            pipeline, stdout=sp.PIPE, stderr=sp.PIPE, text=True, startupinfo=STARTUPINFO
+        )
         # Monitor the pipeline's stdout
         for line in process.stdout:
             logging.info(line.strip())
@@ -681,7 +770,8 @@ def main():
         ("rtsp://", "/dev/video")
     ):
         if args.input.isdigit():
-            args.input = "/dev/video" + args.input
+            if not IS_WINDOWS:
+                args.input = "/dev/video" + args.input
             logging.info(
                 f"Input is a device index or webcam: {args.input}. Skipping file download."
             )
@@ -720,18 +810,30 @@ def main():
 
         try:
             ffmpeg_process = sp.Popen(
-                ffmpeg_command, stdout=sp.DEVNULL, stderr=sp.DEVNULL
+                ffmpeg_command,
+                stdout=sp.DEVNULL,
+                stderr=sp.DEVNULL,
+                startupinfo=STARTUPINFO,
             )
             logging.info(f"Started RTSP streaming with PID: {ffmpeg_process.pid}")
         except sp.CalledProcessError as e:
             logging.error(f"Failed to host RTSP stream: {e}")
 
-    if not is_rtsp_stream_running(args.input, retries=5, delay=1):
-        logging.error("RTSP stream is not running after multiple attempts. Exiting...")
-        update_payload_status(args.id, status="failed")
-        exit(1)
-    else:
-        time.sleep(5)
+    # Check if the RTSP stream is running (skip for webcam devices)
+    # Webcam detection: /dev/videoN on Linux or numeric device index on Windows
+    is_webcam_input = (not IS_WINDOWS and args.input.startswith("/dev/video")) or (
+        IS_WINDOWS and args.input.isdigit()
+    )
+
+    if not is_webcam_input:
+        if not is_rtsp_stream_running(args.input, retries=5, delay=1):
+            logging.error(
+                "RTSP stream is not running after multiple attempts. Exiting..."
+            )
+            update_payload_status(args.id, status="failed")
+            exit(1)
+        else:
+            time.sleep(5)
 
     if args.model in SEGMENTATION_MODELS:
         model_status = export_model(
