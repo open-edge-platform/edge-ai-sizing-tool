@@ -266,10 +266,18 @@ This script ensures that all services are properly shut down, including backgrou
 
 #### 1. Setup Platform
 
-If your system has a GPU, install the [GPU driver](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html).  
+If your system has a GPU, install the [GPU driver](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html).
 If your system has an NPU, install the [NPU driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html).
 
 #### 2. Install Dependencies
+
+>Note: Automated installation for GStreamer in `install.bat` may be blocked due to anti-bot measures by GStreamer. You may need to install GStreamer manually before running `install.bat`.
+
+Download and install the following for GStreamer version `1.26.6`(dependency required by Intel® DLStreamer):
+1.  [Runtime installer](https://gstreamer.freedesktop.org/data/pkg/windows/1.26.6/msvc/gstreamer-1.0-msvc-x86_64-1.26.6.msi)
+2.  [Development installer](https://gstreamer.freedesktop.org/data/pkg/windows/1.26.6/msvc/gstreamer-1.0-devel-msvc-x86_64-1.26.6.msi)
+
+Ensure that the installation path is set to `C:\gstreamer` for both the runtime and development packages.
 
 Right-click the `install.bat` file and click "Run as administrator".
 
@@ -398,8 +406,7 @@ This procedure addresses common package dependency conflicts encountered on Ubun
 
 4. Text generation may produce gibberish and illogical output for some LLM models when using Intel® Arc™ Ultra 7 Processor 155H iGPUs.
 
-5. DLStreamer is not supported on Windows. Hence, the Object Detection and Instance Segmentation use cases for Computer Vision task are currently unavailable on Windows.
-
+5.  Running object detection or instance-segmenetation workload with Intel® DLStreamer in Windows may cause a command terminal pop-up by PM2. These command terminal windows can be minimized, but they will remain open until the workload or application is stopped.
 
 ## Disclaimer
 GStreamer* is an open source framework licensed under LGPL. See https://gstreamer.freedesktop.org/documentation/frequently-asked-questions/licensing.html. You are solely responsible for determining if your use of GStreamer requires any additional licenses.  Intel is not responsible for obtaining any such licenses, nor liable for any licensing fees due, in connection with your use of GStreamer.

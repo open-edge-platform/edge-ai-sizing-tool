@@ -7,6 +7,8 @@ import shutil
 import logging
 import argparse
 import openvino as ov
+import time
+import gc
 
 from pathlib import Path
 from ultralytics import YOLO
@@ -89,6 +91,57 @@ def model_files_exist_and_safe(model_path_fp32: Path, model_path_fp16: Path) -> 
         return True
 
 
+def safe_rmtree(path, max_retries=5, delay=0.5):
+    """
+    Remove a directory tree with retry logic and permission handling.
+
+    Cross-platform implementation that handles:
+    - Windows: File locking delays from processes releasing handles
+    - Linux: Readonly file permissions
+
+    Args:
+        path: Path to directory to remove
+        max_retries: Maximum number of retry attempts
+        delay: Delay in seconds between retries
+    """
+    for attempt in range(max_retries):
+        try:
+            if os.path.exists(path):
+                # Force garbage collection to release any file handles
+                gc.collect()
+                time.sleep(delay)
+
+                # Use shutil.rmtree with error handler for Windows
+                def handle_remove_readonly(func, path, exc):
+                    """Error handler for Windows readonly files."""
+                    import stat
+
+                    if not os.access(path, os.W_OK):
+                        os.chmod(path, stat.S_IWRITE)
+                        func(path)
+                    else:
+                        raise
+
+                shutil.rmtree(path, onexc=handle_remove_readonly)
+                logging.info(f"Successfully removed: {path}")
+                return True
+        except PermissionError as e:
+            if attempt < max_retries - 1:
+                logging.warning(
+                    f"Attempt {attempt + 1}/{max_retries}: Failed to remove {path}: {e}. Retrying..."
+                )
+                time.sleep(delay * (attempt + 1))  # Exponential backoff
+            else:
+                logging.error(
+                    f"Failed to remove {path} after {max_retries} attempts: {e}"
+                )
+                return False
+        except Exception as e:
+            logging.error(f"Unexpected error removing {path}: {e}")
+            return False
+    return False
+
+
 def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
     """
     Download and convert YOLO models to OpenVINO format.
@@ -152,12 +205,24 @@ def export_yolo_model(model_name, model_parent_dir=MODELS_DIR):
     # Check that the converted model successfully saved
     model_files_exist_and_safe(model_path_fp32, model_path_fp16)
 
-    # Clean up temporary files
-    shutil.rmtree(str(converted_path))
+    # Explicitly release OpenVINO model and core to free file handles
+    del ov_model
+    del core
+    gc.collect()
+
+    # Add a small delay to ensure file handles are released on Windows
+    time.sleep(0.5)
+
+    # Clean up temporary files using safe removal
+    safe_rmtree(str(converted_path))
+
     pt_file = Path(f"{model_name}.pt").resolve()
     if model_name in YOLO_MODELS and pt_file.is_file():
-        pt_file.unlink()
-        logging.info(f"Removed {pt_file}")
+        try:
+            pt_file.unlink()
+            logging.info(f"Removed {pt_file}")
+        except PermissionError as e:
+            logging.warning(f"Failed to remove {pt_file}: {e}. File may be in use.")
 
     logging.info(f"Model saved: {model_path_fp32} and {model_path_fp16}")
 
