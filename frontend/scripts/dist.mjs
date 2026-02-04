@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import fs from 'fs'
 import path from 'path'
@@ -57,8 +57,12 @@ function copyDir(src, dest, excludeFiles = [], excludeDirs = []) {
   }
 
   // Explicitly reject paths with traversal sequences
-  if (src.includes('..') || dest.includes('..') ||
-      src.includes('\0') || dest.includes('\0')) {
+  if (
+    src.includes('..') ||
+    dest.includes('..') ||
+    src.includes('\0') ||
+    dest.includes('\0')
+  ) {
     throw new Error('Path traversal attempt detected')
   }
 
@@ -94,12 +98,13 @@ function copyDir(src, dest, excludeFiles = [], excludeDirs = []) {
     }
   }
   const sanitizedResolvedSrc = path.join(...parts)
-  
+
   const entries = fs.readdirSync(sanitizedResolvedSrc, { withFileTypes: true })
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name)
     const destPath = path.join(dest, entry.name)
-    if (excludeFiles.includes(entry.name) || excludeDirs.includes(entry.name)) continue // Skip excluded files and directories
+    if (excludeFiles.includes(entry.name) || excludeDirs.includes(entry.name))
+      continue // Skip excluded files and directories
     if (entry.isDirectory()) {
       copyDir(srcPath, destPath, excludeFiles, excludeDirs)
     } else {
@@ -291,7 +296,9 @@ echo [%DATE% %TIME%] Total uninstallation duration: %duration% seconds >> uninst
   const resolvedParentUninstallCmd = path.resolve(resolvedStagingDir)
   const resolvedFileUninstallCmd = path.resolve(uninstallCmdPath)
   if (
-    !resolvedFileUninstallCmd.startsWith(resolvedParentUninstallCmd + path.sep) ||
+    !resolvedFileUninstallCmd.startsWith(
+      resolvedParentUninstallCmd + path.sep,
+    ) ||
     path.isAbsolute(uninstallCmdPath) ||
     uninstallCmdPath.includes('..')
   ) {
@@ -351,7 +358,9 @@ async function main() {
       typeof pkg.name !== 'string' ||
       typeof pkg.version !== 'string'
     ) {
-      throw new Error('package.json is missing required fields or has invalid types')
+      throw new Error(
+        'package.json is missing required fields or has invalid types',
+      )
     }
     const { name: appName, version } = pkg
 
@@ -363,7 +372,6 @@ async function main() {
       throw new Error(`Unsafe version in package.json: ${version}`)
     }
 
-    const versionLabel = version.replace(/\./g, '-') // Replace dots with dashes
     log(`Packaging ${appName} version ${version}`)
 
     // Create or clean dist/package folder.
@@ -395,7 +403,7 @@ async function main() {
     generateUninstallScripts(stagingDir, appName)
 
     // Completely break taint flow by using constant patterns and explicit validation
-    // Instead of just replacing invalid chars, ONLY allow known-good characters 
+    // Instead of just replacing invalid chars, ONLY allow known-good characters
     // and reject anything else to fully break taint propagation
     let safeAppName = ''
     let safeVersion = ''
@@ -403,69 +411,77 @@ async function main() {
     // Strictly validate app name with explicit character-by-character check
     if (/^[\w.-]+$/.test(appName)) {
       // Limit length to prevent excessive filenames
-      safeAppName = appName.slice(0, 50);
+      safeAppName = appName.slice(0, 50)
       // Double-check that ONLY allowed characters remain
       for (let i = 0; i < safeAppName.length; i++) {
-        const char = safeAppName[i];
+        const char = safeAppName[i]
         if (!/[\w.-]/.test(char)) {
           // This should never happen due to the regex check above,
           // but provides defense in depth
-          throw new Error(`Invalid character in app name: ${char}`);
+          throw new Error(`Invalid character in app name: ${char}`)
         }
       }
     } else {
       // If validation fails, use a hardcoded safe default
-      log(`Warning: Used default app name due to invalid characters in: ${appName}`);
-      safeAppName = 'edge-application';
+      log(
+        `Warning: Used default app name due to invalid characters in: ${appName}`,
+      )
+      safeAppName = 'edge-application'
     }
 
     // Strictly validate version with explicit character-by-character check
     if (/^[\w.-]+$/.test(version)) {
       // Limit length
-      safeVersion = version.slice(0, 20);
+      safeVersion = version.slice(0, 20)
       // Double-check that ONLY allowed characters remain
       for (let i = 0; i < safeVersion.length; i++) {
-        const char = safeVersion[i];
+        const char = safeVersion[i]
         if (!/[\w.-]/.test(char)) {
-          throw new Error(`Invalid character in version: ${char}`);
+          throw new Error(`Invalid character in version: ${char}`)
         }
       }
     } else {
       // If validation fails, use a hardcoded safe default
-      log(`Warning: Used default version due to invalid characters in: ${version}`);
-      safeVersion = '1-0-0';
+      log(
+        `Warning: Used default version due to invalid characters in: ${version}`,
+      )
+      safeVersion = '1-0-0'
     }
 
     // Replace dots with dashes using a safe operation that won't preserve taint
     // Create a completely new string rather than using replace() which might preserve taint
-    const safeVersionLabel = safeVersion.split('.').join('-');
+    const safeVersionLabel = safeVersion.split('.').join('-')
 
     // 5. Create archive package using archiver
     // Explicitly construct the filename with constant pattern and validated components
-    const safeArchiveBaseName = `${safeAppName}-${safeVersionLabel}`;
+    const safeArchiveBaseName = `${safeAppName}-${safeVersionLabel}`
     // Final validation of the constructed name as defense in depth
     if (!/^[\w.-]+$/.test(safeArchiveBaseName)) {
-      throw new Error(`Failed to create safe archive basename: ${safeArchiveBaseName}`);
+      throw new Error(
+        `Failed to create safe archive basename: ${safeArchiveBaseName}`,
+      )
     }
 
-    const safeArchiveName = `${safeArchiveBaseName}.zip`;
+    const safeArchiveName = `${safeArchiveBaseName}.zip`
     // Explicit path construction with no variables outside our control
-    const distDirAbsolute = path.resolve(distDir);
+    const distDirAbsolute = path.resolve(distDir)
     // Use path.join to ensure proper path separator usage
-    const safeArchivePath = path.join(distDirAbsolute, safeArchiveName);
+    const safeArchivePath = path.join(distDirAbsolute, safeArchiveName)
 
     // Additional validation checks
     if (!safeArchivePath.startsWith(distDirAbsolute + path.sep)) {
-      throw new Error(`Archive path escapes from allowed directory: ${safeArchivePath}`);
+      throw new Error(
+        `Archive path escapes from allowed directory: ${safeArchivePath}`,
+      )
     }
 
     if (safeArchivePath.includes('..') || !safeArchivePath.endsWith('.zip')) {
-      throw new Error(`Unsafe archive path detected: ${safeArchivePath}`);
+      throw new Error(`Unsafe archive path detected: ${safeArchivePath}`)
     }
 
     // Log sanitized values for transparency
-    log(`Creating archive with sanitized name: ${safeArchiveName}`);
-    log(`Archive will be stored at: ${safeArchivePath}`);
+    log(`Creating archive with sanitized name: ${safeArchiveName}`)
+    log(`Archive will be stored at: ${safeArchivePath}`)
 
     // Use only safeArchivePath in the sink
     await new Promise((resolve, reject) => {
@@ -473,7 +489,9 @@ async function main() {
       const archive = archiver('zip', { zlib: { level: 9 } })
 
       output.on('close', () => {
-        log(`Archive ${safeArchiveName} created successfully (${archive.pointer()} total bytes)`)
+        log(
+          `Archive ${safeArchiveName} created successfully (${archive.pointer()} total bytes)`,
+        )
         resolve()
       })
 
@@ -495,7 +513,9 @@ async function main() {
     })
 
     const duration = Math.round((Date.now() - startTime) / 1000)
-    log(`Packaging process completed successfully. Total duration: ${duration} seconds.`)
+    log(
+      `Packaging process completed successfully. Total duration: ${duration} seconds.`,
+    )
   } catch (err) {
     log(`Error during packaging: ${err.message}`)
     process.exit(1)

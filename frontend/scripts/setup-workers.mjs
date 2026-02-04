@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
 import { spawn, execSync } from 'child_process'
 import { promises as fsPromises } from 'fs'
@@ -20,7 +20,7 @@ function getPythonPathWindows() {
     })
       .trim()
       .split('\n')[0]
-  } catch (error) {
+  } catch {
     // Default fallback
     return 'python'
   }
@@ -29,11 +29,10 @@ function getPythonPathWindows() {
 // Resolve Python path on Unix
 function getPythonPathUnix() {
   try {
-    const { execFileSync } = require('child_process')
     return execFileSync('/usr/bin/which', ['python3'], {
       encoding: 'utf8',
     }).trim()
-  } catch (error) {
+  } catch {
     // Default fallback
     return 'python3'
   }
@@ -65,11 +64,21 @@ function runCommand(command, args, options = {}) {
   const sanitizedArgs = args.map(sanitizeArg)
 
   return new Promise((resolve, reject) => {
-    const proc = spawn(safeCommand, sanitizedArgs, { stdio: 'inherit', shell: isWindows ? true : false, ...options })
+    const proc = spawn(safeCommand, sanitizedArgs, {
+      stdio: 'inherit',
+      shell: isWindows ? true : false,
+      ...options,
+    })
     proc.on('close', (code) => {
-      code !== 0
-        ? reject(new Error(`${safeCommand} ${sanitizedArgs.join(' ')} exited with code ${code}`))
-        : resolve()
+      if (code !== 0) {
+        reject(
+          new Error(
+            `${safeCommand} ${sanitizedArgs.join(' ')} exited with code ${code}`,
+          ),
+        )
+      } else {
+        resolve()
+      }
     })
     proc.on('error', (err) => {
       reject(new Error(`Process error: ${err.message}`))
@@ -109,13 +118,17 @@ async function setupWorker(workerDir) {
     workerDir,
     'venv',
     isWindows ? 'Scripts' : 'bin',
-    isWindows ? 'python.exe' : 'python'
+    isWindows ? 'python.exe' : 'python',
   )
 
   ALLOWED_COMMANDS[venvPython] = venvPython
-  await runCommand(venvPython, ['-m', 'pip', 'install', '-r', 'requirements.txt'], {
-    cwd: workerDir,
-  })
+  await runCommand(
+    venvPython,
+    ['-m', 'pip', 'install', '-r', 'requirements.txt'],
+    {
+      cwd: workerDir,
+    },
+  )
 }
 
 // Function to iterate and set up all workers
@@ -123,7 +136,9 @@ async function setupAllWorkers() {
   try {
     const startTime = Date.now()
     const workersDir = path.resolve(process.cwd(), '..', 'workers')
-    const entries = await fsPromises.readdir(workersDir, { withFileTypes: true })
+    const entries = await fsPromises.readdir(workersDir, {
+      withFileTypes: true,
+    })
     const workerFolders = entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => path.join(workersDir, entry.name))
@@ -133,7 +148,9 @@ async function setupAllWorkers() {
     }
 
     const duration = Math.round((Date.now() - startTime) / 1000)
-    console.log(`[${getTimestamp()}] Completed Python venv setup for all workers.`)
+    console.log(
+      `[${getTimestamp()}] Completed Python venv setup for all workers.`,
+    )
     console.log(`[${getTimestamp()}] Total duration: ${duration} seconds`)
   } catch (err) {
     console.error(`Error setting up workers: ${err.message}`)
