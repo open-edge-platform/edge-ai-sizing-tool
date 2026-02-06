@@ -57,6 +57,19 @@ if %errorlevel% neq 0 (
 
 :skipPCM
 
+REM Set path to MediaMTX NSSM service manager
+set "NSSM_EXE=%REPO_ROOT%\thirdparty\mediamtx\nssm\nssm.exe"
+
+REM Start MediaMTX service using NSSM
+if exist "%NSSM_EXE%" (
+    echo Starting MediaMTX service...
+    "%NSSM_EXE%" start MediaMTX
+    echo MediaMTX service start command executed.
+) else (
+    echo WARNING: MediaMTX NSSM not found at %NSSM_EXE%
+    echo Continuing without MediaMTX streaming server...
+)
+
 REM Navigate to the frontend directory in the repo
 cd /d "%REPO_ROOT%\frontend"
 if %errorlevel% neq 0 (
