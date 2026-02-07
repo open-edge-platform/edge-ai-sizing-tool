@@ -110,7 +110,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.12",
     "typescript": "^5.9.3",
-    "webpack": "^5.98.0"
+    "webpack": "^5.104.1"
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0",
