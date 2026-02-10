@@ -2,7 +2,7 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-import { spawn, execSync } from 'child_process'
+import { spawn, execSync, execFileSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
@@ -21,7 +21,7 @@ const getNpmPathWindows = () => {
     })
       .trim()
       .split('\n')[0]
-  } catch (error) {
+  } catch {
     return 'npm.cmd'
   }
 }
@@ -40,29 +40,27 @@ const getPm2PathWindows = () => {
     })
       .trim()
       .split('\n')[0]
-  } catch (error) {
+  } catch {
     return 'pm2.cmd'
   }
 }
 
 const getNpmPathUnix = () => {
   try {
-    const { execFileSync } = require('child_process')
     return execFileSync('/usr/bin/which', ['npm'], {
       encoding: 'utf8',
     }).trim()
-  } catch (error) {
+  } catch {
     return 'npm'
   }
 }
 
 const getPm2PathUnix = () => {
   try {
-    const { execFileSync } = require('child_process')
     return execFileSync('/usr/bin/which', ['pm2'], {
       encoding: 'utf8',
     }).trim()
-  } catch (error) {
+  } catch {
     return 'pm2'
   }
 }
@@ -210,7 +208,7 @@ const runInstallBuildStart = async () => {
           resolve(output.includes('EAST'))
         })
 
-        pm2Process.on('error', (err) => {
+        pm2Process.on('error', () => {
           resolve(false)
         })
       })

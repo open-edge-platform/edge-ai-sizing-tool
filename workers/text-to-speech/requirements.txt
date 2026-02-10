@@ -2,7 +2,7 @@
 optimum-intel[nncf]==1.26.0
 openvino_genai==2025.4.1.0
 soundfile==0.13.1
-sentencepiece==0.2.0
+sentencepiece==0.2.1
 fastapi==0.115.11
 uvicorn==0.34.0
 huggingface_hub[cli]==0.36.0
