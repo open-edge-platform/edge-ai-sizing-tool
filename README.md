@@ -266,7 +266,7 @@ This script ensures that all services are properly shut down, including backgrou
 
 #### 1. Setup Platform
 
-If your system has a GPU, install the [GPU driver](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html).  
+If your system has a GPU, install the [GPU driver](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html).
 If your system has an NPU, install the [NPU driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html).
 
 #### 2. Install Dependencies
