@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 
 // Copyright (C) 2025 Intel Corporation
-// SPDX-License-Identifier: Apache-2.0 
+// SPDX-License-Identifier: Apache-2.0
 
+import { fileURLToPath } from 'url'
 import { spawn, execSync } from 'child_process'
-import { promises as fsPromises } from 'fs'
+import fs, { promises as fsPromises } from 'fs'
 import path from 'path'
 import os from 'os'
 
 // Determine if the operating system is Windows
 const isWindows = os.platform() === 'win32'
+// Get the current file and directory paths
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Resolve Python path on Windows
 function getPythonPathWindows() {
@@ -20,7 +24,7 @@ function getPythonPathWindows() {
     })
       .trim()
       .split('\n')[0]
-  } catch (error) {
+  } catch {
     // Default fallback
     return 'python'
   }
@@ -29,13 +33,43 @@ function getPythonPathWindows() {
 // Resolve Python path on Unix
 function getPythonPathUnix() {
   try {
-    const { execFileSync } = require('child_process')
     return execFileSync('/usr/bin/which', ['python3'], {
       encoding: 'utf8',
     }).trim()
-  } catch (error) {
+  } catch {
     // Default fallback
     return 'python3'
+  }
+}
+
+function getThirdpartyPath() {
+  return path.join(__dirname, '../../', 'thirdparty')
+}
+
+// Resolve uv path on Windows
+function getUvPathWindows() {
+  try {
+    return path.join(getThirdpartyPath(), 'uv', 'uv.exe')
+  } catch {
+    // Default fallback
+    return 'uv'
+  }
+}
+
+// Resolve uv path on Unix
+function getUvPathUnix() {
+  try {
+    return execFileSync('/usr/bin/which', ['uv'], {
+      encoding: 'utf8',
+      shell: true,
+    }).trim()
+  } catch {
+    // Check system-wide location
+    if (fs.existsSync('/usr/local/bin/uv')) {
+      return '/usr/local/bin/uv'
+    }
+    // Default fallback
+    return 'uv'
   }
 }
 
@@ -43,12 +77,18 @@ function getPythonPathUnix() {
 const ALLOWED_COMMANDS = {
   python: isWindows ? getPythonPathWindows() : getPythonPathUnix(),
   python3: getPythonPathUnix(),
+  uv: isWindows ? getUvPathWindows() : getUvPathUnix(),
 }
 
 // A simple sanitizer for arguments
 function sanitizeArg(arg) {
+  // Normalize Windows paths to use forward slashes
+  let normalized = arg
+  if (isWindows && (arg.includes(':\\') || arg.includes('\\'))) {
+    normalized = arg.replace(/\\/g, '/')
+  }
   // Remove potentially dangerous characters
-  return arg.replace(/[;&|`$(){}[\]<>\\]/g, '')
+  return normalized.replace(/[;&|`$(){}[\]<>]/g, '')
 }
 
 // Helper function to run shell commands with inline sanitization
@@ -65,11 +105,21 @@ function runCommand(command, args, options = {}) {
   const sanitizedArgs = args.map(sanitizeArg)
 
   return new Promise((resolve, reject) => {
-    const proc = spawn(safeCommand, sanitizedArgs, { stdio: 'inherit', shell: isWindows ? true : false, ...options })
+    const proc = spawn(safeCommand, sanitizedArgs, {
+      stdio: 'inherit',
+      shell: isWindows ? true : false,
+      ...options,
+    })
     proc.on('close', (code) => {
-      code !== 0
-        ? reject(new Error(`${safeCommand} ${sanitizedArgs.join(' ')} exited with code ${code}`))
-        : resolve()
+      if (code !== 0) {
+        reject(
+          new Error(
+            `${safeCommand} ${sanitizedArgs.join(' ')} exited with code ${code}`,
+          ),
+        )
+      } else {
+        resolve()
+      }
     })
     proc.on('error', (err) => {
       reject(new Error(`Process error: ${err.message}`))
@@ -98,24 +148,34 @@ function getTimestamp() {
 async function setupWorker(workerDir) {
   console.log(`[${getTimestamp()}] Setting up worker in ${workerDir}`)
 
-  // Decide which command name to call based on OS (must match ALLOWED_COMMANDS keys)
-  const pythonCmd = isWindows ? 'python' : 'python3'
-
-  // Create the virtual environment
-  await runCommand(pythonCmd, ['-m', 'venv', 'venv'], { cwd: workerDir })
-
   // Path to the Python executable within the virtual environment
   const venvPython = path.join(
     workerDir,
     'venv',
     isWindows ? 'Scripts' : 'bin',
-    isWindows ? 'python.exe' : 'python'
+    isWindows ? 'python.exe' : 'python',
   )
 
-  ALLOWED_COMMANDS[venvPython] = venvPython
-  await runCommand(venvPython, ['-m', 'pip', 'install', '-r', 'requirements.txt'], {
-    cwd: workerDir,
-  })
+  // Create the virtual environment
+  await runCommand('uv', ['venv', 'venv'], { cwd: workerDir })
+
+  // Install dependencies from requirements.txt
+  await runCommand(
+    'uv',
+    [
+      'pip',
+      'install',
+      '--python',
+      venvPython,
+      '-r',
+      'requirements.txt',
+      '--index-strategy',
+      'unsafe-best-match',
+    ],
+    {
+      cwd: workerDir,
+    },
+  )
 }
 
 // Function to iterate and set up all workers
@@ -123,7 +183,9 @@ async function setupAllWorkers() {
   try {
     const startTime = Date.now()
     const workersDir = path.resolve(process.cwd(), '..', 'workers')
-    const entries = await fsPromises.readdir(workersDir, { withFileTypes: true })
+    const entries = await fsPromises.readdir(workersDir, {
+      withFileTypes: true,
+    })
     const workerFolders = entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => path.join(workersDir, entry.name))
@@ -133,7 +195,9 @@ async function setupAllWorkers() {
     }
 
     const duration = Math.round((Date.now() - startTime) / 1000)
-    console.log(`[${getTimestamp()}] Completed Python venv setup for all workers.`)
+    console.log(
+      `[${getTimestamp()}] Completed Python venv setup for all workers.`,
+    )
     console.log(`[${getTimestamp()}] Total duration: ${duration} seconds`)
   } catch (err) {
     console.error(`Error setting up workers: ${err.message}`)

@@ -116,9 +116,9 @@ check_system_requirements() {
 # Install Intel XPU Manager
 install_intel_xpu_manager() {
     log_info "Installing Intel XPU Manager..."
-    local xpu_package="xpumanager_1.3.1_20250724.061629.60921e5e_u24.04_amd64.deb"
+    local xpu_package="xpumanager_1.3.6_20260206.143628.1004f6cb.u24.04_amd64.deb"
     
-    download_with_retry "https://github.com/intel/xpumanager/releases/download/V1.3.1/$xpu_package" "$xpu_package"
+    download_with_retry "https://github.com/intel/xpumanager/releases/download/V1.3.6/$xpu_package" "$xpu_package"
     
     if dpkg -i "$xpu_package"; then
         log_success "Intel XPU Manager installed successfully."
@@ -211,6 +211,82 @@ install_nodejs() {
         log_error "Node.js verification failed."
         exit 1
     fi
+}
+
+install_uv() {
+    log_info "Installing uv (Python package installer)..."
+    
+    # Get the actual user's home directory (not root)
+    local user_home
+    user_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    local uv_bin="$user_home/.local/bin/uv"
+    
+    # Check if uv is already installed for the user
+    if [ -f "$uv_bin" ]; then
+        local current_version
+        current_version=$(su - "$SUDO_USER" -c "uv --version" 2>/dev/null || echo "unknown")
+        log_success "uv is already installed: $current_version"
+        return 0
+    fi
+    
+    # Install uv using the official installer as the actual user
+    log_info "Downloading and installing uv for user $SUDO_USER..."
+    if su - "$SUDO_USER" -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'; then
+        log_success "uv installed successfully to $user_home/.local/bin/"
+    else
+        log_error "Failed to install uv."
+        exit 1
+    fi
+    
+    # Add uv to PATH for current session
+    export PATH="$user_home/.local/bin:$PATH"
+    
+    # Ensure ~/.local/bin is in user's PATH permanently
+    local bashrc="$user_home/.bashrc"
+    if [ -f "$bashrc" ]; then
+        if ! grep -q '.local/bin' "$bashrc"; then
+            log_info "Adding $user_home/.local/bin to PATH in .bashrc..."
+            su - "$SUDO_USER" -c "cat >> ~/.bashrc << 'EOF'
+
+# Added by Edge AI Sizing Tool - ensure ~/.local/bin is in PATH
+if [ -d '\$HOME/.local/bin' ] && [[ ':\$PATH:' != *':\$HOME/.local/bin:'* ]]; then
+    export PATH='\$HOME/.local/bin:\$PATH'
+fi
+EOF"
+
+            log_success "Added $user_home/.local/bin to PATH in .bashrc"
+        else
+            log_info "$user_home/.local/bin is already configured in .bashrc"
+        fi
+    fi
+    
+    # Create system-wide symlink for easier access
+    if [ ! -L "/usr/local/bin/uv" ]; then
+        log_info "Creating system-wide symlink to uv..."
+        if ln -sf "$uv_bin" /usr/local/bin/uv; then
+            log_success "Created symlink: /usr/local/bin/uv -> $uv_bin"
+        else
+            log_warning "Failed to create system-wide symlink (non-critical)"
+        fi
+    fi
+    
+    # Verify uv installation
+    log_info "Verifying uv installation..."
+    if [ -f "$uv_bin" ] && su - "$SUDO_USER" -c "uv --version" &> /dev/null; then
+        local uv_version
+        uv_version=$(su - "$SUDO_USER" -c "uv --version")
+        log_success "uv verification successful: $uv_version"
+        log_info "uv installed to: $uv_bin"
+    else
+        log_error "uv verification failed."
+        log_warning "You may need to restart your shell or run: source ~/.bashrc"
+        exit 1
+    fi
+    
+    # Add helpful note
+    log_info "Note: uv has been installed to $SUDO_USER's home directory"
+    log_info "Path: $user_home/.local/bin/uv"
+    log_info "System-wide symlink: /usr/local/bin/uv"
 }
 
 # Configure system settings
@@ -329,6 +405,9 @@ main() {
     
     # Install Node.js
     install_nodejs
+    
+    # Install uv
+    install_uv
     
     # Configure system settings
     configure_system

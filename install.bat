@@ -36,15 +36,105 @@ REM Check if winget is installed
 echo Checking if winget is installed
 where winget >nul 2>&1
 if %errorlevel% neq 0 (
-    echo winget is not installed. Please install "App Installer" from the Microsoft Store or from GitHub - Microsoft/winget-cli and try again.
-    echo Press any key to exit...
-    pause >nul
-    exit /b
+    setlocal enabledelayedexpansion
+    echo winget is not installed. Installing winget...
+    
+    REM Download and install dependencies first
+    echo Downloading winget dependencies package...
+    set "DEPENDENCIES_URL=https://github.com/microsoft/winget-cli/releases/latest/download/DesktopAppInstaller_Dependencies.zip"
+    set "DEPENDENCIES_ZIP=%TEMP%\DesktopAppInstaller_Dependencies.zip"
+    set "DEPENDENCIES_DIR=%TEMP%\DesktopAppInstaller_Dependencies"
+    
+    REM Clean up any existing dependencies folder
+    if exist "!DEPENDENCIES_DIR!" (
+        rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+    )
+    mkdir "!DEPENDENCIES_DIR!"
+    
+    echo Downloading dependencies package...
+    powershell -Command "Invoke-WebRequest -Uri '!DEPENDENCIES_URL!' -OutFile '!DEPENDENCIES_ZIP!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download dependencies package.
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    echo Extracting dependencies package...
+    powershell -Command "Expand-Archive -Path '!DEPENDENCIES_ZIP!' -DestinationPath '!DEPENDENCIES_DIR!' -Force"
+    if !errorlevel! neq 0 (
+        echo Failed to extract dependencies package.
+        del "!DEPENDENCIES_ZIP!" 2>nul
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    REM Delete the zip file after extraction
+    del "!DEPENDENCIES_ZIP!" 2>nul
+    
+    echo Installing VCLibs UWPDesktop dependency...
+    powershell -Command "Add-AppxPackage -Path '!DEPENDENCIES_DIR!\x64\Microsoft.VCLibs.140.00.UWPDesktop_14.0.33728.0_x64.appx'"
+    if !errorlevel! neq 0 (
+        echo Warning: Failed to install VCLibs UWPDesktop dependency. Continuing anyway...
+    )
+    
+    REM Download and install App Installer (winget) from Microsoft
+    echo Downloading App Installer package...
+    set "WINGET_URL=https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+    set "WINGET_INSTALLER=%TEMP%\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+    
+    powershell -Command "Invoke-WebRequest -Uri '!WINGET_URL!' -OutFile '!WINGET_INSTALLER!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download App Installer.
+        echo Please manually install "App Installer" from the Microsoft Store or from GitHub - Microsoft/winget-cli
+        rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    echo Installing App Installer...
+    powershell -Command "Add-AppxPackage -Path '!WINGET_INSTALLER!'"
+    if !errorlevel! neq 0 (
+        echo Failed to install App Installer.
+        echo Please manually install "App Installer" from the Microsoft Store or from GitHub - Microsoft/winget-cli
+        del "!WINGET_INSTALLER!" 2>nul
+        rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    REM Clean up installers and temp directories
+    del "!WINGET_INSTALLER!" 2>nul
+    rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+
+    REM Add winget to PATH if not already present
+    set "WINGET_PATH=%LOCALAPPDATA%\Microsoft\WindowsApps"
+    echo %PATH% | find /i "%WINGET_PATH%" >nul
+    if %errorlevel% neq 0 (
+        echo Adding winget to PATH...
+        setx PATH "%PATH%;%WINGET_PATH%"
+        set "PATH=%PATH%;%WINGET_PATH%"
+        echo Winget path added to environment variable.
+    )
+    
+    echo App Installer installed successfully.
+    echo Verifying winget installation...
+    where winget >nul 2>&1
+    if !errorlevel! neq 0 (
+        echo WARNING: winget still not found in PATH. You may need to restart your terminal.
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    endlocal
 )
 
 REM Update Winget to latest version
 echo Updating winget to the latest version...
-winget update winget && (
+winget update winget --accept-source-agreements --accept-package-agreements && (
     echo winget updated successfully.
 ) || (
     echo Failed to update winget. Update it manually from Microsoft Store or GitHub - Microsoft/winget-cli.
@@ -68,6 +158,67 @@ if %errorlevel% equ 0 (
         pause >nul
         exit /b
     )
+)
+
+REM Check if Git is already installed in thirdparty
+echo Checking if Git is installed in thirdparty...
+if exist "%THIRDPARTY%\git\cmd\git.exe" (
+    echo Git is already installed in thirdparty.
+    "%THIRDPARTY%\git\cmd\git.exe" --version
+) else (
+    setlocal enabledelayedexpansion
+    echo Installing Git to thirdparty...
+
+    REM Set Git download URL
+    set "GIT_URL=https://github.com/git-for-windows/git/releases/download/v2.51.0.windows.2/MinGit-2.51.0.2-64-bit.zip"
+    set "TEMP_ZIP=%TEMP%\git.zip"
+    set "GIT_DIR=%THIRDPARTY%\git"
+
+    REM Clean up any existing partial installations
+    if exist "!GIT_DIR!" (
+        echo Removing previous Git installation...
+        rmdir /s /q "!GIT_DIR!" 2>nul
+    )
+
+    REM Create git directory
+    mkdir "!GIT_DIR!"
+
+    echo Downloading MinGit from GitHub...
+    powershell -Command "Invoke-WebRequest -Uri '!GIT_URL!' -OutFile '!TEMP_ZIP!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download Git. Check your internet connection.
+        echo Press any key to exit...
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    echo Download complete. Extracting to thirdparty...
+    tar -xf "!TEMP_ZIP!" -C "!GIT_DIR!"
+    if !errorlevel! neq 0 (
+        echo Failed to extract Git archive.
+        echo Press any key to exit...
+        del "!TEMP_ZIP!" 2>nul
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    REM Clean up temp file
+    del "!TEMP_ZIP!"
+
+    REM Verify Git installation
+    if exist "!GIT_DIR!\cmd\git.exe" (
+        echo Git installed successfully in thirdparty.
+        "!GIT_DIR!\cmd\git.exe" --version
+    ) else (
+        echo ERROR: git.exe not found after extraction.
+        echo Press any key to exit...
+        pause >nul
+        endlocal
+        exit /b
+    )
+    endlocal
 )
 
 REM Setup Intel PCM
@@ -130,6 +281,67 @@ if not exist "%THIRDPARTY%\xpu-smi\xpu-smi.exe" (
     echo Installing XPU-SMI...
     curl --create-dirs -L -O --output-dir "%THIRDPARTY%\xpu-smi" https://github.com/intel/xpumanager/releases/download/V1.3.1/xpu-smi-1.3.1-20250724.061318.60921e5e_win.zip
     tar -xf "%THIRDPARTY%\xpu-smi\xpu-smi-1.3.1-20250724.061318.60921e5e_win.zip" -C "%THIRDPARTY%\xpu-smi" >nul 2>&1
+)
+
+REM Check if uv is already installed in thirdparty
+echo Checking if uv is installed in thirdparty...
+if exist "%THIRDPARTY%\uv\uv.exe" (
+    echo uv is already installed in thirdparty.
+    "%THIRDPARTY%\uv\uv.exe" --version
+) else (
+    setlocal enabledelayedexpansion
+    echo Installing uv to thirdparty...
+
+    REM Set uv download URL
+    set "UV_URL=https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+    set "TEMP_ZIP=%TEMP%\uv.zip"
+    set "UV_DIR=%THIRDPARTY%\uv"
+
+    REM Clean up any existing partial installations
+    if exist "!UV_DIR!" (
+        echo Removing previous uv installation...
+        rmdir /s /q "!UV_DIR!" 2>nul
+    )
+
+    REM Create uv directory
+    mkdir "!UV_DIR!"
+
+    echo Downloading uv from GitHub...
+    powershell -Command "Invoke-WebRequest -Uri '!UV_URL!' -OutFile '!TEMP_ZIP!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download uv. Check your internet connection.
+        echo Press any key to exit...
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    echo Download complete. Extracting to thirdparty...
+    tar -xf "!TEMP_ZIP!" -C "!UV_DIR!"
+    if !errorlevel! neq 0 (
+        echo Failed to extract uv archive.
+        echo Press any key to exit...
+        del "!TEMP_ZIP!" 2>nul
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    REM Clean up temp file
+    del "!TEMP_ZIP!"
+
+    REM Verify uv installation
+    if exist "!UV_DIR!\uv.exe" (
+        echo uv installed successfully in thirdparty.
+        "!UV_DIR!\uv.exe" --version
+    ) else (
+        echo ERROR: uv.exe not found after extraction.
+        echo Press any key to exit...
+        pause >nul
+        endlocal
+        exit /b
+    )
+    endlocal
 )
 
 REM Disable path length limit for Python

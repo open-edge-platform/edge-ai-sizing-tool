@@ -24,10 +24,11 @@ if exist "%THIRDPARTY%\pcm\pcm-sensor-server.exe" (
 
     set "PCM_DIR=%THIRDPARTY%\pcm"
     set "PCM_REPO=https://github.com/intel/pcm.git"
+    set "GIT_PATH=%THIRDPARTY%\git\cmd\git.exe"
     
     REM Check if git is available
     where git >nul 2>&1
-    if %errorlevel% neq 0 (
+    if %errorlevel% neq 0 if not exist "!GIT_PATH!" (
         echo Git is not installed. Installing Git...
         winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements
         REM Refresh environment variables
@@ -37,7 +38,8 @@ if exist "%THIRDPARTY%\pcm\pcm-sensor-server.exe" (
     REM Clone PCM repository
     if not exist "!PCM_DIR!" (
         echo Cloning Intel PCM repository...
-        git clone --depth 1 !PCM_REPO! "!PCM_DIR!" && (
+        !GIT_PATH! config --global core.longpaths true
+        !GIT_PATH! clone --depth 1 !PCM_REPO! "!PCM_DIR!" && (
             echo PCM repository cloned successfully.
         ) || (
             echo Failed to clone PCM repository.
