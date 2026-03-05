@@ -16,7 +16,7 @@ const getPm2PathWindows = () => {
   if (fs.existsSync(localPm2)) {
     return localPm2
   }
-  
+
   try {
     return execSync('where pm2.cmd', {
       encoding: 'utf8',
@@ -24,18 +24,17 @@ const getPm2PathWindows = () => {
     })
       .trim()
       .split('\n')[0]
-  } catch (error) {
+  } catch {
     return 'pm2.cmd'
   }
 }
 
 const getPm2PathUnix = () => {
   try {
-    const { execFileSync } = require('child_process')
     return execFileSync('/usr/bin/which', ['pm2'], {
       encoding: 'utf8',
     }).trim()
-  } catch (error) {
+  } catch {
     return 'pm2'
   }
 }

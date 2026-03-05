@@ -1,7 +1,7 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 import webpack from 'webpack'
 
-const isStandalone = process.env.STANDALONE_BUILD === 'true';
+const isStandalone = process.env.STANDALONE_BUILD === 'true'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
