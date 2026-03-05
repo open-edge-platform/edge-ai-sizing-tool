@@ -140,14 +140,6 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
   useEffect(() => {
-    if (data?.os?.distro?.includes('Windows')) {
-      delete metadata.tasks['computer vision'].usecase[
-        'object detection (DLStreamer)'
-      ]
-      delete metadata.tasks['computer vision'].usecase[
-        'instance segmentation (DLStreamer)'
-      ]
-    }
     if (workload) {
       setAvailableUsecases(
         Object.keys(metadata.tasks[workload.task as TaskType].usecase),

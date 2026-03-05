@@ -3,7 +3,11 @@
 REM Copyright (C) 2025 Intel Corporation
 REM SPDX-License-Identifier: Apache-2.0
 
-setlocal
+setlocal enabledelayedexpansion
+
+REM Disable QuickEdit mode to prevent terminal freezing when clicked
+for /f "tokens=2 delims=:" %%a in ('mode con:') do set "consoleMode=%%a"
+powershell -Command "$mode = (Get-ItemProperty 'HKCU:\Console').QuickEdit; if ($mode -ne 0) { $console = Add-Type -Name ConsoleMode -Namespace Win32 -MemberDefinition '[DllImport(\"kernel32.dll\")]public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);[DllImport(\"kernel32.dll\")]public static extern IntPtr GetStdHandle(int nStdHandle);[DllImport(\"kernel32.dll\")]public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);' -PassThru; $handle = $console::GetStdHandle(-10); $mode = New-Object UInt32; [void]$console::GetConsoleMode($handle, [ref]$mode); [void]$console::SetConsoleMode($handle, $mode -band (-bnot 0x0040) -band (-bnot 0x0080)); }" 2>nul
 
 REM Check for administrative privileges
 echo Checking for administrative privileges
@@ -251,27 +255,56 @@ if exist "%THIRDPARTY%\nodejs\node.exe" (
     set "NODE_ZIP=node-v!NODE_VERSION!-win-!NODE_ARCH!.zip"
     set "NODE_URL=https://nodejs.org/dist/v!NODE_VERSION!/!NODE_ZIP!"
     set "TEMP_ZIP=%TEMP%\!NODE_ZIP!"
+    set "EXTRACTED_FOLDER=%THIRDPARTY%\node-v!NODE_VERSION!-win-!NODE_ARCH!"
+
+    REM Clean up any existing partial installations
+    if exist "!EXTRACTED_FOLDER!" (
+        echo Removing previous partial installation...
+        rmdir /s /q "!EXTRACTED_FOLDER!" 2>nul
+    )
+    if exist "%THIRDPARTY%\nodejs" (
+        echo Removing previous nodejs folder...
+        rmdir /s /q "%THIRDPARTY%\nodejs" 2>nul
+    )
 
     echo Downloading Node.js v!NODE_VERSION! for !NODE_ARCH! from nodejs.org...
-    powershell -Command "Invoke-WebRequest -Uri '!NODE_URL!' -OutFile '!TEMP_ZIP!'" && (
-        echo Download complete. Extracting to thirdparty...
-        powershell -Command "Expand-Archive -Path '!TEMP_ZIP!' -DestinationPath '%THIRDPARTY%' -Force"
-
-        REM Rename extracted folder to 'nodejs'
-        ren "%THIRDPARTY%\node-v!NODE_VERSION!-win-!NODE_ARCH!" nodejs
-
-        REM Clean up temp file
-        del "!TEMP_ZIP!"
-
-        echo Node.js installed successfully in thirdparty.
-        "%THIRDPARTY%\nodejs\node.exe" --version
-    ) || (
-        echo Failed to download or extract Node.js. Check your internet connection.
+    powershell -Command "Invoke-WebRequest -Uri '!NODE_URL!' -OutFile '!TEMP_ZIP!'"
+    if !errorlevel! neq 0 (
+        echo Failed to download Node.js. Check your internet connection.
         echo Press any key to exit...
         pause >nul
         endlocal
         exit /b
     )
+
+    echo Download complete. Extracting to thirdparty...
+    REM Use tar instead of PowerShell Expand-Archive for better reliability
+    tar -xf "!TEMP_ZIP!" -C "%THIRDPARTY%"
+    if !errorlevel! neq 0 (
+        echo Failed to extract Node.js archive.
+        echo Press any key to exit...
+        del "!TEMP_ZIP!" 2>nul
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    REM Rename extracted folder to 'nodejs'
+    ren "!EXTRACTED_FOLDER!" nodejs
+    if !errorlevel! neq 0 (
+        echo Failed to rename Node.js folder.
+        echo Press any key to exit...
+        del "!TEMP_ZIP!" 2>nul
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    REM Clean up temp file
+    del "!TEMP_ZIP!"
+
+    echo Node.js installed successfully in thirdparty.
+    "%THIRDPARTY%\nodejs\node.exe" --version
     endlocal
 )
 
