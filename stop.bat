@@ -52,6 +52,22 @@ if defined PCM_PID (
 REM Small delay to ensure port is released
 timeout /t 3 /nobreak >nul
 
+REM Stop MediaMTX service if it's running
+echo Stopping MediaMTX service...
+set "NSSM_EXE=%REPO_ROOT%\thirdparty\mediamtx\nssm\nssm.exe"
+
+if exist "%NSSM_EXE%" (
+    "%NSSM_EXE%" stop MediaMTX >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo MediaMTX service stopped successfully.
+    ) else (
+        echo MediaMTX service is not running or already stopped.
+    )
+) else (
+    echo WARNING: NSSM not found at %NSSM_EXE%
+    echo MediaMTX service cannot be stopped automatically.
+)
+
 REM Navigate to the frontend directory in the repo
 cd /d "%REPO_ROOT%\frontend"
 if %errorlevel% neq 0 (
