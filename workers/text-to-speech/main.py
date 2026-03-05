@@ -164,6 +164,7 @@ def setup_model(args: argparse.Namespace, env: Dict[str, str]):
             logging.info(f"Model: {model_path}")
         else:
             logging.info(f"Custom model found: {model_path}")
+            model_path = model_path.resolve()
             if not any(model_path.iterdir()):
                 logging.error(f"Custom model directory {model_path} is empty.")
                 update_payload_status(args.id, status="failed", port=args.port)
