@@ -5,6 +5,10 @@ REM SPDX-License-Identifier: Apache-2.0
 
 setlocal
 
+REM Disable QuickEdit mode to prevent terminal freezing when clicked
+for /f "tokens=2 delims=:" %%a in ('mode con:') do set "consoleMode=%%a"
+powershell -Command "$mode = (Get-ItemProperty 'HKCU:\Console').QuickEdit; if ($mode -ne 0) { $console = Add-Type -Name ConsoleMode -Namespace Win32 -MemberDefinition '[DllImport(\"kernel32.dll\")]public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);[DllImport(\"kernel32.dll\")]public static extern IntPtr GetStdHandle(int nStdHandle);[DllImport(\"kernel32.dll\")]public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);' -PassThru; $handle = $console::GetStdHandle(-10); $mode = New-Object UInt32; [void]$console::GetConsoleMode($handle, [ref]$mode); [void]$console::SetConsoleMode($handle, $mode -band (-bnot 0x0040) -band (-bnot 0x0080)); }" 2>nul
+
 REM Check for administrative privileges
 echo Checking for administrative privileges
 :checkPrivileges

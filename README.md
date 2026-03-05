@@ -8,27 +8,48 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 
 ## Table of Contents
 
-- [Requirements](#requirements)
-  - [Hardware Prerequisites](#hardware-prerequisites)
-  - [Software Prerequisites](#software-prerequisites)
-  - [Application Ports](#application-ports)
-- [Supported AI Models](#supported-ai-models)
-  - [1. Predefined Models](#1-predefined-models)
-  - [2. Hugging Face Model ID](#2-hugging-face-model-id)
-  - [3. ModelScope Model ID](#3-modelscope-model-id)
-  - [4. Upload Model ZIP](#4-upload-model-zip)
-  - [5. Custom Model Directory](#5-custom-model-directory)
-- [Quick Start](#quick-start)
-  - [For Linux](#for-linux)
-  - [For Windows](#for-windows)
-- [Deployment](#deployment)
-- [Development](#development)
-- [Troubleshooting](#troubleshooting)
-  - [1. GPU Utilization Not Showing Up](#1-gpu-utilization-not-showing-up)
-  - [2. Tool Crashes or Stops Unexpectedly](#2-tool-crashes-or-stops-unexpectedly)
-  - [3. Installation Script Dependency Issues](#3-installation-script-dependency-issues)
-- [Limitations](#limitations)
-- [Disclaimer](#disclaimer)
+- [Edge AI Sizing Tool](#edge-ai-sizing-tool)
+  - [Table of Contents](#table-of-contents)
+  - [Requirements](#requirements)
+    - [Hardware Prerequisites](#hardware-prerequisites)
+    - [Software Prerequisites](#software-prerequisites)
+    - [Application Ports](#application-ports)
+    - [Supported AI Models](#supported-ai-models)
+      - [1. Predefined Models](#1-predefined-models)
+      - [2. Hugging Face Model ID](#2-hugging-face-model-id)
+      - [3. ModelScope Model ID](#3-modelscope-model-id)
+      - [4. Upload Model ZIP](#4-upload-model-zip)
+      - [5. Custom Model Directory](#5-custom-model-directory)
+  - [Quick Start](#quick-start)
+    - [For Linux:](#for-linux)
+      - [1. Setup Platform](#1-setup-platform)
+      - [2. Install Dependencies](#2-install-dependencies)
+      - [3. Run the Application](#3-run-the-application)
+      - [4. Stop the Application](#4-stop-the-application)
+    - [For Windows:](#for-windows)
+      - [1. Setup Platform](#1-setup-platform-1)
+      - [2. Install Dependencies](#2-install-dependencies-1)
+      - [3. Run the Application](#3-run-the-application-1)
+      - [4. Stop the Application](#4-stop-the-application-1)
+  - [Deployment](#deployment)
+  - [Development](#development)
+  - [Troubleshooting](#troubleshooting)
+    - [1. GPU Utilization Not Showing Up](#1-gpu-utilization-not-showing-up)
+      - [Temporary Enablement](#temporary-enablement)
+      - [Permanent Enablement](#permanent-enablement)
+      - [1. **Open the /etc/sysctl.conf file in a text editor with root privileges. You can use nano, vim, or any other editor of your choice:**](#1-open-the-etcsysctlconf-file-in-a-text-editor-with-root-privileges-you-can-use-nano-vim-or-any-other-editor-of-your-choice)
+      - [2. **Add the following line to the file:**](#2-add-the-following-line-to-the-file)
+      - [3. **Save the changes and exit the editor.**](#3-save-the-changes-and-exit-the-editor)
+    - [2. Tool Crashes or Stops Unexpectedly](#2-tool-crashes-or-stops-unexpectedly)
+      - [Enable Resizable BAR](#enable-resizable-bar)
+      - [1. **Enter BIOS/UEFI Setup**:](#1-enter-biosuefi-setup)
+      - [2. **Enable Resizable BAR Setting**:](#2-enable-resizable-bar-setting)
+      - [3. **Save and Exit**:](#3-save-and-exit)
+    - [3. Installation Script Dependency Issues](#3-installation-script-dependency-issues)
+      - [1. **Resolve Package Dependencies**](#1-resolve-package-dependencies)
+      - [2. **Retry Installation Process**](#2-retry-installation-process)
+  - [Limitations](#limitations)
+  - [Disclaimer](#disclaimer)
 
 ## Requirements
 
@@ -269,6 +290,11 @@ This script ensures that all services are properly shut down, including backgrou
 If your system has a GPU, install the [GPU driver](https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html).
 If your system has an NPU, install the [NPU driver](https://www.intel.com/content/www/us/en/download/794734/intel-npu-driver-windows.html).
 
+Before running any further installation, it is recommended to enable `Developer Mode` in Windows. Follow the steps:
+1.  Open `Settings` > `Advanced` > `For developers`
+2.  Toggle `Developer Mode` to `On`
+3.  Restart may be required
+
 #### 2. Install Dependencies
 
 >Note: Automated installation for GStreamer in `install.bat` may be blocked due to anti-bot measures by GStreamer. You may need to install GStreamer manually before running `install.bat`.
@@ -277,7 +303,7 @@ Download and install the following for GStreamer version `1.26.6`(dependency req
 1.  [Runtime installer](https://gstreamer.freedesktop.org/data/pkg/windows/1.26.6/msvc/gstreamer-1.0-msvc-x86_64-1.26.6.msi)
 2.  [Development installer](https://gstreamer.freedesktop.org/data/pkg/windows/1.26.6/msvc/gstreamer-1.0-devel-msvc-x86_64-1.26.6.msi)
 
-Ensure that the installation path is set to `C:\gstreamer` for both the runtime and development packages.
+Installation should be set to `Typical` and with the installation path set to `C:\gstreamer` for both the runtime and development packages.
 
 Right-click the `install.bat` file and click "Run as administrator".
 
