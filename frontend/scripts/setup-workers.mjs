@@ -3,13 +3,17 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
+import { fileURLToPath } from 'url'
 import { spawn, execSync } from 'child_process'
-import { promises as fsPromises } from 'fs'
+import fs, { promises as fsPromises } from 'fs'
 import path from 'path'
 import os from 'os'
 
 // Determine if the operating system is Windows
 const isWindows = os.platform() === 'win32'
+// Get the current file and directory paths
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Resolve Python path on Windows
 function getPythonPathWindows() {
@@ -38,16 +42,53 @@ function getPythonPathUnix() {
   }
 }
 
+function getThirdpartyPath() {
+  return path.join(__dirname, '../../', 'thirdparty')
+}
+
+// Resolve uv path on Windows
+function getUvPathWindows() {
+  try {
+    return path.join(getThirdpartyPath(), 'uv', 'uv.exe')
+  } catch {
+    // Default fallback
+    return 'uv'
+  }
+}
+
+// Resolve uv path on Unix
+function getUvPathUnix() {
+  try {
+    return execFileSync('/usr/bin/which', ['uv'], {
+      encoding: 'utf8',
+      shell: true,
+    }).trim()
+  } catch {
+    // Check system-wide location
+    if (fs.existsSync('/usr/local/bin/uv')) {
+      return '/usr/local/bin/uv'
+    }
+    // Default fallback
+    return 'uv'
+  }
+}
+
 // Build allowlist for commands
 const ALLOWED_COMMANDS = {
   python: isWindows ? getPythonPathWindows() : getPythonPathUnix(),
   python3: getPythonPathUnix(),
+  uv: isWindows ? getUvPathWindows() : getUvPathUnix(),
 }
 
 // A simple sanitizer for arguments
 function sanitizeArg(arg) {
+  // Normalize Windows paths to use forward slashes
+  let normalized = arg
+  if (isWindows && (arg.includes(':\\') || arg.includes('\\'))) {
+    normalized = arg.replace(/\\/g, '/')
+  }
   // Remove potentially dangerous characters
-  return arg.replace(/[;&|`$(){}[\]<>\\]/g, '')
+  return normalized.replace(/[;&|`$(){}[\]<>]/g, '')
 }
 
 // Helper function to run shell commands with inline sanitization
@@ -107,12 +148,6 @@ function getTimestamp() {
 async function setupWorker(workerDir) {
   console.log(`[${getTimestamp()}] Setting up worker in ${workerDir}`)
 
-  // Decide which command name to call based on OS (must match ALLOWED_COMMANDS keys)
-  const pythonCmd = isWindows ? 'python' : 'python3'
-
-  // Create the virtual environment
-  await runCommand(pythonCmd, ['-m', 'venv', 'venv'], { cwd: workerDir })
-
   // Path to the Python executable within the virtual environment
   const venvPython = path.join(
     workerDir,
@@ -121,10 +156,22 @@ async function setupWorker(workerDir) {
     isWindows ? 'python.exe' : 'python',
   )
 
-  ALLOWED_COMMANDS[venvPython] = venvPython
+  // Create the virtual environment
+  await runCommand('uv', ['venv', 'venv'], { cwd: workerDir })
+
+  // Install dependencies from requirements.txt
   await runCommand(
-    venvPython,
-    ['-m', 'pip', 'install', '-r', 'requirements.txt'],
+    'uv',
+    [
+      'pip',
+      'install',
+      '--python',
+      venvPython,
+      '-r',
+      'requirements.txt',
+      '--index-strategy',
+      'unsafe-best-match',
+    ],
     {
       cwd: workerDir,
     },

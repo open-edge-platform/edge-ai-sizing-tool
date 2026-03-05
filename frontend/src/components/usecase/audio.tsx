@@ -557,7 +557,7 @@ export function Audio({
                           className="flex cursor-pointer items-center"
                         >
                           <Languages className="h-4 w-4" />
-                          Translate
+                          Translate to English
                         </Label>
                       </div>
                     </RadioGroup>

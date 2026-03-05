@@ -229,10 +229,6 @@ export const metadata: MetadataStructure = {
               devicesFiltered: ['NPU'],
               allowMultipleDevices: true,
             },
-            'stabilityai/stable-diffusion-2': {
-              devicesFiltered: ['NPU'],
-              allowMultipleDevices: true,
-            },
           },
         },
       },

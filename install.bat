@@ -40,15 +40,105 @@ REM Check if winget is installed
 echo Checking if winget is installed
 where winget >nul 2>&1
 if %errorlevel% neq 0 (
-    echo winget is not installed. Please install "App Installer" from the Microsoft Store or from GitHub - Microsoft/winget-cli and try again.
-    echo Press any key to exit...
-    pause >nul
-    exit /b
+    setlocal enabledelayedexpansion
+    echo winget is not installed. Installing winget...
+    
+    REM Download and install dependencies first
+    echo Downloading winget dependencies package...
+    set "DEPENDENCIES_URL=https://github.com/microsoft/winget-cli/releases/latest/download/DesktopAppInstaller_Dependencies.zip"
+    set "DEPENDENCIES_ZIP=%TEMP%\DesktopAppInstaller_Dependencies.zip"
+    set "DEPENDENCIES_DIR=%TEMP%\DesktopAppInstaller_Dependencies"
+    
+    REM Clean up any existing dependencies folder
+    if exist "!DEPENDENCIES_DIR!" (
+        rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+    )
+    mkdir "!DEPENDENCIES_DIR!"
+    
+    echo Downloading dependencies package...
+    powershell -Command "Invoke-WebRequest -Uri '!DEPENDENCIES_URL!' -OutFile '!DEPENDENCIES_ZIP!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download dependencies package.
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    echo Extracting dependencies package...
+    powershell -Command "Expand-Archive -Path '!DEPENDENCIES_ZIP!' -DestinationPath '!DEPENDENCIES_DIR!' -Force"
+    if !errorlevel! neq 0 (
+        echo Failed to extract dependencies package.
+        del "!DEPENDENCIES_ZIP!" 2>nul
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    REM Delete the zip file after extraction
+    del "!DEPENDENCIES_ZIP!" 2>nul
+    
+    echo Installing VCLibs UWPDesktop dependency...
+    powershell -Command "Add-AppxPackage -Path '!DEPENDENCIES_DIR!\x64\Microsoft.VCLibs.140.00.UWPDesktop_14.0.33728.0_x64.appx'"
+    if !errorlevel! neq 0 (
+        echo Warning: Failed to install VCLibs UWPDesktop dependency. Continuing anyway...
+    )
+    
+    REM Download and install App Installer (winget) from Microsoft
+    echo Downloading App Installer package...
+    set "WINGET_URL=https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+    set "WINGET_INSTALLER=%TEMP%\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+    
+    powershell -Command "Invoke-WebRequest -Uri '!WINGET_URL!' -OutFile '!WINGET_INSTALLER!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download App Installer.
+        echo Please manually install "App Installer" from the Microsoft Store or from GitHub - Microsoft/winget-cli
+        rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    echo Installing App Installer...
+    powershell -Command "Add-AppxPackage -Path '!WINGET_INSTALLER!'"
+    if !errorlevel! neq 0 (
+        echo Failed to install App Installer.
+        echo Please manually install "App Installer" from the Microsoft Store or from GitHub - Microsoft/winget-cli
+        del "!WINGET_INSTALLER!" 2>nul
+        rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    
+    REM Clean up installers and temp directories
+    del "!WINGET_INSTALLER!" 2>nul
+    rmdir /s /q "!DEPENDENCIES_DIR!" 2>nul
+
+    REM Add winget to PATH if not already present
+    set "WINGET_PATH=%LOCALAPPDATA%\Microsoft\WindowsApps"
+    echo %PATH% | find /i "%WINGET_PATH%" >nul
+    if %errorlevel% neq 0 (
+        echo Adding winget to PATH...
+        setx PATH "%PATH%;%WINGET_PATH%"
+        set "PATH=%PATH%;%WINGET_PATH%"
+        echo Winget path added to environment variable.
+    )
+    
+    echo App Installer installed successfully.
+    echo Verifying winget installation...
+    where winget >nul 2>&1
+    if !errorlevel! neq 0 (
+        echo WARNING: winget still not found in PATH. You may need to restart your terminal.
+        echo Press any key to exit...
+        pause >nul
+        exit /b
+    )
+    endlocal
 )
 
 REM Update Winget to latest version
 echo Updating winget to the latest version...
-winget update winget && (
+winget update winget --accept-source-agreements --accept-package-agreements && (
     echo winget updated successfully.
 ) || (
     echo Failed to update winget. Update it manually from Microsoft Store or GitHub - Microsoft/winget-cli.
@@ -72,6 +162,67 @@ if %errorlevel% equ 0 (
         pause >nul
         exit /b
     )
+)
+
+REM Check if Git is already installed in thirdparty
+echo Checking if Git is installed in thirdparty...
+if exist "%THIRDPARTY%\git\cmd\git.exe" (
+    echo Git is already installed in thirdparty.
+    "%THIRDPARTY%\git\cmd\git.exe" --version
+) else (
+    setlocal enabledelayedexpansion
+    echo Installing Git to thirdparty...
+
+    REM Set Git download URL
+    set "GIT_URL=https://github.com/git-for-windows/git/releases/download/v2.51.0.windows.2/MinGit-2.51.0.2-64-bit.zip"
+    set "TEMP_ZIP=%TEMP%\git.zip"
+    set "GIT_DIR=%THIRDPARTY%\git"
+
+    REM Clean up any existing partial installations
+    if exist "!GIT_DIR!" (
+        echo Removing previous Git installation...
+        rmdir /s /q "!GIT_DIR!" 2>nul
+    )
+
+    REM Create git directory
+    mkdir "!GIT_DIR!"
+
+    echo Downloading MinGit from GitHub...
+    powershell -Command "Invoke-WebRequest -Uri '!GIT_URL!' -OutFile '!TEMP_ZIP!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download Git. Check your internet connection.
+        echo Press any key to exit...
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    echo Download complete. Extracting to thirdparty...
+    tar -xf "!TEMP_ZIP!" -C "!GIT_DIR!"
+    if !errorlevel! neq 0 (
+        echo Failed to extract Git archive.
+        echo Press any key to exit...
+        del "!TEMP_ZIP!" 2>nul
+        pause >nul
+        endlocal
+        exit /b
+    )
+
+    REM Clean up temp file
+    del "!TEMP_ZIP!"
+
+    REM Verify Git installation
+    if exist "!GIT_DIR!\cmd\git.exe" (
+        echo Git installed successfully in thirdparty.
+        "!GIT_DIR!\cmd\git.exe" --version
+    ) else (
+        echo ERROR: git.exe not found after extraction.
+        echo Press any key to exit...
+        pause >nul
+        endlocal
+        exit /b
+    )
+    endlocal
 )
 
 REM Setup Intel PCM
@@ -165,260 +316,65 @@ if not exist "%THIRDPARTY%\xpu-smi\xpu-smi.exe" (
     tar -xf "%THIRDPARTY%\xpu-smi\xpu-smi-1.3.1-20250724.061318.60921e5e_win.zip" -C "%THIRDPARTY%\xpu-smi" >nul 2>&1
 )
 
-REM Check if FFmpeg is already installed
-echo Checking if FFmpeg is installed...
-where ffmpeg >nul 2>&1
-if %errorlevel% equ 0 (
-    echo FFmpeg is already installed.
-    ffmpeg -version | findstr /B "ffmpeg version"
+REM Check if uv is already installed in thirdparty
+echo Checking if uv is installed in thirdparty...
+if exist "%THIRDPARTY%\uv\uv.exe" (
+    echo uv is already installed in thirdparty.
+    "%THIRDPARTY%\uv\uv.exe" --version
 ) else (
-    echo Installing FFmpeg...
-    winget install --id Gyan.FFmpeg --silent --accept-package-agreements --accept-source-agreements && (
-        echo FFmpeg installed successfully.
-        echo NOTE: You may need to restart your terminal for FFmpeg to be available in PATH.
-    ) || (
-        echo Failed to install FFmpeg. Please check your internet connection.
-        echo ERROR: FFmpeg is required for RTSP streaming functionality in Intel DLStreamer.
-        echo You can manually install it from: https://ffmpeg.org/download.html
+    setlocal enabledelayedexpansion
+    echo Installing uv to thirdparty...
+
+    REM Set uv download URL
+    set "UV_URL=https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+    set "TEMP_ZIP=%TEMP%\uv.zip"
+    set "UV_DIR=%THIRDPARTY%\uv"
+
+    REM Clean up any existing partial installations
+    if exist "!UV_DIR!" (
+        echo Removing previous uv installation...
+        rmdir /s /q "!UV_DIR!" 2>nul
+    )
+
+    REM Create uv directory
+    mkdir "!UV_DIR!"
+
+    echo Downloading uv from GitHub...
+    powershell -Command "Invoke-WebRequest -Uri '!UV_URL!' -OutFile '!TEMP_ZIP!' -UseBasicParsing -ErrorAction Stop"
+    if !errorlevel! neq 0 (
+        echo Failed to download uv. Check your internet connection.
         echo Press any key to exit...
         pause >nul
+        endlocal
         exit /b
     )
-)
 
-REM Setup DLStreamer (GStreamer + OpenVINO + DLStreamer)
-echo.
-echo ========================================
-echo Setting up DLStreamer
-echo ========================================
-
-REM Clean up old DLStreamer environment variables to prevent duplicates
-echo Cleaning up old DLStreamer environment paths...
-powershell -ExecutionPolicy Bypass -Command "$userPath = [Environment]::GetEnvironmentVariable('Path', 'User'); $pathEntries = $userPath -split ';' | Where-Object { $_ -and $_ -notmatch 'dlstreamer|DLStreamer|VideoAccelerationCompatibilityPack' }; $cleanPath = $pathEntries -join ';'; [Environment]::SetEnvironmentVariable('Path', $cleanPath, 'User')"
-powershell -ExecutionPolicy Bypass -Command "[Environment]::SetEnvironmentVariable('GST_PLUGIN_PATH', $null, 'User')"
-powershell -ExecutionPolicy Bypass -Command "[Environment]::SetEnvironmentVariable('LIBVA_DRIVER_NAME', $null, 'User')"
-powershell -ExecutionPolicy Bypass -Command "[Environment]::SetEnvironmentVariable('LIBVA_DRIVERS_PATH', $null, 'User')"
-
-set "DLSTREAMER_VERSION=v2025.2.0"
-set "DLSTREAMER_PACKAGE_NAME=2025.2"
-set "DLSTREAMER_ZIP=%TEMP%\DLStreamer_Windows_%DLSTREAMER_PACKAGE_NAME%.zip"
-set "DLSTREAMER_EXTRACT_DIR=%THIRDPARTY%\dlstreamer"
-set "DLSTREAMER_ZIP_URL=https://github.com/open-edge-platform/dlstreamer/releases/download/%DLSTREAMER_VERSION%/DLStreamer_Windows_%DLSTREAMER_PACKAGE_NAME%.zip"
-
-echo Downloading DLStreamer package from %DLSTREAMER_ZIP_URL%
-powershell -Command "Invoke-WebRequest -Uri '%DLSTREAMER_ZIP_URL%' -OutFile '%DLSTREAMER_ZIP%'"
-if !errorlevel! neq 0 (
-    echo Failed to download DLStreamer package.
-    echo Please check your internet connection.
-    echo You can manually download from: %DLSTREAMER_ZIP_URL%
-    echo Extract to: %DLSTREAMER_EXTRACT_DIR%
-    echo Then run: setup_dls_env.ps1 from the extracted directory
-    echo.
-    echo Press any key to continue with installation...
-    pause >nul
-    goto skip_dlstreamer_setup
-)
-
-echo DLStreamer package downloaded successfully.
-echo Extracting DLStreamer package...
-
-REM Remove existing extraction directory if present
-if exist "%DLSTREAMER_EXTRACT_DIR%" (
-    echo Removing existing DLStreamer directory...
-    rmdir /s /q "%DLSTREAMER_EXTRACT_DIR%"
-)
-
-REM Extract the ZIP file
-powershell -Command "Expand-Archive -Path '%DLSTREAMER_ZIP%' -DestinationPath '%DLSTREAMER_EXTRACT_DIR%' -Force"
-
-REM Clean up ZIP file
-del "%DLSTREAMER_ZIP%"
-
-REM Find and run setup_dls_env.ps1 from extracted directory
-REM Search for setup_dls_env.ps1 in any subdirectory
-for /f "delims=" %%i in ('dir /s /b "%DLSTREAMER_EXTRACT_DIR%\setup_dls_env.ps1" 2^>nul') do (
-    set "SETUP_SCRIPT=%%i"
-    goto :found_setup_script
-)
-
-echo WARNING: Could not find setup_dls_env.ps1 in extracted package
-echo Extracted to: %DLSTREAMER_EXTRACT_DIR%
-echo Please verify the package structure.
-pause
-goto skip_dlstreamer_setup
-
-:found_setup_script
-REM Extract the directory containing the setup script
-for %%F in ("!SETUP_SCRIPT!") do set "SETUP_DIR=%%~dpF"
-
-REM Clean up old OpenVINO installer from previous downloads
-echo Cleaning up old OpenVINO installer cache...
-powershell -ExecutionPolicy Bypass -Command "if (Test-Path 'C:\dlstreamer_tmp\openvino_genai_windows_2025.3.0.0_x86_64.zip') { Remove-Item 'C:\dlstreamer_tmp\openvino_genai_windows_2025.3.0.0_x86_64.zip' -Force; Write-Host 'Removed cached OpenVINO installer - will re-download fresh copy' }"
-
-echo Running DLStreamer setup from extracted directory...
-echo Setup script found at: !SETUP_SCRIPT!
-cd /d "!SETUP_DIR!"
-powershell -ExecutionPolicy Bypass -File "setup_dls_env.ps1"
-set "DLSTREAMER_EXIT_CODE=!errorlevel!"
-cd /d "%REPO_ROOT%"
-
-echo.
-echo DLStreamer setup exit code: !DLSTREAMER_EXIT_CODE!
-
-REM Verify GStreamer installation regardless of exit code
-REM (setup_dls_env.ps1 may return 0 even when downloads fail)
-if not exist "C:\gstreamer\1.0\msvc_x86_64" (
-    echo.
-    echo ========================================
-    echo ERROR: GStreamer installation verification failed
-    echo ========================================
-    echo.
-
-    if !DLSTREAMER_EXIT_CODE! neq 0 (
-        echo DLStreamer setup reported exit code: !DLSTREAMER_EXIT_CODE!
-        echo.
-    )
-
-    REM Check if GStreamer is installed
-    if not exist "C:\gstreamer\1.0\msvc_x86_64" (
-        REM GStreamer not installed - check if download failed
-        if not exist "C:\dlstreamer_tmp\gstreamer-1.0-msvc-x86_64_1.26.6.msi" (
-            echo CAUSE: GStreamer installer download failed (HTTP 418 - anti-bot protection^)
-            echo.
-            echo ========================================
-            echo MANUAL DOWNLOAD AND INSTALLATION REQUIRED
-            echo ========================================
-            echo.
-            echo The GStreamer server blocks automated downloads.
-            echo Please manually download and install GStreamer 1.26.6:
-            echo.
-            echo STEP 1: Download GStreamer installers
-            echo -------
-            echo Open your browser and download both installers:
-            echo.
-            echo   a^) Runtime installer:
-            echo      https://gstreamer.freedesktop.org/data/pkg/windows/1.26.6/msvc/gstreamer-1.0-msvc-x86_64-1.26.6.msi
-            echo.
-            echo   b^) Development installer:
-            echo      https://gstreamer.freedesktop.org/data/pkg/windows/1.26.6/msvc/gstreamer-1.0-devel-msvc-x86_64-1.26.6.msi
-            echo.
-            echo STEP 2: Install GStreamer Runtime
-            echo -------
-            echo   a^) Double-click: gstreamer-1.0-msvc-x86_64-1.26.6.msi
-            echo   b^) CRITICAL: Change installation path from "C:\Program Files\gstreamer"
-            echo      to "C:\gstreamer" ^(root of C: drive, NO "Program Files"^)
-            echo   c^) Select "Complete" installation ^(install all components^)
-            echo   d^) Click Install and wait for completion
-            echo.
-            echo STEP 3: Install GStreamer Development Package
-            echo -------
-            echo   a^) Double-click: gstreamer-1.0-devel-msvc-x86_64-1.26.6.msi
-            echo   b^) CRITICAL: Use the SAME path "C:\gstreamer" ^(it will merge files^)
-            echo   c^) Select "Complete" installation
-            echo   d^) Click Install and wait for completion
-            echo.
-            echo STEP 4: Verify Installation
-            echo -------
-            echo   Confirm these folders exist:
-            echo   - C:\gstreamer\1.0\msvc_x86_64\bin
-            echo   - C:\gstreamer\1.0\msvc_x86_64\lib
-            echo.
-            echo   If files are in "C:\Program Files\gstreamer" instead,
-            echo   you MUST uninstall and reinstall to C:\gstreamer
-            echo.
-            echo STEP 5: Rerun Installation
-            echo -------
-            echo   After GStreamer is installed to C:\gstreamer, rerun this install.bat script
-            echo.
-            echo ========================================
-            echo.
-        ) else (
-            echo CAUSE: GStreamer installers downloaded but installation failed
-            echo.
-            echo ========================================
-            echo MANUAL INSTALLATION REQUIRED
-            echo ========================================
-            echo.
-            echo The installers are already downloaded but installation failed.
-            echo Please install them manually with the correct path:
-            echo.
-            echo STEP 1: Install GStreamer Runtime
-            echo -------
-            echo   a^) Double-click: C:\dlstreamer_tmp\gstreamer-1.0-msvc-x86_64_1.26.6.msi
-            echo   b^) CRITICAL: Change installation path from "C:\Program Files\gstreamer"
-            echo      to "C:\gstreamer" ^(root of C: drive, NO "Program Files"^)
-            echo   c^) Select "Complete" installation ^(install all components^)
-            echo   d^) Click Install and wait for completion
-            echo.
-            echo STEP 2: Install GStreamer Development Package
-            echo -------
-            echo   a^) Double-click: C:\dlstreamer_tmp\gstreamer-1.0-devel-msvc-x86_64_1.26.6.msi
-            echo   b^) CRITICAL: Use the SAME path "C:\gstreamer" ^(it will merge files^)
-            echo   c^) Select "Complete" installation
-            echo   d^) Click Install and wait for completion
-            echo.
-            echo STEP 3: Verify Installation
-            echo -------
-            echo   Confirm these folders exist:
-            echo   - C:\gstreamer\1.0\msvc_x86_64\bin
-            echo   - C:\gstreamer\1.0\msvc_x86_64\lib
-            echo.
-            echo   If files are in "C:\Program Files\gstreamer" instead,
-            echo   you MUST uninstall and reinstall to C:\gstreamer
-            echo.
-            echo STEP 4: Rerun Installation
-            echo -------
-            echo   After GStreamer is installed to C:\gstreamer, rerun this install.bat script
-            echo.
-            echo ========================================
-            echo.
-        )
-    ) else (
-        echo GStreamer is installed. Setup failed for another reason.
-        echo.
-        echo To manually investigate:
-        echo   cd "!SETUP_DIR!"
-        echo   powershell -ExecutionPolicy Bypass -File "setup_dls_env.ps1"
-        echo.
-    )
-
-    echo Press any key to exit. After fixing the issue, rerun this install.bat script
-    pause >nul
-    exit /b
-) else (
-    echo GStreamer installation verified successfully.
-)
-
-REM Final verification message
-if !DLSTREAMER_EXIT_CODE! equ 0 (
-    if exist "C:\gstreamer\1.0\msvc_x86_64" (
-        echo DLStreamer setup completed successfully.
-    )
-)
-
-:skip_dlstreamer_setup
-
-
-REM Setup MediaMTX
-echo.
-echo ========================================
-echo Setting up MediaMTX
-echo ========================================
-if exist "%REPO_ROOT%\scripts\setup_mediamtx.ps1" (
-    powershell -ExecutionPolicy Bypass -File "%REPO_ROOT%\scripts\setup_mediamtx.ps1"
+    echo Download complete. Extracting to thirdparty...
+    tar -xf "!TEMP_ZIP!" -C "!UV_DIR!"
     if !errorlevel! neq 0 (
-        echo.
-        echo WARNING: MediaMTX setup encountered an error.
-        echo This may affect media streaming capabilities.
-        echo You can manually run the setup later: scripts\setup_mediamtx.ps1
-        echo.
-        echo Press any key to continue with installation...
+        echo Failed to extract uv archive.
+        echo Press any key to exit...
+        del "!TEMP_ZIP!" 2>nul
         pause >nul
-    ) else (
-        echo MediaMTX installed successfully.
+        endlocal
+        exit /b
     )
-) else (
-    echo WARNING: MediaMTX setup script not found at scripts\setup_mediamtx.ps1
+
+    REM Clean up temp file
+    del "!TEMP_ZIP!"
+
+    REM Verify uv installation
+    if exist "!UV_DIR!\uv.exe" (
+        echo uv installed successfully in thirdparty.
+        "!UV_DIR!\uv.exe" --version
+    ) else (
+        echo ERROR: uv.exe not found after extraction.
+        echo Press any key to exit...
+        pause >nul
+        endlocal
+        exit /b
+    )
+    endlocal
 )
 
 REM Disable path length limit for Python

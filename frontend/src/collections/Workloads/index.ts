@@ -62,8 +62,15 @@ export const Workloads: CollectionConfig = {
       unique: true,
       hooks: {
         beforeValidate: [
-          ({ data }) => {
-            if (!data?.port) {
+          ({
+            data,
+            operation,
+          }: {
+            data?: { port?: number }
+            operation?: 'create' | 'update' | 'read' | 'delete'
+          }) => {
+            // Only generate a random port on create, not on update
+            if (operation === 'create' && !data?.port) {
               return getRandomInt(5000, 6000)
             }
           },

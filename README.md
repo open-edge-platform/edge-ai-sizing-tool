@@ -100,7 +100,6 @@ A curated set of popular models for common AI tasks:
 | mask_rcnn_resnet50_atrous_coco               | Instance Segmentation        | [Open Model Zoo](https://github.com/openvinotoolkit/open_model_zoo/tree/master/models/public/mask_rcnn_resnet50_atrous_coco)
 | mask_rcnn_inception_resnet_v2_atrous_coco    | Instance Segmentation        | [Open Model Zoo](https://github.com/openvinotoolkit/open_model_zoo/tree/master/models/public/faster_rcnn_inception_resnet_v2_atrous_coco)
 | dreamlike-art/dreamlike-anime-1.0            | Text-To-Image                | [Hugging Face](https://huggingface.co/dreamlike-art/dreamlike-anime-1.0)         |
-| stabilityai/stable-diffusion-2               | Text-To-Image                | [Hugging Face](https://huggingface.co/stabilityai/stable-diffusion-2)            |
 | TinyLlama/TinyLlama-1.1B-Chat-v1.0           | Text Generation              | [Hugging Face](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)        |
 | Qwen/Qwen1.5-7B-Chat                         | Text Generation              | [Hugging Face](https://huggingface.co/Qwen/Qwen1.5-7B-Chat)                      |
 | OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov    | Text Generation              | [Hugging Face](https://huggingface.co/OpenVINO/Mistral-7B-Instruct-v0.2-int4-ov) |

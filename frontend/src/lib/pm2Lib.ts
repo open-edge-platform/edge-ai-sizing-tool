@@ -49,6 +49,8 @@ export async function startPm2Process(
 
   if (!scriptName && !params) {
     await runCommand(`npx pm2 start ${pm2Name}`)
+    // Save PM2 process list to persist across reboots
+    await runCommand(`npx pm2 save`)
     return
   }
 
@@ -70,6 +72,8 @@ export async function startPm2Process(
     await runCommand(
       `npx pm2 start ${scriptPath} --name ${pm2Name} --interpreter=${virtualEnvPath} --no-autorestart -- ${params}`,
     )
+    // Save PM2 process list to persist across reboots
+    await runCommand(`npx pm2 save`)
   } catch (err) {
     throw err
   }
@@ -78,9 +82,13 @@ export async function startPm2Process(
 export async function stopPm2Process(pm2Name: string): Promise<void> {
   pm2Name = pm2Name?.replace(/[^\w.@\-\/ \-]/g, '') || ''
   await runCommand(`npx pm2 stop ${pm2Name}`)
+  // Save PM2 process list to persist across reboots
+  await runCommand(`npx pm2 save`)
 }
 
 export async function deletePm2Process(pm2Name: string): Promise<void> {
   pm2Name = pm2Name?.replace(/[^\w.@\-\/ \-]/g, '') || ''
   await runCommand(`npx pm2 delete ${pm2Name}`)
+  // Save PM2 process list to persist across reboots
+  await runCommand(`npx pm2 save`)
 }

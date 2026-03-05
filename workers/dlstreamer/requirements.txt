@@ -4,3 +4,4 @@ openvino==2025.4.1
 nncf==2.19.0
 uvicorn==0.40.0
 fastapi==0.128.0
+pillow==12.1.1
