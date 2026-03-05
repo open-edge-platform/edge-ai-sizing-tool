@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
-    "@payloadcms/db-sqlite": "3.54.0",
+    "@payloadcms/db-sqlite": "3.79.0",
     "@payloadcms/next": "3.54.0",
     "@payloadcms/richtext-lexical": "^3.54.0",
     "@radix-ui/react-accordion": "^1.2.11",
