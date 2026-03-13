@@ -279,8 +279,8 @@ REM Check if XPU-SMI is already installed in thirdparty
 echo Checking if XPU-SMI is installed in thirdparty...
 if not exist "%THIRDPARTY%\xpu-smi\xpu-smi.exe" (
     echo Installing XPU-SMI...
-    curl --create-dirs -L -O --output-dir "%THIRDPARTY%\xpu-smi" https://github.com/intel/xpumanager/releases/download/V1.3.1/xpu-smi-1.3.1-20250724.061318.60921e5e_win.zip
-    tar -xf "%THIRDPARTY%\xpu-smi\xpu-smi-1.3.1-20250724.061318.60921e5e_win.zip" -C "%THIRDPARTY%\xpu-smi" >nul 2>&1
+    curl --create-dirs -L -O --output-dir "%THIRDPARTY%\xpu-smi" https://github.com/intel/xpumanager/releases/download/v1.3.6/xpu-smi-1.3.6-20260206.143316.1004f6cb_win.zip
+    tar -xf "%THIRDPARTY%\xpu-smi\xpu-smi-1.3.6-20260206.143316.1004f6cb_win.zip" -C "%THIRDPARTY%\xpu-smi" >nul 2>&1
 )
 
 REM Check if uv is already installed in thirdparty

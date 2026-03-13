@@ -118,7 +118,7 @@ install_intel_xpu_manager() {
     log_info "Installing Intel XPU Manager..."
     local xpu_package="xpumanager_1.3.6_20260206.143628.1004f6cb.u24.04_amd64.deb"
     
-    download_with_retry "https://github.com/intel/xpumanager/releases/download/V1.3.6/$xpu_package" "$xpu_package"
+    download_with_retry "https://github.com/intel/xpumanager/releases/download/v1.3.6/$xpu_package" "$xpu_package"
     
     if dpkg -i "$xpu_package"; then
         log_success "Intel XPU Manager installed successfully."
