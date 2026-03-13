@@ -3,8 +3,9 @@
 
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useParams, usePathname, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   MoreVertical,
   Package,
@@ -49,8 +50,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useDeleteWorkload, useWorkloads } from '@/hooks/useWorkload'
 import { Workload } from '@/payload-types'
-import { toast } from 'sonner'
-import { getUsecaseIcon } from '@/lib/utils'
+import { getUsecaseIcon, normalizeUseCase } from '@/lib/utils'
 
 export function WorkloadsSidebar({
   ...props
@@ -60,8 +60,17 @@ export function WorkloadsSidebar({
   const deleteWorkload = useDeleteWorkload()
   const [activeWorkload, setActiveWorkload] = useState<Workload | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [logWorkload, setLogWorkload] = useState<Workload | null>(null)
+  const [logContent, setLogContent] = useState<string | null>(null)
+  const [logLoading, setLogLoading] = useState(false)
+  const [logError, setLogError] = useState<string | null>(null)
   const { id: currentPageID } = useParams<{ id: string }>()
   const pathname = usePathname()
+
+  // Generate log identifier based on normalized usecase and id
+  const getWorkloadLogIdentifier = (workload: Workload) => {
+    return `${normalizeUseCase(workload.usecase)}-${workload.id}`
+  }
 
   // Filter workloads based on search term
   const filteredWorkloads = useMemo(() => {
@@ -100,6 +109,64 @@ export function WorkloadsSidebar({
     setActiveWorkload(workload)
   }
 
+  // Fetch logs from API
+  const fetchWorkloadLog = async (logIdentifier: string, silent = false) => {
+    if (!silent) setLogLoading(true)
+    setLogError(null)
+
+    try {
+      // Validate logIdentifier format: should be "usecase-number"
+      // Only allow alphanumeric characters, hyphens, and underscores
+      const validLogIdPattern = /^[a-zA-Z0-9_-]+$/
+      if (!validLogIdPattern.test(logIdentifier)) {
+        throw new Error('Invalid log identifier format')
+      }
+
+      // Additional validation: ensure it matches expected pattern
+      const expectedPattern = /^[a-z]+(-[a-z]+)*-\d+$/
+      if (!expectedPattern.test(logIdentifier)) {
+        throw new Error('Log identifier does not match expected format')
+      }
+
+      // Sanitize by encoding the logIdentifier
+      const sanitizedLogId = encodeURIComponent(logIdentifier)
+
+      const res = await fetch(
+        `/api/workload-log?id=${sanitizedLogId.toString()}`,
+      )
+      const data = await res.json()
+
+      if (!res.ok) {
+        setLogError(data.error || 'Failed to fetch log')
+      } else {
+        setLogContent(data.logs || 'No log output')
+      }
+    } catch (error) {
+      setLogError(
+        `Error fetching log: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    } finally {
+      if (!silent) setLogLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!logWorkload) return
+
+    const logId = getWorkloadLogIdentifier(logWorkload)
+
+    // first load
+    fetchWorkloadLog(logId)
+
+    // refresh every 1 second
+    const interval = setInterval(() => {
+      fetchWorkloadLog(logId, true)
+    }, 1000)
+
+    // cleanup when modal closes
+    return () => clearInterval(interval)
+  }, [logWorkload])
+
   return (
     <Sidebar collapsible="none" className="flex-1" {...props}>
       <SidebarHeader className="gap-3.5 border-b p-4">
@@ -124,6 +191,7 @@ export function WorkloadsSidebar({
           Add Workload
         </Button>
       </SidebarHeader>
+
       <SidebarContent>
         {workloadsData.isLoading ? (
           <div className="mt-8 flex flex-col items-center justify-center p-8 text-center">
@@ -166,43 +234,6 @@ export function WorkloadsSidebar({
             <p className="text-muted-foreground mb-4 text-xs">
               Get started by creating your first workload
             </p>
-            <div className="max-w-xs space-y-4">
-              <div className="flex items-start gap-2 text-left">
-                <div className="bg-primary text-primary-foreground mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-xs">
-                  1
-                </div>
-                <div>
-                  <p className="text-sm font-medium">
-                    Click &quot;Add Workload&quot; above
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    To create a new workload
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 text-left">
-                <div className="bg-primary text-primary-foreground mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-xs">
-                  2
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Configure your workload</p>
-                  <p className="text-muted-foreground text-xs">
-                    Choose task, usecase, model, and devices
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 text-left">
-                <div className="bg-primary text-primary-foreground mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-xs">
-                  3
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Deploy and run</p>
-                  <p className="text-muted-foreground text-xs">
-                    Your workload will appear in this list
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         ) : filteredWorkloads?.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -214,15 +245,13 @@ export function WorkloadsSidebar({
             <p className="text-muted-foreground mb-4 text-xs">
               No workloads match your search term &quot;{searchTerm}&quot;
             </p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSearchTerm('')}
-              >
-                Clear Search
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchTerm('')}
+            >
+              Clear Search
+            </Button>
           </div>
         ) : (
           <SidebarMenu className="gap-1">
@@ -264,13 +293,16 @@ export function WorkloadsSidebar({
                       </div>
                     </div>
                   </SidebarMenuButton>
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <SidebarMenuAction showOnHover className="mt-3">
                         <MoreVertical className="h-4 w-4" />
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
+
                     <DropdownMenuContent align="end" side="right">
+                      {/* Edit */}
                       <DropdownMenuItem
                         onClick={() =>
                           router.push(`/workload/${workload.id}/edit`)
@@ -279,7 +311,22 @@ export function WorkloadsSidebar({
                         <SquarePen className="mr-2 h-4 w-4" />
                         <span>Edit</span>
                       </DropdownMenuItem>
+
+                      {/* View Log */}
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          setLogWorkload(workload)
+                          const logId = getWorkloadLogIdentifier(workload)
+                          await fetchWorkloadLog(logId)
+                        }}
+                      >
+                        <PackageSearch className="mr-2 h-4 w-4" />
+                        <span>View Log</span>
+                      </DropdownMenuItem>
+
                       <DropdownMenuSeparator />
+
+                      {/* Delete */}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <DropdownMenuItem
@@ -314,6 +361,48 @@ export function WorkloadsSidebar({
               )
             })}
           </SidebarMenu>
+        )}
+
+        {/* View Log Modal */}
+        {logWorkload && (
+          <AlertDialog
+            open={!!logWorkload}
+            onOpenChange={() => {
+              setLogWorkload(null)
+              setLogContent(null)
+              setLogError(null)
+            }}
+          >
+            <AlertDialogContent className="max-w-6xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Workload Log</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Viewing log for workload:{' '}
+                  {normalizeUseCase(logWorkload.usecase)}-{logWorkload.id}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <div className="my-2 max-h-96 overflow-auto rounded-md bg-gray-100 p-4 font-mono text-sm whitespace-pre-wrap">
+                {logLoading && 'Loading logs...'}
+                {logError && (
+                  <span className="text-destructive">{logError}</span>
+                )}
+                {!logLoading && !logError && logContent}
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogAction
+                  onClick={() => {
+                    setLogWorkload(null)
+                    setLogContent(null)
+                    setLogError(null)
+                  }}
+                >
+                  Close
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </SidebarContent>
     </Sidebar>
