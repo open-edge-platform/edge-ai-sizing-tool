@@ -12,6 +12,7 @@ set "THIRDPARTY=%2"
 
 REM Install a full driver development environment using a WinGet configuration file
 echo Install a full driver development environment...
+winget configure --enable
 winget configure -f "%REPO_ROOT%\scripts\configuration.dsc.yaml" --accept-configuration-agreements
 
 REM Check if Intel PCM is already installed in thirdparty
