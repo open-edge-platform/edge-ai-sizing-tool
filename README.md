@@ -4,7 +4,7 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
 
 ![demo](./docs/demo.gif)
 
-> **Disclaimer:** This software is designed to run exclusively in a trusted, single-machine environment. It is **not designed, tested, or supported for use in production systems**. Deploying or running this software in production or untrusted environments may lead to unexpected behavior, security vulnerabilities, or performance issues. Use outside of controlled, secure settings is strongly discouraged.
+> **Usage guidance:** This software is provided for evaluation and demonstration on a single, trusted machine. It has not been validated for production deployments—if you intend to use it in other environments, perform appropriate testing and security reviews for your target deployment.
 
 ## Table of Contents
 
@@ -28,7 +28,8 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
   - [2. Tool Crashes or Stops Unexpectedly](#2-tool-crashes-or-stops-unexpectedly)
   - [3. Installation Script Dependency Issues](#3-installation-script-dependency-issues)
 - [Limitations](#limitations)
-- [Disclaimer](#disclaimer)
+- [Licensing](#licensing)
+- [Contributing](#contributing)
 
 ## Requirements
 
@@ -87,7 +88,8 @@ A curated set of popular models for common AI tasks:
 | openai/whisper-base                          | Automatic Speech Recognition | [Hugging Face](https://huggingface.co/openai/whisper-base)                       |
 | microsoft/speecht5_tts                       | Text-To-Speech               | [Hugging Face](https://huggingface.co/microsoft/speecht5_tts)                    |
 
-> **Disclaimer:** Before setting up and starting the application, review the license terms for each model above. By proceeding, you acknowledge and agree to comply with the respective model licenses.
+
+> **Licensing:** Before setting up and starting the application, review the license terms for each model above and ensure your intended use complies with those licenses.
 
 > **Note:** Models will be downloaded from their respective sources (Hugging Face, Ultralytics, etc.). You can update the `HF_ENDPOINT` variable in the `.env` file to use a different Hugging Face endpoint if needed.
 
@@ -239,10 +241,9 @@ This installs all required packages, sets up Python and Node.js environments.
 
 - Run `./start.sh` to start services either from a fresh state or restore their previous states if a PM2 process dump exists.
 
-> **Note:** When you execute `start.sh`, the setup process will automatically generate a random secret key for the `PAYLOAD_SECRET` variable in the `.env` file. By running this script, you acknowledge and accept the use of this automatically generated secret.  
->
-> If you prefer to specify your own secret key, manually copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value in the `.env` file before running this script.
->
+
+> **Configuration:** When you execute `start.sh`, if `.env` does not contain a `PAYLOAD_SECRET`, the setup will generate a random `PAYLOAD_SECRET` and write it to `.env`. To supply your own secret instead, copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value before running the script.
+
 > You can also update the `HF_TOKEN`, `HF_ENDPOINT`, and `MODELSCOPE_DOMAIN` variables in the `.env` file as needed for your environment.
 
 ```bash
@@ -280,10 +281,9 @@ This installs all required packages, sets up Python and Node.js environments.
 
 - Double-click the `start.bat` shortcut on your Desktop to start services either from a fresh state or restore their previous states.
 
-> **Note:** When you execute `start.bat`, the setup process will automatically generate a random secret key for the `PAYLOAD_SECRET` variable in the `.env` file. By running this script, you acknowledge and accept the use of this automatically generated secret.  
->
-> If you prefer to specify your own secret key, manually copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value in the `.env` file before running this script.
->
+
+> **Configuration:** When you execute `start.bat`, if `.env` does not contain a `PAYLOAD_SECRET`, the setup will generate a random `PAYLOAD_SECRET` and write it to `.env`. To supply your own secret instead, copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value before running the script.
+
 > You can also update the `HF_TOKEN`, `HF_ENDPOINT`, and `MODELSCOPE_DOMAIN` variables in the `.env` file as needed for your environment.
 
 Once started, open http://localhost:8080 in your browser.
@@ -312,7 +312,7 @@ Follow the steps below to enable the functionality of perf_events for non-root u
 
 > **Note:** Only relevant for Linux systems.
 
-> **Disclaimer:** Setting `kernel.perf_event_paranoid=0` allows all users to access performance monitoring features, which can expose sensitive system information and increase security risks. Ensure this change is necessary, and implement additional access controls and monitoring to mitigate potential vulnerabilities.
+> **Security guidance:** Changing `kernel.perf_event_paranoid=0` expands access to performance monitoring features and can expose system information. Assess the security implications and apply appropriate access controls before making this change.
 
 #### Temporary Enablement
 
@@ -399,8 +399,15 @@ This procedure addresses common package dependency conflicts encountered on Ubun
 
 5. DLStreamer is not supported on Windows. Hence, the Object Detection and Instance Segmentation use cases for Computer Vision task are currently unavailable on Windows.
 
+## Licensing
+The Edge AI Sizing Tool and its components is licensed under the [APACHE 2.0](./LICENSE.txt) license, except for the following components:
 
-## Disclaimer
-GStreamer* is an open source framework licensed under LGPL. See https://gstreamer.freedesktop.org/documentation/frequently-asked-questions/licensing.html. You are solely responsible for determining if your use of GStreamer requires any additional licenses.  Intel is not responsible for obtaining any such licenses, nor liable for any licensing fees due, in connection with your use of GStreamer.
+| Component | License |
+|:----------|:--------|
+| GStreamer | [LGPL](https://gstreamer.freedesktop.org/documentation/frequently-asked-questions/licensing.html) |
 
-This application has been validated and tested on the hardware listed in the documentation. While we strive to ensure compatibility and performance, the application may not function as expected on other hardware configurations. Users may encounter issues or unexpected behavior when running the application on untested hardware. If you encounter any issues or have suggestions for improvements, we welcome you to open an issue.
+## Contributing
+
+Contributions are welcome and appreciated! Whether it's a bug report, a feature suggestion, documentation improvement, or a code change, your input helps make this project better. Check our [Contributing Guide](./CONTRIBUTING.md) to get started.
+
+For bugs or suggestions, please open an issue and include relevant details such as your hardware, operating system, reproduction steps, and any error output. This application has been validated on the hardware listed in the documentation; behavior on other configurations may vary.
