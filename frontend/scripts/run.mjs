@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
@@ -32,7 +31,7 @@ const getPm2PathWindows = () => {
   if (fs.existsSync(localPm2)) {
     return localPm2
   }
-  
+
   try {
     return execSync('where pm2.cmd', {
       encoding: 'utf8',
@@ -121,6 +120,41 @@ const checkNodeModules = () =>
 const checkBuildDirectory = () =>
   fs.existsSync(path.join(process.cwd(), '.next'))
 
+// Check if PM2 already has applications running
+const checkPm2Apps = () => {
+  return new Promise((resolve) => {
+    const pm2Path = ALLOWED_COMMANDS['pm2']
+    const pm2Process = spawn(pm2Path, ['jlist'], {
+      shell: isWindows ? true : false,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+    let output = ''
+
+    pm2Process.stdout.on('data', (data) => {
+      output += data.toString()
+    })
+
+    pm2Process.on('close', () => {
+      try {
+        const processes = JSON.parse(output).map((proc) => ({
+          id: proc.pm_id.toString(),
+          name: proc.name.replace(/"/g, ''),
+          status: proc.pm2_env.status,
+        }))
+        resolve(processes)
+      } catch (err) {
+        console.error('Error parsing PM2 JSON output:', err)
+        resolve([])
+      }
+    })
+
+    pm2Process.on('error', (err) => {
+      console.error('PM2 process error:', err)
+      resolve([])
+    })
+  })
+}
+
 // Main function to run the commands sequentially
 const runInstallBuildStart = async () => {
   try {
@@ -189,37 +223,12 @@ const runInstallBuildStart = async () => {
       console.log('Skipping setup-workers (venv folders already exist)')
     }
 
-    // Check if PM2 already has an EAST application
-    console.log('Checking for existing PM2 EAST application...')
-    const checkPm2App = () => {
-      return new Promise((resolve) => {
-        const pm2Path = ALLOWED_COMMANDS['pm2']
-        const pm2Process = spawn(pm2Path, ['list'], {
-          shell: isWindows ? true : false,
-          stdio: ['ignore', 'pipe', 'ignore'],
-        })
-        let output = ''
-
-        pm2Process.stdout.on('data', (data) => {
-          output += data.toString()
-        })
-
-        pm2Process.on('close', () => {
-          resolve(output.includes('EAST'))
-        })
-
-        pm2Process.on('error', () => {
-          resolve(false)
-        })
-      })
-    }
-
+    // PM2 resurrection logic
     if (fs.existsSync(PM2_DUMP)) {
       await runCommand('pm2 resurrect')
       console.log('PM2 processes restored from dump.')
 
       // Check for saved online processes state
-      // Coverity fix: break taint chain by copying allowed characters
       const rawHomeDir = os.homedir()
       if (!rawHomeDir || typeof rawHomeDir !== 'string') {
         throw new Error('Invalid home directory')
@@ -265,7 +274,9 @@ const runInstallBuildStart = async () => {
 
       if (fs.existsSync(stateFile)) {
         try {
-          const onlineProcesses = JSON.parse(fs.readFileSync(stateFile, 'utf-8'))
+          const onlineProcesses = JSON.parse(
+            fs.readFileSync(stateFile, 'utf-8'),
+          )
           console.log('Restoring previously online processes...')
           for (const processName of onlineProcesses) {
             try {
@@ -274,7 +285,6 @@ const runInstallBuildStart = async () => {
               console.log(`Could not restart ${processName}: ${err}`)
             }
           }
-          // Remove the state file after restoring
           fs.unlinkSync(stateFile)
         } catch (err) {
           console.log('Could not restore online processes state:', err)
@@ -284,17 +294,112 @@ const runInstallBuildStart = async () => {
       console.log('No PM2 dump file found. Skipping resurrection.')
     }
 
-    console.log('Checking EAST application status...')
-    const eastAppExists = await checkPm2App()
+    // Get current process list
+    console.log('Getting current PM2 process list...')
+    const processes = await checkPm2Apps()
+    console.log(
+      'Current processes:',
+      processes.map((p) => `${p.name}:${p.status}`),
+    )
 
-    if (eastAppExists) {
-      console.log('EAST application already exists. Restarting...')
-      await runCommand('pm2 restart "EAST"')
+    // Handle EAST application (single consolidated logic)
+    const east = processes.find((p) => p.name === 'EAST')
+    if (east) {
+      if (east.status !== 'online') {
+        console.log('Starting EAST process...')
+        try {
+          await runCommand('pm2 start "EAST"')
+        } catch {
+          console.log('Start failed, restarting EAST...')
+          try {
+            await runCommand('pm2 restart "EAST"')
+          } catch {
+            console.log('Restart failed, recreating EAST...')
+            await runCommand('pm2 delete "EAST"')
+            await runCommand('pm2 start npm --name "EAST" -- start')
+          }
+        }
+      } else {
+        console.log('EAST is already running')
+      }
     } else {
       console.log('EAST application not found. Starting EAST...')
       await runCommand('pm2 start npm --name "EAST" -- start')
     }
+
+    // Handle custom-application-profiling service
+    const profiling = processes.find(
+      (p) => p.name === 'custom-application-profiling',
+    )
+    const profilingScriptPath = path.resolve(
+      process.cwd(),
+      '..',
+      'workers',
+      'custom-application-profiling',
+      'main.py',
+    )
+    const profilingPythonPath = path.resolve(
+      process.cwd(),
+      '..',
+      'workers',
+      'custom-application-profiling',
+      'venv',
+      'bin',
+      'python',
+    )
+
+    if (fs.existsSync(profilingScriptPath)) {
+      if (profiling) {
+        if (profiling.status !== 'online') {
+          console.log(
+            'Deleting and recreating Application Profiling process...',
+          )
+          try {
+            await runCommand('pm2 delete "custom-application-profiling"')
+          } catch (err) {
+            console.log('Delete failed (process might not exist):', err)
+          }
+
+          // Start fresh with correct syntax
+          console.log('Starting Application Profiling service with PM2...')
+          const startCommand = `pm2 start ${profilingPythonPath} --name custom-application-profiling -- ${profilingScriptPath} api --host 127.0.0.1 --port 6240`
+          console.log(`Executing: ${startCommand}`)
+          await runCommand(startCommand)
+          console.log('Waiting for baseline establishment...')
+          await new Promise((resolve) => setTimeout(() => resolve(), 5000))
+        } else {
+          console.log('Application Profiling is already running')
+        }
+      } else {
+        console.log('Starting Application Profiling service with PM2...')
+        // FIXED: Correct PM2 command syntax
+        const startCommand = `pm2 start ${profilingPythonPath} --name custom-application-profiling -- ${profilingScriptPath} api --host 127.0.0.1 --port 6240`
+        console.log(`Executing: ${startCommand}`)
+        await runCommand(startCommand)
+        console.log('Waiting for baseline establishment...')
+        await new Promise((resolve) => setTimeout(() => resolve(), 5000))
+      }
+    } else {
+      console.log('Application Profiling worker not found, skipping...')
+    }
+
+    // Get updated process list and handle other processes
+    const updatedProcesses = await checkPm2Apps()
+    const mainServices = ['custom-application-profiling', 'EAST']
+
+    for (const proc of updatedProcesses) {
+      if (!mainServices.includes(proc.name) && proc.status !== 'online') {
+        try {
+          console.log(`Starting ${proc.name}...`)
+          await runCommand(`pm2 start ${proc.name}`)
+        } catch (err) {
+          console.log(`Failed to start ${proc.name}: ${err}`)
+        }
+      }
+    }
+
     await runCommand('pm2 save')
+    console.log('All services started successfully!')
   } catch (error) {
     console.error('An error occurred:', error)
   }

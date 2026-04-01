@@ -75,10 +75,14 @@ export function WorkloadsSidebar({
   // Filter workloads based on search term
   const filteredWorkloads = useMemo(() => {
     return workloadsData.data?.docs.filter(
-      (workload: { usecase: string; model: string; task: string }) =>
-        workload.usecase.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        workload.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        workload.task.toLowerCase().includes(searchTerm.toLowerCase()),
+      (workload: Workload) =>
+        (workload?.usecase ?? '')
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (workload?.model ?? '')
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (workload?.task ?? '').toLowerCase().includes(searchTerm.toLowerCase()),
     )
   }, [workloadsData.data?.docs, searchTerm])
 
@@ -256,7 +260,7 @@ export function WorkloadsSidebar({
         ) : (
           <SidebarMenu className="gap-1">
             {filteredWorkloads?.map((workload) => {
-              const UsecaseIcon = getUsecaseIcon(workload.usecase)
+              const UsecaseIcon = getUsecaseIcon(workload?.usecase ?? '')
               return (
                 <SidebarMenuItem key={workload.id} className="h-14">
                   <SidebarMenuButton
@@ -270,17 +274,23 @@ export function WorkloadsSidebar({
                     <div className="grid flex-1 gap-0.5">
                       <div className="flex flex-wrap items-center gap-1">
                         <span className="font-medium">
-                          {workload.usecase.replace(/-/g, ' ')}
+                          {(workload.usecase ?? '').replace(/-/g, ' ')}
                         </span>
                       </div>
                       <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                        <span className="max-w-[180px] truncate">
-                          {workload.model.includes('/')
-                            ? workload.model.split('/')[1]
-                            : workload.model}
+                        <span className="max-w-45 truncate">
+                          {workload.usecase ===
+                            'custom application monitoring' &&
+                          typeof workload.metadata === 'object' &&
+                          workload.metadata !== null &&
+                          !Array.isArray(workload.metadata)
+                            ? `${workload.metadata.processName ?? ''} (${workload.metadata.pid ?? ''})`
+                            : (workload.model ?? '').includes('/')
+                              ? (workload.model ?? '').split('/')[1]
+                              : (workload.model ?? '')}
                         </span>
                         <div className="flex flex-wrap gap-1">
-                          {workload.devices.map((device) => (
+                          {(workload.devices ?? []).map((device) => (
                             <Badge
                               key={device.id}
                               variant="outline"

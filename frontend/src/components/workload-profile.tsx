@@ -27,7 +27,7 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
   const { data: deviceDetails } = useAccelerator()
   const acceleratorDevices: { id: string; name?: string }[] | undefined =
     deviceDetails?.devices
-  // Format relative time (e.g., "2 hours ago")
+  // Format relative time
   const getRelativeTime = (dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true })
@@ -40,7 +40,12 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
   const onStatusChange = (newStatus: string) => {
     try {
       updateWorkload.mutate(
-        { ...workload, status: newStatus === 'active' ? 'prepare' : newStatus },
+        {
+          id: workload.id,
+          data: {
+            status: newStatus === 'active' ? 'prepare' : newStatus,
+          },
+        },
         {
           onError: (error) => {
             toast.error('Error updating workload status')
@@ -55,7 +60,7 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
   }
 
   return (
-    <Card className="h-full min-h-[500px]">
+    <Card className="h-full min-h-125">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Workload Details</CardTitle>
@@ -82,51 +87,74 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
             </div>
           </div>
 
-          <div className="grid gap-3">
-            <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-md p-2">
-              <div className="min-w-24 text-sm font-medium">Model</div>
-              <div className="flex-1 flex-wrap font-mono text-sm">
-                {workload.model.split('/').length > 1
-                  ? workload.model.split('/')[1]
-                  : workload.model}
+          {workload.task === 'application profiling' ? (
+            <>
+              <div className="grid gap-3">
+                <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-md p-2">
+                  <div className="min-w-24 text-sm font-medium">
+                    Process ID (PID)
+                  </div>
+                  <div className="flex-1 flex-wrap font-mono text-sm"></div>
+                </div>
+                <div className="grid gap-3">
+                  <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-md p-2">
+                    <div className="min-w-24 text-sm font-medium">
+                      Process Name
+                    </div>
+                    <div className="flex-1 flex-wrap font-mono text-sm"></div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <Server className="h-4 w-4" />
-              Allocated Devices
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {workload.devices.map((device) => {
-                const deviceDetails = acceleratorDevices?.find(
-                  (d) => d.id === device.device,
-                )
-                const deviceName = deviceDetails?.name || 'NA'
-                return (
-                  <TooltipProvider key={device.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex cursor-help items-center gap-2 rounded-md border p-2 text-sm">
-                          <Cpu className="text-muted-foreground h-4 w-4" />
-                          <span>{device.device}</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Device ID: {device.id}</p>
-                        <p>Device Name: {deviceName}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )
-              })}
-            </div>
-          </div>
-
-          <Separator />
+              <Separator />
+            </>
+          ) : (
+            <>
+              <div className="grid gap-3">
+                <div className="bg-muted/40 flex flex-wrap items-center gap-2 rounded-md p-2">
+                  <div className="min-w-24 text-sm font-medium">Model</div>
+                  <div className="flex-1 flex-wrap font-mono text-sm">
+                    {workload.model
+                      ? workload.model.split('/').length > 1
+                        ? workload.model.split('/')[1]
+                        : workload.model
+                      : 'No model specified'}
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-medium">
+                  <Server className="h-4 w-4" />
+                  Allocated Devices
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {workload.devices?.map((device) => {
+                    const deviceDetails = acceleratorDevices?.find(
+                      (d) => d.id === device.device,
+                    )
+                    const deviceName = deviceDetails?.name || 'NA'
+                    return (
+                      <TooltipProvider key={device.id}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex cursor-help items-center gap-2 rounded-md border p-2 text-sm">
+                              <Cpu className="text-muted-foreground h-4 w-4" />
+                              <span>{device.device}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Device ID: {device.id}</p>
+                            <p>Device Name: {deviceName}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )
+                  })}
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
 
           <div className="grid grid-cols-1 gap-2 text-sm">
             <div>

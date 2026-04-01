@@ -13,6 +13,9 @@ export interface UsecaseOptions {
 
 export interface TaskOptions {
   usecase: Record<string, UsecaseOptions>
+  metadata?: {
+    pid?: boolean
+  }
 }
 
 export interface MetadataStructure {
@@ -278,6 +281,16 @@ export const metadata: MetadataStructure = {
               allowMultipleDevices: false,
             },
           },
+        },
+      },
+    },
+    'custom application monitoring': {
+      metadata: {
+        pid: true,
+      },
+      usecase: {
+        'custom application monitoring': {
+          model: {},
         },
       },
     },

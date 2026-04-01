@@ -14,17 +14,19 @@ function sleep(ms: number) {
 }
 
 export interface PDFExportOptions {
-  workloadId: number
+  workloadID: number
   workloadRef: RefObject<HTMLDivElement | null>
   router: {
     push: (path: string) => void
   }
+  isProfilingPage?: boolean
 }
 
 export async function exportWorkloadToPDF({
-  workloadId,
+  workloadID,
   workloadRef,
   router,
+  isProfilingPage = false,
 }: PDFExportOptions): Promise<void> {
   let tempContainer: HTMLElement | null = null
   try {
@@ -36,13 +38,63 @@ export async function exportWorkloadToPDF({
     loading.style.left = '0'
     loading.style.width = '100vw'
     loading.style.height = '100vh'
-    loading.style.background = 'rgba(255,255,255,0.7)'
+    loading.style.background = 'rgba(255,255,255,0.8)'
     loading.style.zIndex = '99999'
     loading.style.display = 'flex'
     loading.style.alignItems = 'center'
     loading.style.justifyContent = 'center'
-    loading.innerHTML = `<div style="font-size:2rem;font-weight:bold;color:var(--primary)">Exporting...</div>`
+    loading.style.backdropFilter = 'blur(4px)'
 
+    // Create inner white box
+    const innerBox = document.createElement('div')
+    innerBox.style.background = 'white'
+    innerBox.style.borderRadius = '8px'
+    innerBox.style.padding = '24px'
+    innerBox.style.width = '500px'
+    innerBox.style.height = '320px'
+    innerBox.style.display = 'flex'
+    innerBox.style.flexDirection = 'column'
+    innerBox.style.alignItems = 'center'
+    innerBox.style.gap = '16px'
+    innerBox.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+    innerBox.style.border = '1px solid primary'
+
+    // Create spinner
+    const spinner = document.createElement('div')
+    spinner.style.height = '48px'
+    spinner.style.width = '48px'
+    spinner.style.border = '4px solid #e2e8f0'
+    spinner.style.borderRadius = '50%'
+    spinner.style.borderTopColor = '#3b82f6'
+    spinner.style.animation = 'spin 1s linear infinite'
+
+    // Add keyframes for spin animation
+    const styleSheet = document.createElement('style')
+    styleSheet.textContent = `
+                              @keyframes spin {
+                                to { transform: rotate(360deg); }
+                              }
+                            `
+    document.head.appendChild(styleSheet)
+
+    // Create text
+    const text = document.createElement('p')
+    text.style.fontSize = '16px'
+    text.style.fontWeight = '500'
+    text.style.color = '#1e293b'
+    text.textContent = isProfilingPage
+      ? 'Exporting profiling analysis as PDF. Please wait...'
+      : 'Exporting snapshot as PDF. Please wait...'
+
+    // Assemble the elements
+    innerBox.appendChild(spinner)
+    innerBox.appendChild(text)
+    innerBox.style.display = 'flex'
+    innerBox.style.flexDirection = 'column'
+    innerBox.style.alignItems = 'center'
+    innerBox.style.justifyContent = 'center'
+    innerBox.style.gap = '16px'
+    loading.appendChild(innerBox)
     document.body.appendChild(loading)
 
     tempContainer = document.createElement('div')
@@ -61,12 +113,19 @@ export async function exportWorkloadToPDF({
 
     // Capture system information
     const sysInfoImg = await captureSystemInfo(
-      workloadId,
       tempContainer,
       router,
+      workloadID,
+      isProfilingPage,
     )
     // Generate PDF
-    await generatePDF(sysMonitorImg, workloadImg, sysInfoImg, workloadId)
+    await generatePDF(
+      sysMonitorImg,
+      workloadImg,
+      sysInfoImg,
+      workloadID,
+      isProfilingPage,
+    )
 
     if (loading && document.body.contains(loading)) {
       document.body.removeChild(loading)
@@ -74,7 +133,13 @@ export async function exportWorkloadToPDF({
   } catch (err) {
     toast.error('Failed to generate PDF. Please try again later.')
     console.error(err)
-    router.push(`/workload/${workloadId}`)
+    if (!isProfilingPage) {
+      if (workloadID !== undefined) {
+        router.push(`/workload/${workloadID}`)
+      } else {
+        router.push(`/profiling/${workloadID}`)
+      }
+    }
   } finally {
     // Cleanup
     if (tempContainer && document.body.contains(tempContainer)) {
@@ -310,9 +375,10 @@ async function captureWorkload(
 }
 
 async function captureSystemInfo(
-  workloadId: number,
   tempContainer: HTMLElement,
   router: { push: (path: string) => void },
+  workloadID: number,
+  isProfilingPage: boolean = false,
 ): Promise<{ imgData: string; height: number }> {
   router.push('/system/information')
 
@@ -459,7 +525,11 @@ async function captureSystemInfo(
   })
 
   tempContainer.innerHTML = ''
-  router.push(`/workload/${workloadId}`)
+  if (!isProfilingPage) {
+    router.push(`/workload/${workloadID}`)
+  } else {
+    router.push(`/profiling/${workloadID}`)
+  }
   return { imgData: canvas.toDataURL('image/jpeg', 1.0), height: canvas.height }
 }
 
@@ -467,7 +537,8 @@ async function generatePDF(
   sysMonitorImg: string,
   workloadImg: string,
   sysInfoImg: { imgData: string; height: number },
-  workloadId: number,
+  workloadID: number,
+  isProfilingPage: boolean = false,
 ): Promise<void> {
   const pdf = new jsPDF({
     orientation: 'portrait',
@@ -477,75 +548,110 @@ async function generatePDF(
 
   const portraitWidth = pdf.internal.pageSize.getWidth()
   const portraitHeight = pdf.internal.pageSize.getHeight()
-  const sysMonitorImgProps = pdf.getImageProperties(sysMonitorImg)
-  const sysMonitorImgHeight =
-    (sysMonitorImgProps.height * portraitWidth) / sysMonitorImgProps.width
+  if (sysMonitorImg && !isProfilingPage) {
+    const sysMonitorImgProps = pdf.getImageProperties(sysMonitorImg)
+    const sysMonitorImgHeight =
+      (sysMonitorImgProps.height * portraitWidth) / sysMonitorImgProps.width
 
-  if (sysMonitorImgHeight > portraitHeight) {
-    let currentY = 0
-    while (currentY < sysMonitorImgHeight) {
-      if (currentY > 0) pdf.addPage('a4', 'portrait')
+    if (sysMonitorImgHeight > portraitHeight) {
+      let currentY = 0
+      while (currentY < sysMonitorImgHeight) {
+        if (currentY > 0) pdf.addPage('a4', 'portrait')
+        pdf.addImage(
+          sysMonitorImg,
+          'JPEG',
+          0,
+          -currentY,
+          portraitWidth,
+          sysMonitorImgHeight,
+        )
+        currentY += portraitHeight
+      }
+    } else {
       pdf.addImage(
         sysMonitorImg,
         'JPEG',
         0,
-        -currentY,
+        0,
         portraitWidth,
         sysMonitorImgHeight,
       )
-      currentY += portraitHeight
     }
-  } else {
-    pdf.addImage(
-      sysMonitorImg,
-      'JPEG',
-      0,
-      0,
-      portraitWidth,
-      sysMonitorImgHeight,
-    )
   }
 
   // Add workload image
-  pdf.addPage('a4', 'landscape')
+  if (sysMonitorImg && !isProfilingPage) {
+    pdf.addPage('a4', 'landscape')
+  }
   const landscapeWidth = pdf.internal.pageSize.getWidth()
   const landscapeHeight = pdf.internal.pageSize.getHeight()
   const workloadImgProps = pdf.getImageProperties(workloadImg)
   const workloadImgHeight =
     (workloadImgProps.height * landscapeWidth) / workloadImgProps.width
-  pdf.addImage(workloadImg, 'JPEG', 0, 0, landscapeWidth, workloadImgHeight)
 
-  //  system info image
-  const sysInfoImgProps = pdf.getImageProperties(sysInfoImg.imgData)
-  const sysInfoImgHeight =
-    (sysInfoImgProps.height * landscapeWidth) / sysInfoImgProps.width
-  if (sysInfoImgHeight > landscapeHeight) {
-    // Split into multiple pages
+  if (workloadImgHeight > landscapeHeight) {
     let currentY = 0
-    while (currentY < sysInfoImgHeight) {
-      pdf.addPage()
+    while (currentY < workloadImgHeight) {
+      if (currentY > 0) pdf.addPage('a4', 'landscape')
       pdf.addImage(
-        sysInfoImg.imgData,
+        workloadImg,
         'JPEG',
         0,
         -currentY,
         landscapeWidth,
-        sysInfoImgHeight,
+        workloadImgHeight,
       )
       currentY += landscapeHeight
     }
   } else {
-    pdf.addImage(
-      sysInfoImg.imgData,
-      'JPEG',
-      0,
-      0,
-      landscapeWidth,
-      sysInfoImgHeight,
-    )
+    pdf.addImage(workloadImg, 'JPEG', 0, 0, landscapeWidth, workloadImgHeight)
   }
 
-  pdf.save(
-    `workload-ID(${workloadId})-${new Date().toISOString().slice(0, 10)}.pdf`,
-  )
+  //  system info image
+  if (sysMonitorImg && !isProfilingPage) {
+    const sysInfoImgProps = pdf.getImageProperties(sysInfoImg.imgData)
+    const sysInfoImgHeight =
+      (sysInfoImgProps.height * landscapeWidth) / sysInfoImgProps.width
+    if (sysInfoImgHeight > landscapeHeight) {
+      let currentY = 0
+      while (currentY < sysInfoImgHeight) {
+        if (currentY > 0) pdf.addPage('a4', 'landscape')
+        pdf.addImage(
+          sysInfoImg.imgData,
+          'JPEG',
+          0,
+          -currentY,
+          landscapeWidth,
+          sysInfoImgHeight,
+        )
+        currentY += landscapeHeight
+      }
+    } else {
+      pdf.addImage(
+        sysInfoImg.imgData,
+        'JPEG',
+        0,
+        0,
+        landscapeWidth,
+        sysInfoImgHeight,
+      )
+    }
+  }
+
+  const now = new Date()
+  const formattedDate = now.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  })
+
+  const safeDate = formattedDate.replace(/[\/\\:]/g, '-').replace(/\s+/g, ' ')
+  const filename = isProfilingPage
+    ? `profiling-analysis-PID(${workloadID})-(${safeDate}).pdf`
+    : `workload-ID(${workloadID})-(${safeDate}).pdf`
+  pdf.save(filename)
 }
