@@ -53,7 +53,6 @@ async function inferFetcher(
   })
   if (!response.ok) {
     const errorData = await response.json()
-    console.log(`errorData: ${JSON.stringify(errorData)}`)
     const errorMessage = errorData.error || 'Error occurred during inference'
     return Promise.reject(new Error(errorMessage))
   }

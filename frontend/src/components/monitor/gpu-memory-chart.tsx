@@ -125,7 +125,7 @@ export function GpuMemoryChart({
               <span>GPU Memory</span>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline" className="max-w-[120px]">
+                  <Badge variant="outline" className="max-w-30">
                     <span className="truncate">{device}</span>
                   </Badge>
                 </TooltipTrigger>

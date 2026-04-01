@@ -394,7 +394,7 @@ export function SystemMonitorSidebar({
                         <span>{chart.id.split('-')[0].toUpperCase()}</span>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Badge variant="outline" className="max-w-[120px]">
+                            <Badge variant="outline" className="max-w-30">
                               <span className="truncate">{chart.device}</span>
                             </Badge>
                           </TooltipTrigger>

@@ -277,7 +277,7 @@ export function TextGen({
               </div>
 
               {/* Right column - Chat interface */}
-              <div className="bg-muted/20 relative flex h-[500px] flex-col border-l">
+              <div className="bg-muted/20 relative flex h-125 flex-col border-l">
                 <ScrollArea className="flex-1 p-4">
                   {messages.length > 0 ? (
                     <div className="space-y-4">

@@ -12,7 +12,14 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Cpu, HardDrive, Server, Zap, MemoryStick } from 'lucide-react'
+import {
+  Cpu,
+  HardDrive,
+  Server,
+  Zap,
+  MemoryStick,
+  ActivityIcon,
+} from 'lucide-react'
 import { useWorkloads } from '@/hooks/useWorkload'
 import { Workload } from '@/payload-types'
 import { useSystemInfo } from '@/hooks/useSystemInformation'
@@ -43,7 +50,8 @@ export default function DashboardPage() {
   return (
     <>
       <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-3 gap-4">
+          {/* Left: System Overview */}
           <Card className="md:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle>System Overview</CardTitle>
@@ -158,149 +166,186 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="col-span-1">
             <CardHeader className="pb-2">
               <CardTitle>Active Workloads</CardTitle>
-              <CardDescription>Running AI models</CardDescription>
+              {workloadsData?.data?.docs.length === 0 ? (
+                <CardDescription> </CardDescription>
+              ) : (
+                <CardDescription>Running AI models</CardDescription>
+              )}
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {workloadsData?.data?.docs.map((workload: Workload) => {
-                  const UsecaseIcon = getUsecaseIcon(workload.usecase)
-                  return (
-                    <div
-                      key={workload.id}
-                      className="flex items-center gap-3 rounded-md border p-2"
-                    >
-                      <div className="bg-background flex h-8 w-8 items-center justify-center rounded-md border">
-                        <UsecaseIcon className="h-4 w-4" />
-                      </div>
-                      <div className="grid flex-1 gap-0.5">
-                        <div className="text-sm font-medium">
-                          {workload.model.split('/').length > 1
-                            ? workload.model.split('/')[1]
-                            : workload.model}
-                        </div>
-                        <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                          <span>{workload.usecase.replace(/-/g, ' ')}</span>
-                          <span>•</span>
-                          <span>
-                            {workload.devices.map((d) => d.device).join(', ')}
-                          </span>
-                        </div>
-                      </div>
+              <div className="max-h-100 space-y-3 overflow-y-auto pr-2">
+                {workloadsData?.data?.docs.length === 0 ? (
+                  <div className="flex h-32 flex-col items-center justify-center gap-2 text-center">
+                    <div className="bg-muted rounded-full p-3">
+                      <ActivityIcon className="text-muted-foreground h-5 w-5" />
                     </div>
-                  )
-                })}
+                    <p className="text-muted-foreground text-sm">
+                      No active workloads
+                    </p>
+                  </div>
+                ) : (
+                  workloadsData?.data?.docs.map((workload: Workload) => {
+                    if (!workload) return null
+                    const UsecaseIcon = getUsecaseIcon(workload.usecase)
+                    return (
+                      <div
+                        key={workload.id}
+                        className="flex items-center gap-3 rounded-md border p-2"
+                      >
+                        <div className="bg-background flex h-8 w-8 items-center justify-center rounded-md border">
+                          <UsecaseIcon className="h-4 w-4" />
+                        </div>
+                        <div className="grid flex-1 gap-0.5">
+                          <div className="text-sm font-medium">
+                            {workload.usecase ===
+                              'custom application monitoring' &&
+                            typeof workload.metadata === 'object' &&
+                            workload.metadata !== null &&
+                            !Array.isArray(workload.metadata)
+                              ? `${workload.metadata.processName ?? ''} (${workload.metadata.pid ?? ''})`
+                              : (workload.model ?? '').includes('/')
+                                ? (workload.model ?? '').split('/')[1]
+                                : (workload.model ?? '')}
+                          </div>
+                          <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                            <span>
+                              {workload.usecase
+                                ? workload.usecase.replace(/-/g, ' ')
+                                : ''}
+                            </span>
+                            <span>•</span>
+                            <span>
+                              {(workload.devices ?? [])
+                                .map((d) => d.device)
+                                .join(', ')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Hardware Configuration</CardTitle>
-            <CardDescription>System hardware details</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Cpu className="text-muted-foreground h-5 w-5" />
-                  <h3 className="font-medium">CPU</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-muted-foreground">Model</div>
-                  <div>
-                    {!systemInfo.data?.cpu
-                      ? ''
-                      : systemInfo.data?.cpu.manufacturer === NOT_AVAILABLE &&
-                          systemInfo.data?.cpu.brand === NOT_AVAILABLE
-                        ? NOT_AVAILABLE
-                        : systemInfo.data?.cpu.manufacturer === NOT_AVAILABLE
-                          ? systemInfo.data?.cpu.brand
-                          : systemInfo.data?.cpu.brand === NOT_AVAILABLE
-                            ? systemInfo.data?.cpu.manufacturer
-                            : `${systemInfo.data?.cpu.manufacturer} ${systemInfo.data?.cpu.brand}`}
-                  </div>
-                  <div className="text-muted-foreground">Cores</div>
-                  <div>{systemInfo.data?.cpu.physicalCores}</div>
-
-                  <div className="text-muted-foreground">Threads</div>
-                  <div>{systemInfo.data?.cpu.threads}</div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <HardDrive className="text-muted-foreground h-5 w-5" />
-                  <h3 className="font-medium">Disk</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="text-muted-foreground">Total</div>
-                  <div>
-                    {!systemInfo.data?.disk
-                      ? ''
-                      : systemInfo.data?.disk?.total !== NOT_AVAILABLE
-                        ? `${systemInfo.data?.disk.total.toFixed(0)} GB`
-                        : systemInfo.data?.disk.total}
-                  </div>
-                  <div className="text-muted-foreground">Used</div>
-                  <div>
-                    {!systemInfo.data
-                      ? ''
-                      : systemInfo.data?.disk?.used !== NOT_AVAILABLE
-                        ? `${systemInfo.data?.disk.used.toFixed(0)} GB`
-                        : systemInfo.data?.disk.used}
-                  </div>
-                  <div className="text-muted-foreground">Free</div>
-                  <div>
-                    {!systemInfo.data
-                      ? ''
-                      : systemInfo.data?.disk.free !== NOT_AVAILABLE
-                        ? `${systemInfo.data?.disk.free.toFixed(0)} GB`
-                        : systemInfo.data?.disk.free}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Server className="text-muted-foreground h-5 w-5" />
-                  <h3 className="font-medium">GPUs</h3>
-                </div>
-                <div className="space-y-2">
-                  {systemInfo.data?.gpuInfo.map(
-                    (gpu: { name: string; device: string }) => (
-                      <div
-                        key={gpu.device}
-                        className="grid grid-cols-2 gap-2 text-sm"
-                      >
-                        <div className="text-muted-foreground">
-                          {gpu.device}
-                        </div>
-                        <div>{gpu.name}</div>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-
-              {systemInfo.data?.npu && (
+        {/* Bottom Row */}
+        <div className="grid grid-cols-1 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Hardware Configuration</CardTitle>
+              <CardDescription>System hardware details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Server className="text-muted-foreground h-5 w-5" />
-                    <h3 className="font-medium">NPU</h3>
+                    <Cpu className="text-muted-foreground h-5 w-5" />
+                    <h3 className="font-medium">CPU</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-muted-foreground">Model</div>
-                    <div>{systemInfo.data?.npu}</div>
+                    <div>
+                      {!systemInfo.data?.cpu
+                        ? ''
+                        : systemInfo.data?.cpu.manufacturer === NOT_AVAILABLE &&
+                            systemInfo.data?.cpu.brand === NOT_AVAILABLE
+                          ? NOT_AVAILABLE
+                          : systemInfo.data?.cpu.manufacturer === NOT_AVAILABLE
+                            ? systemInfo.data?.cpu.brand
+                            : systemInfo.data?.cpu.brand === NOT_AVAILABLE
+                              ? systemInfo.data?.cpu.manufacturer
+                              : `${systemInfo.data?.cpu.manufacturer} ${systemInfo.data?.cpu.brand}`}
+                    </div>
+                    <div className="text-muted-foreground">Cores</div>
+                    <div>{systemInfo.data?.cpu.physicalCores}</div>
+
+                    <div className="text-muted-foreground">Threads</div>
+                    <div>{systemInfo.data?.cpu.threads}</div>
                   </div>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
+                <div className="border-border border-t"></div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="text-muted-foreground h-5 w-5" />
+                    <h3 className="font-medium">Disk</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-muted-foreground">Total</div>
+                    <div>
+                      {!systemInfo.data?.disk
+                        ? ''
+                        : systemInfo.data?.disk?.total !== NOT_AVAILABLE
+                          ? `${systemInfo.data?.disk.total.toFixed(0)} GB`
+                          : systemInfo.data?.disk.total}
+                    </div>
+                    <div className="text-muted-foreground">Used</div>
+                    <div>
+                      {!systemInfo.data
+                        ? ''
+                        : systemInfo.data?.disk?.used !== NOT_AVAILABLE
+                          ? `${systemInfo.data?.disk.used.toFixed(0)} GB`
+                          : systemInfo.data?.disk.used}
+                    </div>
+                    <div className="text-muted-foreground">Free</div>
+                    <div>
+                      {!systemInfo.data
+                        ? ''
+                        : systemInfo.data?.disk.free !== NOT_AVAILABLE
+                          ? `${systemInfo.data?.disk.free.toFixed(0)} GB`
+                          : systemInfo.data?.disk.free}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-border border-t"></div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Server className="text-muted-foreground h-5 w-5" />
+                    <h3 className="font-medium">GPUs</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {systemInfo.data?.gpuInfo.map(
+                      (gpu: { name: string; device: string }) => (
+                        <div
+                          key={gpu.device}
+                          className="grid grid-cols-2 gap-2 text-sm"
+                        >
+                          <div className="text-muted-foreground">
+                            {gpu.device}
+                          </div>
+                          <div>{gpu.name}</div>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-border border-t"></div>
+
+                {systemInfo.data?.npu && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Server className="text-muted-foreground h-5 w-5" />
+                      <h3 className="font-medium">NPU</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-muted-foreground">Model</div>
+                      <div>{systemInfo.data?.npu}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </>
   )
