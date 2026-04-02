@@ -3,7 +3,14 @@
 
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { Image, MessageSquare, Mic, Video, Speech } from 'lucide-react'
+import {
+  Image,
+  MessageSquare,
+  Mic,
+  Video,
+  Speech,
+  AppWindow,
+} from 'lucide-react'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -44,8 +51,12 @@ export function getUsecaseIcon(usecase: string) {
       return Mic
     case 'text-to-speech':
       return Speech
-    default:
+    case 'object detection (DLStreamer)':
       return Video
+    case 'instance segmentation (DLStreamer)':
+      return Video
+    default:
+      return AppWindow
   }
 }
 
@@ -58,4 +69,11 @@ export function isValidBusAddress(busaddr: string | null): boolean {
   return /^([0-9a-fA-F]{4}):([0-9a-fA-F]{2}):([0-9a-fA-F]{2})\.[0-9]$/.test(
     busaddr,
   )
+}
+
+export function normalizeProcessName(processName: string) {
+  return processName
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[.\s]+$/, '')
 }
