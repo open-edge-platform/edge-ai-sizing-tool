@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
@@ -15,7 +14,11 @@ import React, { useRef, useState } from 'react'
 import { useWorkload } from '@/hooks/useWorkload'
 import { DlStreamer } from '@/components/usecase/dlstreamer'
 import { exportWorkloadToPDF } from '@/lib/handleExportSnapshot'
-import { useTrimmedUtilization, useProcessedSystemInfo, exportToExcel } from '@/lib/handleExportExcel'
+import {
+  useTrimmedUtilization,
+  useProcessedSystemInfo,
+  exportToExcel,
+} from '@/lib/handleExportExcel'
 import { normalizeUseCase } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { TextToImagePerformanceMetrics } from '@/types/text2img-types'
@@ -34,14 +37,21 @@ export default function WorkloadPage({
 }) {
   const router = useRouter()
   const unwrappedParams = React.use(params)
-  const workloadId = Number.parseInt(unwrappedParams.id)
-  const { isLoading, data: workload } = useWorkload(Number(workloadId))
+  const workloadID = Number.parseInt(unwrappedParams.id)
+  const { isLoading, data: workload } = useWorkload(Number(workloadID))
   const workloadRef = useRef<HTMLDivElement>(null)
   const [isExportingPDF, setIsExportingPDF] = useState(false)
   const [isExportingExcel, setIsExportingExcel] = useState(false)
   const { utilizationInfo } = useTrimmedUtilization()
   const { sysInfo } = useProcessedSystemInfo()
-  const [performanceMetrics, setPerformanceMetrics] = useState<TextToImagePerformanceMetrics | TextGenerationPerformanceMetrics | AudioPerformanceMetrics | DlStreamerPerformanceMetrics | TtsPerformanceMetrics | null>(null)
+  const [performanceMetrics, setPerformanceMetrics] = useState<
+    | TextToImagePerformanceMetrics
+    | TextGenerationPerformanceMetrics
+    | AudioPerformanceMetrics
+    | DlStreamerPerformanceMetrics
+    | TtsPerformanceMetrics
+    | null
+  >(null)
 
   const { hasErrors, isLoading: chartsLoading } = useChartErrors()
 
@@ -51,7 +61,7 @@ export default function WorkloadPage({
     try {
       setIsExportingPDF(true)
       await exportWorkloadToPDF({
-        workloadId,
+        workloadID,
         workloadRef,
         router,
       })
@@ -72,9 +82,10 @@ export default function WorkloadPage({
       const workloadInfo = {
         id: Number(workload.id),
         name: normalizeUseCase(workload.usecase) + '-' + workload.id,
-        model: workload.model.split('/').length > 1
-        ? workload.model.split('/')[1]
-        : workload.model,
+        model:
+          workload.model.split('/').length > 1
+            ? workload.model.split('/')[1]
+            : workload.model,
         devices: workload.devices,
         performanceMetrics: performanceMetrics,
       }
@@ -97,17 +108,47 @@ export default function WorkloadPage({
     if (!workload) return null
     switch (workload.usecase) {
       case 'text-to-image':
-        return <Text2Img workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
+        return (
+          <Text2Img
+            workload={workload}
+            setPerformanceMetrics={setPerformanceMetrics}
+          />
+        )
       case 'text generation':
-        return <TextGen workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
+        return (
+          <TextGen
+            workload={workload}
+            setPerformanceMetrics={setPerformanceMetrics}
+          />
+        )
       case 'automatic speech recognition':
-        return <Audio workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
+        return (
+          <Audio
+            workload={workload}
+            setPerformanceMetrics={setPerformanceMetrics}
+          />
+        )
       case 'object detection (DLStreamer)':
-        return <DlStreamer workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
+        return (
+          <DlStreamer
+            workload={workload}
+            setPerformanceMetrics={setPerformanceMetrics}
+          />
+        )
       case 'instance segmentation (DLStreamer)':
-        return <DlStreamer workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
+        return (
+          <DlStreamer
+            workload={workload}
+            setPerformanceMetrics={setPerformanceMetrics}
+          />
+        )
       case 'text-to-speech':
-        return <Text2Speech workload={workload} setPerformanceMetrics={setPerformanceMetrics} />
+        return (
+          <Text2Speech
+            workload={workload}
+            setPerformanceMetrics={setPerformanceMetrics}
+          />
+        )
       default:
         return (
           <div className="container py-10 text-center">
@@ -151,7 +192,7 @@ export default function WorkloadPage({
           <PackageX strokeWidth={0.4} className="text-primary mb-4 h-28 w-28" />
           <h2 className="mb-2 text-xl font-medium">Workload Not Found</h2>
           <p className="text-muted-foreground mb-6 text-sm">
-            The workload with ID {workloadId} does not exist.
+            The workload with ID {workloadID} does not exist.
           </p>
           <Button onClick={() => router.push('/')}>Return to Dashboard</Button>
         </div>
@@ -181,7 +222,7 @@ export default function WorkloadPage({
           <PackageX strokeWidth={0.4} className="text-primary mb-4 h-28 w-28" />
           <h2 className="mb-2 text-xl font-medium">Workload Failed</h2>
           <p className="text-muted-foreground mb-6 text-sm">
-            The workload with ID {workloadId} has failed. You can either edit or
+            The workload with ID {workloadID} has failed. You can either edit or
             delete the workload from the dashboard.
           </p>
           <Button onClick={() => router.push('/')}>Return to Dashboard</Button>
@@ -208,17 +249,25 @@ export default function WorkloadPage({
           </div>
           {showExportButtonCheck && (
             <div className="flex gap-2">
-              <Button onClick={handleExportExcel} disabled={isExportingExcel} className="exportBtn">
-                  {isExportingExcel ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    'Export as Excel'
-                  )}
+              <Button
+                onClick={handleExportExcel}
+                disabled={isExportingExcel}
+                className="exportBtn"
+              >
+                {isExportingExcel ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  'Export as Excel'
+                )}
               </Button>
-              <Button onClick={handleExportPDF} disabled={isExportingPDF} className="exportBtn">
+              <Button
+                onClick={handleExportPDF}
+                disabled={isExportingPDF}
+                className="exportBtn"
+              >
                 {isExportingPDF ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

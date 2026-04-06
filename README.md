@@ -23,6 +23,7 @@ The Edge AI Sizing Tool showcases the scalability and performance of AI use case
   - [For Windows](#for-windows)
 - [Deployment](#deployment)
 - [Development](#development)
+- [Custom Application Profiling](#custom-application-profiling)
 - [Troubleshooting](#troubleshooting)
   - [1. GPU Utilization Not Showing Up](#1-gpu-utilization-not-showing-up)
   - [2. Tool Crashes or Stops Unexpectedly](#2-tool-crashes-or-stops-unexpectedly)
@@ -303,6 +304,15 @@ Please refer to [DEPLOYMENT.md](DEPLOYMENT.md) for detailed steps on preparing a
 ## Development
 
 Please refer to [DEVELOPMENT.md](DEVELOPMENT.md) for detailed steps on setting up a development environment.
+
+## Custom Application Profiling
+
+The Edge AI Sizing Tool includes a Custom Application Profiling feature that allows you to monitor and analyze the performance of your own applications. This tool provides comprehensive resource utilization metrics across CPU, GPU, NPU, memory, and disk I/O, along with automatic bottleneck detection and optimization recommendations.
+
+Please refer to [CUSTOM_APPLICATION_PROFILING.md](docs/CUSTOM_APPLICATION_PROFILING.md) for:
+- Step-by-step profiling guide
+- Understanding performance metrics
+- Bottleneck analysis and optimization tips
 
 ## Troubleshooting
 
