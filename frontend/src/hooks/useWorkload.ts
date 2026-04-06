@@ -118,10 +118,16 @@ export const useDeleteWorkload = () => {
   })
 }
 
-export const useUpdateWorkload = (id: number) => {
+export const useUpdateWorkload = (id?: number) => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (data: Partial<Workload>) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number
+      data: Partial<Workload>
+    }) => {
       const response = await fetch('/api/workloads/' + id, {
         method: 'PATCH',
         credentials: 'include',
@@ -140,6 +146,9 @@ export const useUpdateWorkload = (id: number) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workloads'] })
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['workloads', id] })
+      }
     },
   })
 }

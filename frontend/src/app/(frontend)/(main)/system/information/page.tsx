@@ -37,7 +37,7 @@ export default function SystemInformationPage() {
   return (
     <div className="container mx-auto flex h-full w-full flex-col px-6">
       {/* Scrollable Content Area */}
-      <div className="hide-scrollbar flex-1 overflow-auto">
+      <div className="hide-scrollbar flex-1 overflow-auto pb-16">
         <div className="w-full px-2 py-6">
           <div className="mb-4 flex items-center justify-between">
             <div className="justify-left flex flex-col">

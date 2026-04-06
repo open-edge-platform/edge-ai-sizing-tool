@@ -20,7 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select'
+} from '@/components/ui/select'
 import { WorkloadProfile } from '@/components/workload-profile'
 import { PerformanceMetrics } from '@/components/performance-metrics'
 import { cn, formatFileSize } from '@/lib/utils'
@@ -564,7 +564,7 @@ export function Audio({
                   </div>
 
                   {task === 'transcribe' && (
-                    <div className="h-[60px] space-y-2">
+                    <div className="h-15 space-y-2">
                       <Label htmlFor="language">Target Language</Label>
                       <Select value={language} onValueChange={setLanguage}>
                         <SelectTrigger id="language">
@@ -644,7 +644,7 @@ export function Audio({
                       {file ? (
                         <div className="space-y-3 text-center">
                           <div>
-                            <p className="max-w-[200px] truncate text-sm font-medium">
+                            <p className="max-w-50 truncate text-sm font-medium">
                               {file.name}
                             </p>
                             <p className="text-muted-foreground text-xs">
@@ -796,7 +796,7 @@ export function Audio({
               </div>
 
               {/* Right column - Results */}
-              <div className="bg-muted/40 relative flex h-[500px] flex-col border-l">
+              <div className="bg-muted/40 relative flex h-125 flex-col border-l">
                 <div className="border-b p-4">
                   <h3 className="font-medium">
                     {task === 'transcribe' ? 'Transcription' : 'Translation'}{' '}

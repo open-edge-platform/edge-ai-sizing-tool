@@ -22,7 +22,7 @@ export const Workloads: CollectionConfig = {
     {
       name: 'model',
       type: 'text',
-      required: true,
+      required: false,
     },
     {
       name: 'devices',
@@ -33,7 +33,7 @@ export const Workloads: CollectionConfig = {
           type: 'text',
         },
       ],
-      required: true,
+      required: false,
     },
     {
       name: 'source',

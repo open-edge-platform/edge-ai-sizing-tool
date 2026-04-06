@@ -4,6 +4,7 @@
 import React from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
+import { Providers } from '@/components/providers'
 
 export const metadata = {
   description: 'A blank template using Payload in a Next.js app.',
@@ -16,10 +17,12 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <main>
-          {children}
-          <Toaster position="top-right" />
-        </main>
+        <Providers>
+          <main>
+            {children}
+            <Toaster position="top-right" />
+          </main>
+        </Providers>
       </body>
     </html>
   )

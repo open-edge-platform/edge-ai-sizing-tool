@@ -209,7 +209,7 @@ export function Text2Speech({
                         const sanitized = sanitizeText(e.target.value)
                         setInputText(sanitized)
                       }}
-                      className="min-h-[120px] resize-none"
+                      className="min-h-30 resize-none"
                       maxLength={300}
                     />
                     <p className="text-muted-foreground text-xs">
@@ -244,7 +244,7 @@ export function Text2Speech({
               </div>
 
               {/* Right column - Generated audio */}
-              <div className="bg-muted/40 relative flex h-[500px] flex-col border-l">
+              <div className="bg-muted/40 relative flex h-125 flex-col border-l">
                 <div className="border-b p-4">
                   <h3 className="font-medium">Audio Output</h3>
                 </div>
