@@ -906,7 +906,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
     if (!workload || !workload.id) return
     setIsLoading(true)
     try {
-      await updateWorkload.mutateAsync({ id: workload.id, data: addWorkload })
+      await updateWorkload.mutateAsync({ ...addWorkload, status: 'prepare' })
       toast.success('Workload updated successfully!')
 
       // Redirect to the workload page after successful save

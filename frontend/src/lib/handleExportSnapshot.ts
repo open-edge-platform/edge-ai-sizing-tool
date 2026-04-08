@@ -338,6 +338,18 @@ async function captureWorkload(
   workloadClone.style.overflow = 'visible'
   workloadClone.style.width = '1300px'
 
+  // Remove ALL export buttons (Excel and PDF), including when they show "Exporting..."
+  const allButtons = workloadClone.querySelectorAll(
+    'button.exportBtn, .exportBtn',
+  )
+  allButtons.forEach((btn) => btn.remove())
+
+  // Also remove the entire button container div to avoid empty space
+  const buttonContainer = workloadClone.querySelector('.flex.gap-2')
+  if (buttonContainer) {
+    buttonContainer.remove()
+  }
+
   const exportBtn = workloadClone.querySelector('button, .exportBtn')
   if (exportBtn && exportBtn.textContent?.toLowerCase().includes('export')) {
     exportBtn.remove()
@@ -548,6 +560,7 @@ async function generatePDF(
 
   const portraitWidth = pdf.internal.pageSize.getWidth()
   const portraitHeight = pdf.internal.pageSize.getHeight()
+  // Page 1: System Monitor
   if (sysMonitorImg && !isProfilingPage) {
     const sysMonitorImgProps = pdf.getImageProperties(sysMonitorImg)
     const sysMonitorImgHeight =
@@ -579,6 +592,7 @@ async function generatePDF(
     }
   }
 
+  // Page 2: Workload
   // Add workload image
   if (sysMonitorImg && !isProfilingPage) {
     pdf.addPage('a4', 'landscape')
@@ -607,8 +621,9 @@ async function generatePDF(
     pdf.addImage(workloadImg, 'JPEG', 0, 0, landscapeWidth, workloadImgHeight)
   }
 
-  //  system info image
+  // Page 3: System Info
   if (sysMonitorImg && !isProfilingPage) {
+    pdf.addPage('a4', 'landscape')
     const sysInfoImgProps = pdf.getImageProperties(sysInfoImg.imgData)
     const sysInfoImgHeight =
       (sysInfoImgProps.height * landscapeWidth) / sysInfoImgProps.width

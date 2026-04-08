@@ -40,12 +40,7 @@ export function WorkloadProfile({ workload }: { workload: Workload }) {
   const onStatusChange = (newStatus: string) => {
     try {
       updateWorkload.mutate(
-        {
-          id: workload.id,
-          data: {
-            status: newStatus === 'active' ? 'prepare' : newStatus,
-          },
-        },
+        { ...workload, status: newStatus === 'active' ? 'prepare' : newStatus },
         {
           onError: (error) => {
             toast.error('Error updating workload status')
