@@ -240,7 +240,7 @@ This installs all required packages, sets up Python and Node.js environments.
 
 #### 3. Run the Application
 
-- Run `./start.sh` to start services either from a fresh state or restore their previous states if a PM2 process dump exists.
+- Run `./start.sh` to start services either from a fresh state or restart them if already running.
 
 
 > **Configuration:** When you execute `start.sh`, if `.env` does not contain a `PAYLOAD_SECRET`, the setup will generate a random `PAYLOAD_SECRET` and write it to `.env`. To supply your own secret instead, copy `.env.example` to `.env` and set the `PAYLOAD_SECRET` value before running the script.

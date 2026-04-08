@@ -4,7 +4,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
-import os from 'os'
 
 async function readLastLines(filePath: string, lines = 50) {
   try {
@@ -36,21 +35,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const homeDir = process.env.HOME || process.env.USERPROFILE || os.tmpdir()
-    const pm2HomeDir = process.env.PM2_HOME
-      ? process.env.PM2_HOME
-      : path.join(homeDir, '.pm2')
-    const pm2LogDir = path.join(pm2HomeDir, 'logs')
+    const logDir = path.join(process.cwd(), '.logs')
 
-    if (!(await dirExists(pm2LogDir))) {
+    if (!(await dirExists(logDir))) {
       return NextResponse.json(
-        { error: 'PM2 log directory not found.' },
+        { error: 'Log directory not found.' },
         { status: 404 },
       )
     }
 
-    const outLogPath = path.join(pm2LogDir, `${identifier}-out.log`)
-    const errLogPath = path.join(pm2LogDir, `${identifier}-error.log`)
+    const outLogPath = path.join(logDir, `${identifier}-out.log`)
+    const errLogPath = path.join(logDir, `${identifier}-error.log`)
 
     const outLog =
       (await readLastLines(outLogPath)) || 'No output log available.'
@@ -65,7 +60,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       {
-        error: `Unable to read PM2 log files: ${err instanceof Error ? err.message : String(err)}`,
+        error: `Unable to read log files: ${err instanceof Error ? err.message : String(err)}`,
       },
       { status: 500 },
     )

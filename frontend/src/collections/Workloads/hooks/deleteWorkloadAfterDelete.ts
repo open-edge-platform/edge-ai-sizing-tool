@@ -1,7 +1,7 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 
-import { deletePm2Process, stopPm2Process } from '@/lib/pm2Lib'
+import { deleteWorkerProcess, stopWorkerProcess } from '@/lib/processLib'
 import { normalizeUseCase } from '@/lib/utils'
 import { Workload } from '@/payload-types'
 import { CollectionAfterDeleteHook } from 'payload'
@@ -20,7 +20,7 @@ const MODELS_PATH =
 export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
   Workload
 > = async ({ doc }) => {
-  const pm2Name = `${normalizeUseCase(doc.usecase)}-${doc.id}`
+  const processName = `${normalizeUseCase(doc.usecase)}-${doc.id}`
   if (doc.source?.type === 'file' && doc.source.name) {
     const basePath = path.resolve(ASSETS_PATH)
     const rawName = path.basename(doc.source.name)
@@ -141,9 +141,9 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
     }
   }
 
-  // Delete PM2 processes after handling file deletion
-  await stopPm2Process(pm2Name)
-  await deletePm2Process(pm2Name)
+  // Delete worker processes after handling file deletion
+  await stopWorkerProcess(processName)
+  await deleteWorkerProcess(processName)
 
   return doc
 }

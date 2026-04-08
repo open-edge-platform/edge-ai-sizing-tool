@@ -7,10 +7,10 @@ import path from 'path'
 import os from 'os'
 import crypto from 'crypto'
 
-// Use PM2_HOME environment variable if set, otherwise fall back to user home directory
-const PM2_HOME = process.env.PM2_HOME || path.join(os.homedir(), '.pm2')
-const PM2_DUMP = path.join(PM2_HOME, 'dump.pm2')
 const isWindows = os.platform() === 'win32'
+const PID_FILE = path.join(process.cwd(), '.east.pid')
+const PROCESSES_DIR = path.join(process.cwd(), '.processes')
+const RUNNING_WORKERS_FILE = path.join(process.cwd(), '.east.running-workers')
 
 const getNpmPathWindows = () => {
   try {
@@ -25,25 +25,6 @@ const getNpmPathWindows = () => {
   }
 }
 
-const getPm2PathWindows = () => {
-  // Check local node_modules first
-  const localPm2 = path.join(process.cwd(), 'node_modules', '.bin', 'pm2.cmd')
-  if (fs.existsSync(localPm2)) {
-    return localPm2
-  }
-
-  try {
-    return execSync('where pm2.cmd', {
-      encoding: 'utf8',
-      shell: true,
-    })
-      .trim()
-      .split('\n')[0]
-  } catch {
-    return 'pm2.cmd'
-  }
-}
-
 const getNpmPathUnix = () => {
   try {
     return execFileSync('/usr/bin/which', ['npm'], {
@@ -54,20 +35,9 @@ const getNpmPathUnix = () => {
   }
 }
 
-const getPm2PathUnix = () => {
-  try {
-    return execFileSync('/usr/bin/which', ['pm2'], {
-      encoding: 'utf8',
-    }).trim()
-  } catch {
-    return 'pm2'
-  }
-}
-
 const ALLOWED_COMMANDS = {
   npm: process.platform === 'win32' ? getNpmPathWindows() : getNpmPathUnix(),
   node: process.execPath,
-  pm2: process.platform === 'win32' ? getPm2PathWindows() : getPm2PathUnix(),
 }
 
 const sanitizeArg = (arg) => {
@@ -119,41 +89,6 @@ const checkNodeModules = () =>
 // Check if the build directory exists (for npm run build)
 const checkBuildDirectory = () =>
   fs.existsSync(path.join(process.cwd(), '.next'))
-
-// Check if PM2 already has applications running
-const checkPm2Apps = () => {
-  return new Promise((resolve) => {
-    const pm2Path = ALLOWED_COMMANDS['pm2']
-    const pm2Process = spawn(pm2Path, ['jlist'], {
-      shell: isWindows ? true : false,
-      stdio: ['ignore', 'pipe', 'ignore'],
-    })
-    let output = ''
-
-    pm2Process.stdout.on('data', (data) => {
-      output += data.toString()
-    })
-
-    pm2Process.on('close', () => {
-      try {
-        const processes = JSON.parse(output).map((proc) => ({
-          id: proc.pm_id.toString(),
-          name: proc.name.replace(/"/g, ''),
-          status: proc.pm2_env.status,
-        }))
-        resolve(processes)
-      } catch (err) {
-        console.error('Error parsing PM2 JSON output:', err)
-        resolve([])
-      }
-    })
-
-    pm2Process.on('error', (err) => {
-      console.error('PM2 process error:', err)
-      resolve([])
-    })
-  })
-}
 
 // Main function to run the commands sequentially
 const runInstallBuildStart = async () => {
@@ -223,114 +158,266 @@ const runInstallBuildStart = async () => {
       console.log('Skipping setup-workers (venv folders already exist)')
     }
 
-    // PM2 resurrection logic
-    if (fs.existsSync(PM2_DUMP)) {
-      await runCommand('pm2 resurrect')
-      console.log('PM2 processes restored from dump.')
-
-      // Check for saved online processes state
-      const rawHomeDir = os.homedir()
-      if (!rawHomeDir || typeof rawHomeDir !== 'string') {
-        throw new Error('Invalid home directory')
+    // Check for an existing EAST process and stop it if running
+    const isProcessRunning = (pid) => {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch {
+        return false
       }
-
-      // Character-by-character allow-list copy to break taint chain
-      const sanitizePathSegment = (input) => {
-        const allowedRe = /[A-Za-z0-9_/:\\\-\.]/
-        let out = ''
-        for (let i = 0; i < input.length; i++) {
-          const ch = input.charAt(i)
-          if (allowedRe.test(ch)) {
-            out += ch
-          }
-        }
-        return out
-      }
-
-      const homeDir = sanitizePathSegment(rawHomeDir)
-
-      // Basic checks to reject traversal or empty values
-      if (!homeDir || homeDir.includes('..') || homeDir.indexOf('\0') !== -1) {
-        throw new Error('Invalid home directory after sanitization')
-      }
-
-      // Ensure resulting path is absolute
-      if (!path.isAbsolute(homeDir)) {
-        throw new Error('Home directory must be an absolute path')
-      }
-
-      const pm2Dir = path.resolve(homeDir, '.pm2')
-      const stateFile = path.resolve(pm2Dir, 'online-processes.json')
-
-      // Ensure the resolved stateFile path is strictly within the expected PM2 directory
-      const normalizedPm2Dir = path.resolve(pm2Dir) + path.sep
-      const normalizedStateFile = path.resolve(stateFile)
-      if (
-        !normalizedStateFile.startsWith(normalizedPm2Dir) &&
-        normalizedStateFile !== normalizedPm2Dir
-      ) {
-        throw new Error('Invalid state file path')
-      }
-
-      if (fs.existsSync(stateFile)) {
-        try {
-          const onlineProcesses = JSON.parse(
-            fs.readFileSync(stateFile, 'utf-8'),
-          )
-          console.log('Restoring previously online processes...')
-          for (const processName of onlineProcesses) {
-            try {
-              await runCommand(`pm2 restart ${processName}`)
-            } catch (err) {
-              console.log(`Could not restart ${processName}: ${err}`)
-            }
-          }
-          fs.unlinkSync(stateFile)
-        } catch (err) {
-          console.log('Could not restore online processes state:', err)
-        }
-      }
-    } else {
-      console.log('No PM2 dump file found. Skipping resurrection.')
     }
 
-    // Get current process list
-    console.log('Getting current PM2 process list...')
-    const processes = await checkPm2Apps()
-    console.log(
-      'Current processes:',
-      processes.map((p) => `${p.name}:${p.status}`),
-    )
-
-    // Handle EAST application (single consolidated logic)
-    const east = processes.find((p) => p.name === 'EAST')
-    if (east) {
-      if (east.status !== 'online') {
-        console.log('Starting EAST process...')
-        try {
-          await runCommand('pm2 start "EAST"')
-        } catch {
-          console.log('Start failed, restarting EAST...')
-          try {
-            await runCommand('pm2 restart "EAST"')
-          } catch {
-            console.log('Restart failed, recreating EAST...')
-            await runCommand('pm2 delete "EAST"')
-            await runCommand('pm2 start npm --name "EAST" -- start')
+    if (fs.existsSync(PID_FILE)) {
+      try {
+        const existingPid = parseInt(
+          fs.readFileSync(PID_FILE, 'utf-8').trim(),
+          10,
+        )
+        if (existingPid && isProcessRunning(existingPid)) {
+          console.log(`Stopping existing EAST process (PID: ${existingPid})...`)
+          if (isWindows) {
+            try {
+              execSync(`taskkill /F /T /PID ${existingPid}`, {
+                stdio: 'ignore',
+              })
+            } catch {
+              // Process may have already exited
+            }
+          } else {
+            try {
+              process.kill(-existingPid, 'SIGTERM')
+            } catch {
+              try {
+                process.kill(existingPid, 'SIGTERM')
+              } catch {
+                // Process may have already exited
+              }
+            }
           }
+          // Wait a moment for process to clean up
+          await new Promise((resolve) => setTimeout(() => resolve(), 1000))
         }
-      } else {
-        console.log('EAST is already running')
+      } catch {
+        // PID file may be corrupt, continue
+      }
+    }
+
+    // Start the EAST application as a detached background process
+    console.log('Starting EAST application...')
+    const logDir = path.join(process.cwd(), '.logs')
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true })
+    }
+
+    const outLog = fs.openSync(path.join(logDir, 'east-out.log'), 'a')
+    const errLog = fs.openSync(path.join(logDir, 'east-err.log'), 'a')
+
+    // Spawn next start directly so child.pid is the actual server process.
+    const nextScript = path.join(
+      process.cwd(),
+      'node_modules',
+      'next',
+      'dist',
+      'bin',
+      'next',
+    )
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'),
+    )
+    const startScriptMatch = (pkg.scripts?.start ?? '').match(/next\s+(.+)$/)
+    const nextArgs = startScriptMatch
+      ? startScriptMatch[1].trim().split(/\s+/)
+      : ['start', '-p', '8080']
+
+    const child = spawn(process.execPath, [nextScript, ...nextArgs], {
+      detached: true,
+      stdio: ['ignore', outLog, errLog],
+      cwd: process.cwd(),
+      env: { ...process.env, NODE_OPTIONS: '--no-deprecation' },
+      shell: isWindows ? true : false,
+    })
+
+    child.on('error', (err) => {
+      console.error('Failed to start EAST application:', err.message)
+      process.exit(1)
+    })
+
+    // Save PID to file
+    fs.writeFileSync(PID_FILE, String(child.pid), 'utf-8')
+    console.log(`EAST application started (PID: ${child.pid})`)
+    console.log(`Logs: ${logDir}`)
+
+    // Allow parent to exit independently
+    child.unref()
+
+    // Recover workers that had a non-null PID but are no longer running (e.g. after a reboot)
+    // These are workers that were running but were never stopped cleanly via stop.mjs
+    if (fs.existsSync(PROCESSES_DIR)) {
+      let processFiles = []
+      try {
+        processFiles = fs
+          .readdirSync(PROCESSES_DIR)
+          .filter((f) => f.endsWith('.json'))
+      } catch {
+        // ignore
+      }
+
+      for (const file of processFiles) {
+        const filePath = path.join(PROCESSES_DIR, file)
+        let info
+        try {
+          info = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+        } catch {
+          continue
+        }
+
+        // pid is non-null but process is not running → it died unexpectedly (reboot/crash)
+        if (!info.pid) continue
+        let alive = false
+        try {
+          process.kill(info.pid, 0)
+          alive = true
+        } catch {
+          // not running
+        }
+        if (alive) continue
+        if (!info.interpreter || !info.script) continue
+        if (!fs.existsSync(info.interpreter) || !fs.existsSync(info.script))
+          continue
+
+        const workerName = file.replace(/\.json$/, '')
+        console.log(
+          `Recovering worker ${workerName} after unexpected shutdown...`,
+        )
+        const workerOut = fs.openSync(
+          path.join(logDir, `${workerName}-out.log`),
+          'a',
+        )
+        const workerErr = fs.openSync(
+          path.join(logDir, `${workerName}-error.log`),
+          'a',
+        )
+
+        const recoveredChild = spawn(
+          info.interpreter.toString(),
+          [info.script.toString(), ...(info.args || [])],
+          {
+            detached: true,
+            stdio: ['ignore', workerOut, workerErr],
+            cwd: process.cwd(),
+            shell: false,
+          },
+        )
+
+        recoveredChild.on('error', (err) => {
+          console.error(
+            `Failed to recover worker ${workerName}: ${err.message}`,
+          )
+        })
+
+        info.pid = recoveredChild.pid ?? null
+        try {
+          fs.writeFileSync(filePath, JSON.stringify(info, null, 2), 'utf-8')
+        } catch {
+          // ignore
+        }
+        console.log(
+          `Worker ${workerName} recovered (PID: ${recoveredChild.pid})`,
+        )
+        recoveredChild.unref()
+      }
+    }
+
+    // Restart worker processes that were running before the last clean stop
+    if (fs.existsSync(RUNNING_WORKERS_FILE)) {
+      let runningWorkers = []
+      try {
+        runningWorkers = JSON.parse(
+          fs.readFileSync(RUNNING_WORKERS_FILE, 'utf-8'),
+        )
+      } catch {
+        // ignore corrupt file
+      }
+
+      for (const workerName of runningWorkers) {
+        const infoPath = path.join(PROCESSES_DIR, `${workerName}.json`)
+        if (!fs.existsSync(infoPath)) {
+          console.log(`Skipping worker ${workerName}: no saved process info.`)
+          continue
+        }
+
+        let info
+        try {
+          info = JSON.parse(fs.readFileSync(infoPath, 'utf-8'))
+        } catch {
+          console.log(
+            `Skipping worker ${workerName}: could not read process info.`,
+          )
+          continue
+        }
+
+        if (!info.interpreter || !info.script) {
+          console.log(
+            `Skipping worker ${workerName}: missing interpreter or script path.`,
+          )
+          continue
+        }
+
+        if (!fs.existsSync(info.interpreter) || !fs.existsSync(info.script)) {
+          console.log(
+            `Skipping worker ${workerName}: interpreter or script not found on disk.`,
+          )
+          continue
+        }
+
+        console.log(`Restarting worker process ${workerName}...`)
+        const workerOut = fs.openSync(
+          path.join(logDir, `${workerName}-out.log`),
+          'a',
+        )
+        const workerErr = fs.openSync(
+          path.join(logDir, `${workerName}-error.log`),
+          'a',
+        )
+
+        const workerChild = spawn(
+          info.interpreter.toString(),
+          [info.script.toString(), ...(info.args || [])],
+          {
+            detached: true,
+            stdio: ['ignore', workerOut, workerErr],
+            cwd: process.cwd(),
+            shell: false,
+          },
+        )
+
+        workerChild.on('error', (err) => {
+          console.error(
+            `Failed to restart worker ${workerName}: ${err.message}`,
+          )
+        })
+
+        info.pid = workerChild.pid ?? null
+        try {
+          fs.writeFileSync(infoPath, JSON.stringify(info, null, 2), 'utf-8')
+        } catch {
+          // ignore
+        }
+        console.log(`Worker ${workerName} restarted (PID: ${workerChild.pid})`)
+        workerChild.unref()
+      }
+
+      try {
+        fs.unlinkSync(RUNNING_WORKERS_FILE)
+      } catch {
+        // ignore
       }
     } else {
-      console.log('EAST application not found. Starting EAST...')
-      await runCommand('pm2 start npm --name "EAST" -- start')
+      console.log('No previously running workers to restart.')
     }
 
     // Handle custom-application-profiling service
-    const profiling = processes.find(
-      (p) => p.name === 'custom-application-profiling',
-    )
     const profilingScriptPath = path.resolve(
       process.cwd(),
       '..',
@@ -348,57 +435,90 @@ const runInstallBuildStart = async () => {
       'python',
     )
 
-    if (fs.existsSync(profilingScriptPath)) {
-      if (profiling) {
-        if (profiling.status !== 'online') {
-          console.log(
-            'Deleting and recreating Application Profiling process...',
-          )
-          try {
-            await runCommand('pm2 delete "custom-application-profiling"')
-          } catch (err) {
-            console.log('Delete failed (process might not exist):', err)
-          }
+    if (
+      fs.existsSync(profilingScriptPath) &&
+      fs.existsSync(profilingPythonPath)
+    ) {
+      const profilingInfoPath = path.join(
+        PROCESSES_DIR,
+        'custom-application-profiling.json',
+      )
 
-          // Start fresh with correct syntax
-          console.log('Starting Application Profiling service with PM2...')
-          const startCommand = `pm2 start ${profilingPythonPath} --name custom-application-profiling -- ${profilingScriptPath} api --host 127.0.0.1 --port 6240`
-          console.log(`Executing: ${startCommand}`)
-          await runCommand(startCommand)
-          console.log('Waiting for baseline establishment...')
-          await new Promise((resolve) => setTimeout(() => resolve(), 5000))
-        } else {
-          console.log('Application Profiling is already running')
+      let profilingAlreadyRunning = false
+      if (fs.existsSync(profilingInfoPath)) {
+        try {
+          const profilingInfo = JSON.parse(
+            fs.readFileSync(profilingInfoPath, 'utf-8'),
+          )
+          if (profilingInfo.pid) {
+            try {
+              process.kill(profilingInfo.pid, 0)
+              profilingAlreadyRunning = true
+              console.log('Application Profiling is already running')
+            } catch {
+              // not running
+            }
+          }
+        } catch {
+          // ignore corrupt file
         }
-      } else {
-        console.log('Starting Application Profiling service with PM2...')
-        // FIXED: Correct PM2 command syntax
-        const startCommand = `pm2 start ${profilingPythonPath} --name custom-application-profiling -- ${profilingScriptPath} api --host 127.0.0.1 --port 6240`
-        console.log(`Executing: ${startCommand}`)
-        await runCommand(startCommand)
+      }
+
+      if (!profilingAlreadyRunning) {
+        console.log('Starting Application Profiling service...')
+        if (!fs.existsSync(PROCESSES_DIR)) {
+          fs.mkdirSync(PROCESSES_DIR, { recursive: true })
+        }
+        const profilingOut = fs.openSync(
+          path.join(logDir, 'custom-application-profiling-out.log'),
+          'a',
+        )
+        const profilingErr = fs.openSync(
+          path.join(logDir, 'custom-application-profiling-error.log'),
+          'a',
+        )
+
+        const profilingChild = spawn(
+          profilingPythonPath,
+          [profilingScriptPath, 'api', '--host', '127.0.0.1', '--port', '6240'],
+          {
+            detached: true,
+            stdio: ['ignore', profilingOut, profilingErr],
+            cwd: process.cwd(),
+            shell: false,
+          },
+        )
+
+        profilingChild.on('error', (err) => {
+          console.error(`Failed to start Application Profiling: ${err.message}`)
+        })
+
+        const profilingSaveInfo = {
+          pid: profilingChild.pid ?? null,
+          interpreter: profilingPythonPath,
+          script: profilingScriptPath,
+          args: ['api', '--host', '127.0.0.1', '--port', '6240'],
+        }
+        try {
+          fs.writeFileSync(
+            profilingInfoPath,
+            JSON.stringify(profilingSaveInfo, null, 2),
+            'utf-8',
+          )
+        } catch {
+          // ignore
+        }
+        console.log(
+          `Application Profiling started (PID: ${profilingChild.pid})`,
+        )
         console.log('Waiting for baseline establishment...')
         await new Promise((resolve) => setTimeout(() => resolve(), 5000))
+        profilingChild.unref()
       }
     } else {
       console.log('Application Profiling worker not found, skipping...')
     }
 
-    // Get updated process list and handle other processes
-    const updatedProcesses = await checkPm2Apps()
-    const mainServices = ['custom-application-profiling', 'EAST']
-
-    for (const proc of updatedProcesses) {
-      if (!mainServices.includes(proc.name) && proc.status !== 'online') {
-        try {
-          console.log(`Starting ${proc.name}...`)
-          await runCommand(`pm2 start ${proc.name}`)
-        } catch (err) {
-          console.log(`Failed to start ${proc.name}: ${err}`)
-        }
-      }
-    }
-
-    await runCommand('pm2 save')
     console.log('All services started successfully!')
   } catch (error) {
     console.error('An error occurred:', error)

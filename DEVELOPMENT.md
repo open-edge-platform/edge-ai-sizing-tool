@@ -50,27 +50,21 @@ npm run setup:workers
 
 > **Notes:** This step is optional.
 
-Use PM2 to monitor worker services:
+Use the `.logs` and `.processes` directories to monitor worker services:
 
 ```bash
-# [optional] install dependency
-npm install -g pm2
+# list all tracked processes
+ls frontend/.processes/
 
-# list all processes
-pm2 l
+# view a specific process info (includes PID)
+cat frontend/.processes/<name>.json
 
-# stream all logs
-pm2 logs
+# stream output logs for a specific worker
+tail -f frontend/.logs/<name>-out.log
 
-# stream specific process id
-pm2 logs [id|name|namespace]
+# stream error logs for a specific worker
+tail -f frontend/.logs/<name>-error.log
 
-# Stop all the processes
-pm2 stop all
-
-# Save the current list and state of all PM2-managed processes to a dump file for later restoration
-pm2 save
-
-# Resurrect all the processes 
-pm2 resurrect
+# Stop the application
+./stop.sh
 ```

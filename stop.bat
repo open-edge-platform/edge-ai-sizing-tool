@@ -20,13 +20,10 @@ set "REPO_ROOT=%~dp0"
 REM Remove trailing backslash if present
 if "%REPO_ROOT:~-1%"=="\" set "REPO_ROOT=%REPO_ROOT:~0,-1%"
 
-REM Prepend thirdparty\nodejs to PATH for portable node/npm/pm2
+REM Prepend thirdparty\nodejs to PATH for portable node/npm
 set "PATH=%REPO_ROOT%\thirdparty\nodejs;%PATH%"
 
-REM Set PM2_HOME to repo-local directory so PM2 state is portable
-set "PM2_HOME=%REPO_ROOT%\.pm2"
-
-REM Set explicit paths to npm and pm2 in thirdparty
+REM Set explicit paths to npm and node in thirdparty
 set "NPM=%REPO_ROOT%\thirdparty\nodejs\npm.cmd"
 set "NODE=%REPO_ROOT%\thirdparty\nodejs\node.exe"
 
