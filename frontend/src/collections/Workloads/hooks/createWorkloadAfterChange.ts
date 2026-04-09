@@ -3,7 +3,11 @@
 
 import { Workload } from '@/payload-types'
 import { CollectionAfterChangeHook } from 'payload'
-import { deletePm2Process, startPm2Process, stopPm2Process } from '@/lib/pm2Lib'
+import {
+  deleteWorkerProcess,
+  startWorkerProcess,
+  stopWorkerProcess,
+} from '@/lib/processLib'
 import { normalizeProcessName, normalizeUseCase } from '@/lib/utils'
 import path from 'path'
 
@@ -36,9 +40,9 @@ function isDLStreamerMetadata(metadata: unknown): metadata is WorkloadMetadata {
 export const createWorkloadAfterChange: CollectionAfterChangeHook<
   Workload
 > = async ({ doc, previousDoc, operation }) => {
-  const newPm2Name = `${normalizeUseCase(doc.usecase)}-${doc.id}`
+  const newProcessName = `${normalizeUseCase(doc.usecase)}-${doc.id}`
 
-  const prevPm2Name =
+  const prevProcessName =
     previousDoc && previousDoc.id
       ? previousDoc.usecase
         ? `${normalizeUseCase(previousDoc.usecase)}-${previousDoc.id}`
@@ -47,28 +51,28 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
 
   if (previousDoc.status === 'active' && doc.status === 'inactive') {
     try {
-      await stopPm2Process(newPm2Name)
+      await stopWorkerProcess(newProcessName)
     } catch (error) {
-      console.error(`Failed to stop PM2 process ${newPm2Name}:`, error)
+      console.error(`Failed to stop worker process ${newProcessName}:`, error)
     }
   } else if (previousDoc.status === 'inactive' && doc.status === 'active') {
     try {
-      await startPm2Process(newPm2Name, '', '')
+      await startWorkerProcess(newProcessName, '', '')
     } catch (error) {
-      console.error(`Failed to start PM2 process ${newPm2Name}:`, error)
+      console.error(`Failed to start worker process ${newProcessName}:`, error)
     }
   } else if (doc.status === 'prepare') {
     if (
       operation === 'update' &&
       doc.id === previousDoc.id &&
-      prevPm2Name !== undefined
+      prevProcessName !== undefined
     ) {
       try {
-        await stopPm2Process(prevPm2Name)
-        await deletePm2Process(prevPm2Name)
+        await stopWorkerProcess(prevProcessName)
+        await deleteWorkerProcess(prevProcessName)
       } catch (error) {
         console.error(
-          `Failed to stop/delete PM2 process ${prevPm2Name}:`,
+          `Failed to stop/delete worker process ${prevProcessName}:`,
           error,
         )
       }
@@ -171,9 +175,9 @@ export const createWorkloadAfterChange: CollectionAfterChangeHook<
     }
 
     try {
-      await startPm2Process(newPm2Name, usecaseName, params)
+      await startWorkerProcess(newProcessName, usecaseName, params)
     } catch (error) {
-      console.error(`Failed to start PM2 process ${newPm2Name}:`, error)
+      console.error(`Failed to start worker process ${newProcessName}:`, error)
     }
   }
   return doc

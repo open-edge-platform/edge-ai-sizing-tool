@@ -29,7 +29,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
+.env
 
 # vercel
 .vercel
@@ -38,7 +38,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.env
-
-/media
+# database
 db.sqlite
+
+# logs
+.logs
+.processes
+
+# local pid files
+.east.pid
+.east.running-workers
