@@ -120,7 +120,28 @@ const runInstallBuildStart = async () => {
     // Check if `npm install` needs to run
     if (!checkNodeModules()) {
       console.log('Running npm install...')
-      await runCommand('npm install')
+      await runCommand('npm install --ignore-scripts')
+
+      const binaryManagerPath = path.join(
+        process.cwd(),
+        'node_modules',
+        'openvino-node',
+        'scripts',
+        'lib',
+        'binary-manager.js',
+      )
+      if (fs.existsSync(binaryManagerPath)) {
+        let content = fs.readFileSync(binaryManagerPath, 'utf-8')
+        content = content.replace(
+          '.extract(dest)',
+          '.extract(dest, { validateSymlinks: false })',
+        )
+        fs.writeFileSync(binaryManagerPath, content, 'utf-8')
+        console.log('Downloading OpenVINO runtime...')
+        await runCommand(
+          'node node_modules/openvino-node/scripts/download-runtime.js --ignore-if-exists',
+        )
+      }
     } else {
       console.log('Skipping npm install (node_modules already exists)')
     }
