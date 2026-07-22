@@ -6,6 +6,6 @@ uvicorn==0.40.0
 fastapi==0.128.0
 numpy==2.2.6
 tqdm==4.67.1
-setuptools==78.1.1
+setuptools==83.0.0
 requests>=2.25.0
 pillow==12.2.0
