@@ -260,8 +260,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
           setModelSelectionType('modelRepo')
           setRepoPlatform(
             (getRepoPlatform(workload.metadata) ?? 'huggingface') as
-              | 'huggingface'
-              | 'modelscope',
+              'huggingface' | 'modelscope',
           )
         } else {
           const usecaseObj = metadata.tasks[workload.task as TaskType]?.usecase
@@ -294,8 +293,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
             setModelSelectionType('modelRepo')
             setRepoPlatform(
               (getRepoPlatform(workload.metadata) ?? 'huggingface') as
-                | 'huggingface'
-                | 'modelscope',
+                'huggingface' | 'modelscope',
             )
           } else {
             setModelSelectionType('predefined')
@@ -1630,8 +1628,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                     onChange={(e) =>
                                       handleRepoPlatformChange(
                                         e.target.value as
-                                          | 'huggingface'
-                                          | 'modelscope',
+                                          'huggingface' | 'modelscope',
                                       )
                                     }
                                     className="h-4 w-4"
@@ -1653,8 +1650,7 @@ export default function WorkloadForm({ workload }: { workload?: Workload }) {
                                     onChange={(e) =>
                                       handleRepoPlatformChange(
                                         e.target.value as
-                                          | 'huggingface'
-                                          | 'modelscope',
+                                          'huggingface' | 'modelscope',
                                       )
                                     }
                                     className="h-4 w-4"

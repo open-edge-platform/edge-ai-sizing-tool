@@ -18,8 +18,7 @@ type WorkloadFiles = {
 }
 
 type PortValidationResult =
-  | { ok: true; port: number }
-  | { ok: false; message: string }
+  { ok: true; port: number } | { ok: false; message: string }
 
 function isValidWorkloadId(value: string | null): value is string {
   return value !== null && WORKLOAD_ID_RE.test(value)
