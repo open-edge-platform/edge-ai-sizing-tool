@@ -2,13 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 type ChartType =
-  | 'memory'
-  | 'cpu'
-  | 'gpu'
-  | 'npu'
-  | 'gpu-memory'
-  | 'power'
-  | 'n/a'
+  'memory' | 'cpu' | 'gpu' | 'npu' | 'gpu-memory' | 'power' | 'n/a'
 
 export interface ChartItem {
   id: string
