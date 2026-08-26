@@ -79,7 +79,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.58.1",
     "react-resizable-panels": "^4.7.5",
-    "recharts": "^2.15.3",
+    "recharts": "^3.10.1",
     "sharp": "^0.35.3",
     "sonner": "^2.0.5",
     "swr": "^2.3.3",
