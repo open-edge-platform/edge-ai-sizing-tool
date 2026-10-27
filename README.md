@@ -197,7 +197,7 @@ Upload your own custom model as a ZIP file.
   my-model.zip
   ├── model.xml
   ├── model.bin
-  └── labels.txt   # (optional)
+  └── labels.txt  # (optional)
   ```
 
 - Only OpenVINO models are supported. Ensure your model is exported to OpenVINO IR format before uploading.
