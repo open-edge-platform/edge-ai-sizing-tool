@@ -64,7 +64,7 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
 
   const metadata = doc.metadata as WorkloadMetadata | null
 
-  const hasCustomModel =
+  const customModel =
     doc.model === 'custom_model' &&
     metadata !== null &&
     typeof metadata === 'object' &&
@@ -73,10 +73,12 @@ export const deleteWorkloadAfterDelete: CollectionAfterDeleteHook<
     'name' in metadata.customModel &&
     metadata.customModel.name &&
     metadata.customModel.type === 'file'
+      ? metadata.customModel
+      : null
 
-  if (hasCustomModel) {
+  if (customModel !== null) {
     const basePath = path.resolve(MODELS_PATH)
-    const rawName = path.basename(metadata!.customModel!.name)
+    const rawName = path.basename(customModel.name)
     const candidatePath = path.resolve(path.join(basePath, rawName)) // Zip file path
     const candidateExtractedPath = path.resolve(
       path.join(basePath, rawName.replace(/\.zip$/i, '')),
